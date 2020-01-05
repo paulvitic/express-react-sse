@@ -10,6 +10,7 @@ const sid = () => {
 
 const initialState = {
     sid: sid(),
+    listening: false,
     theme: { primary: 'blue' },
     prodDevProjects: [{
         id: "",

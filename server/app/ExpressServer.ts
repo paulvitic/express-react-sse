@@ -1,4 +1,4 @@
-import express, {Application} from 'express';
+import express, {Application, Response} from 'express';
 import path from 'path';
 import bodyParser from 'body-parser';
 import http, {Server} from 'http';
@@ -7,34 +7,13 @@ import os from 'os';
 import installApiDocs from './apiDoc';
 import cookieParser from 'cookie-parser';
 import sessionConfig from "./sessionConfig";
-import WebSocketServer from "./WebSocketServer";
 import LogFactory from "./LogFactory";
 import session, {Store} from "express-session";
 import errorHandler from "./errorHandler";
 import sessionCounter from "./sessionCounter";
 import examplesRouter from "../api/controllers/examples/router";
-
-
-const addWebsocket = (server: Server): Promise<WebSocketServer> => {
-    return new Promise<WebSocketServer>((resolve, reject) => {
-        new WebSocketServer(server)
-            .init()
-            .then((wss) => {
-                resolve(wss);
-            });
-    });
-};
-
-const createServer = (app: Application): Promise<Server> => {
-    return new Promise<Server>((resolve, reject) => {
-        const server = http.createServer(app);
-        addWebsocket(server)
-            .then((wss) => {
-                app.set("wss", wss);
-                resolve(server);
-            })
-    });
-};
+import uuid from "../domain/uuid";
+import serverSentEvents from "./serverSentEvents";
 
 const installMiddleware = (app: Application): Promise<void> => {
     return new Promise<void>((resolve, reject) => {
@@ -52,7 +31,8 @@ const installMiddleware = (app: Application): Promise<void> => {
 };
 
 const addRoutes = (app: Application): Promise<void> => {
-    return new Promise<void>((resolve, reject) => {
+    return new Promise<void>((resolve) => {
+        app.get('/events', serverSentEvents(app));
         app.use('/api/v1/examples', examplesRouter);
         resolve();
     })
@@ -69,6 +49,8 @@ export default class ExpressServer {
         this.app = express();
         this.app.set('sessionStore', sessionStore);
         this.app.set('sessionCookieTtl', sessionCookieTtl);
+        this.app.set('instanceId', uuid());
+        this.app.set('sseClients', new Map<string, Response>());
         this.app.enable('case sensitive routing');
         this.app.enable('strict routing');
     }
@@ -96,17 +78,15 @@ export default class ExpressServer {
                 this.log.info(m);
             });
 
-            createServer(this.app)
-                .then((server) => {
-                    server.listen(this.port, () => {
-                        this.log.info(`up and running in ${process.env.NODE_ENV || 'development'} @: ${os.hostname()} on port: ${this.port}}`);
-                        resolve(this);
-                    });
-                })
-                .catch(e => {
-                    this.log.error(`Error while creating server : ${e}`);
-                    reject(e);
+            try {
+                http.createServer(this.app).listen(this.port,() => {
+                    this.log.info(`up and running in ${process.env.NODE_ENV || 'development'} @: ${os.hostname()} on port: ${this.port}}`);
+                    resolve(this);
                 });
+            } catch (e) {
+                this.log.error(`error while starting server: ${e}`)
+                reject(e);
+            }
         })
     };
 }

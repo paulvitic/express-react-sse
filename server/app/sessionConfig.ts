@@ -1,5 +1,5 @@
 import {Application} from "express";
-import uuid from "uuid";
+import uuid from "../domain/uuid";
 
 export default (app: Application) => {
 
@@ -13,7 +13,7 @@ export default (app: Application) => {
             maxAge: app.get("sessionCookieTtl")
         },
         genid: function(req) {
-            return uuid.v4();
+            return `${app.get("instanceId")}:${uuid()}`;
         },
         saveUninitialized: true,
         resave: false,

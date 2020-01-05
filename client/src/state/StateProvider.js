@@ -1,8 +1,7 @@
-import React, {createContext, useCallback, useContext, useReducer, useMemo} from 'react';
+import React, {createContext, useEffect, useContext, useReducer, useMemo} from 'react';
 import {mainReducer} from "../reducers";
-import {createSocket} from "./webSocket";
-import Cookie from "js-cookie";
-import {CHANGE_THEME, DO_NOTHING} from "../reducers/actionTypes";
+import {TOGGLE_LISTENING} from "../reducers/actionTypes";
+import {serverSentEvents} from "./serverSentEvents";
 
 const StateContext = createContext();
 
@@ -10,18 +9,22 @@ const StateContext = createContext();
 // and returns the current state paired with a dispatch method.
 export const StateProvider = ({initialState, children}) => {
     console.log("state provider invoked.");
+    const [state, dispatch] = useReducer(mainReducer, initialState);
 
-    const ws = useMemo(() => {
-        console.log("invoked useMemo create web socket");
-        return createSocket();
-    }, []);
+    const sse = useMemo(() => {
+        console.log(`sse usememo invoked.`);
+        return serverSentEvents(dispatch);
+    }, [dispatch]);
 
-    const [state, dispatch] = useReducer(mainReducer(ws), initialState);
+    const { listening } = state;
 
-    useMemo (()=> {
-        console.log("invoked useMemo ws on message");
-        ws.onmessage(dispatch);
-    }, [ws, dispatch]);
+    useEffect( () => {
+        console.log(`sse useeffect invoked.`);
+        if (!listening) {
+            console.log(`calling sse connect`);
+            sse.connect();
+        }
+    }, [sse, listening]);
 
     return (
         <StateContext.Provider value={[state, dispatch]}>

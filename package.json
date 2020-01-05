@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node dist/index.js",
     "compile": "ts-node build.ts && tsc",
-    "dev": "nodemon server/index.ts",
+    "dev": "docker-compose -f .docker/docker-compose.yml up -d && nodemon server/index.ts",
     "dev:debug": "nodemon --exec 'node -r ts-node/register --inspect-brk' server/index.ts",
     "lint": "tsc --noEmit && eslint -c .eslintrc.js '{server, test}/*.{js,ts,tsx}' --quiet",
     "lint:fix": "tsc --noEmit && eslint -c .eslintrc.js '{server, test}/*.{js,ts,tsx}' --quiet --fix",

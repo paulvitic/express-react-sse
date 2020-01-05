@@ -1,21 +1,22 @@
-import { themeReducer } from './themeReducer';
-import {DO_NOTHING} from "./actionTypes";
+import {themeReducer} from './themeReducer';
+import {DO_NOTHING, TOGGLE_LISTENING} from "./actionTypes";
+import {sseReducer} from "./sseReducer";
 
-export const mainReducer = (webSocket) => {
-    return (state, action) => {
-        // middleware goes here, i.e calling analytics service, etc.
-        console.log(`state is ${JSON.stringify(state)}, action is ${JSON.stringify(action)}`);
+export const mainReducer = (state, action) => {
+    // middleware goes here, i.e calling analytics service, etc.
+    console.log(`state is ${JSON.stringify(state)}, action is ${JSON.stringify(action)}`);
 
-        const { theme } = state;
+    const {listening, theme} = state;
 
-        if(action.type === DO_NOTHING){
-            webSocket.send(JSON.stringify(action));
+    switch (action.type) {
+        case DO_NOTHING:
             return state;
-        } else {
+        default:
             return {
                 ...state,
                 theme: themeReducer(theme, action),
+                listening: sseReducer(listening, action),
             };
-        }
     }
 };
+
