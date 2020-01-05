@@ -19,7 +19,6 @@ export const serverSentEvents = (dispatch) => {
             connTryCount++;
             if (connTryCount < 5){
                 sse = new EventSource('http://localhost:3000/events');
-                console.log(`sse state ${sse.readyState}`);
                 sse.onerror = () => {
                     console.log(`sse error`);
                     close();

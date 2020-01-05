@@ -1,4 +1,4 @@
-import React, {createContext, useEffect, useContext, useReducer, useMemo} from 'react';
+import React, {createContext, useEffect, useContext, useReducer, useState} from 'react';
 import {mainReducer} from "../reducers";
 import {TOGGLE_LISTENING} from "../reducers/actionTypes";
 import {serverSentEvents} from "./serverSentEvents";
@@ -10,21 +10,19 @@ const StateContext = createContext();
 export const StateProvider = ({initialState, children}) => {
     console.log("state provider invoked.");
     const [state, dispatch] = useReducer(mainReducer, initialState);
-
-    const sse = useMemo(() => {
-        console.log(`sse usememo invoked.`);
-        return serverSentEvents(dispatch);
-    }, [dispatch]);
-
-    const { listening } = state;
+    const {listening} = state;
 
     useEffect( () => {
         console.log(`sse useeffect invoked.`);
+        const sse = serverSentEvents(dispatch);
         if (!listening) {
             console.log(`calling sse connect`);
             sse.connect();
         }
-    }, [sse, listening]);
+        return () => {
+            return sse.close
+        }
+    }, [listening, dispatch]);
 
     return (
         <StateContext.Provider value={[state, dispatch]}>
