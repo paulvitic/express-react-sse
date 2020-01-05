@@ -1,5 +1,5 @@
 import {themeReducer} from './themeReducer';
-import {DO_NOTHING, TOGGLE_LISTENING} from "./actionTypes";
+import { DO_NOTHING } from "./actionTypes";
 import {sseReducer} from "./sseReducer";
 
 export const mainReducer = (state, action) => {

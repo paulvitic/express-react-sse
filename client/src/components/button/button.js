@@ -10,8 +10,6 @@ const StyledButton = styled.button`
 const Button = () => {
     const [{ theme }, dispatch] = useStateValue();
 
-    console.log(`theme is ${JSON.stringify(theme)}`);
-
     return (
         <StyledButton
             color={theme.primary}

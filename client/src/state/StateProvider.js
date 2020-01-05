@@ -8,20 +8,15 @@ const StateContext = createContext();
 // useReducer accepts reducer function of type (state, action) => newState,
 // and returns the current state paired with a dispatch method.
 export const StateProvider = ({initialState, children}) => {
-    console.log("state provider invoked.");
     const [state, dispatch] = useReducer(mainReducer, initialState);
-    const {listening} = state;
 
+    const {listening} = state;
     useEffect( () => {
-        console.log(`sse useeffect invoked.`);
         const sse = serverSentEvents(dispatch);
         if (!listening) {
-            console.log(`calling sse connect`);
             sse.connect();
         }
-        return () => {
-            return sse.close
-        }
+        return () => listening ? sse.close() : ()=>{};
     }, [listening, dispatch]);
 
     return (
