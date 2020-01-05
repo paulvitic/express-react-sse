@@ -1,0 +1,33 @@
+{
+  "width": 600,
+  "height": 300,
+  "canvas" : {
+    "margin" : 10
+  },
+  "graph" : {
+    "margin": {
+      "top": 48,
+      "bottom" : 36,
+      "left": 40,
+      "right": 20
+    }
+  },
+  "dailyRate": {
+    "offset": 400
+  },
+  "matchingScore": {
+    "max": 60,
+    "min": 100
+  },
+  "plot": {
+    "size": 32,
+    "label": {
+      "fontSize": 8,
+      "arrowHeight": 10
+    }
+  },
+  "resources" : {
+    "userUrl" : "https://randomuser.me/api?results=",
+    "useRemote": true
+  }
+}
