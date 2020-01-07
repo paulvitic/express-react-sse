@@ -2,22 +2,6 @@ import React from 'react';
 import { createGlobalStyle } from "styled-components";
 import Grid from "./components/grid";
 import {StateProvider} from "./state";
-import Cookie from "js-cookie";
-
-const sid = () => {
-    return Cookie.get("app.sid")
-};
-
-const initialState = {
-    sid: sid(),
-    listening: false,
-    theme: { primary: 'blue' },
-    prodDevProjects: [{
-        id: "",
-        name: "",
-        startDate: ""
-    }]
-};
 
 const GlobalStyle = createGlobalStyle`
   body {
@@ -35,7 +19,7 @@ const GlobalStyle = createGlobalStyle`
 
 const App = () => {
     return(
-        <StateProvider initialState={initialState}>
+        <StateProvider initialState={{}}>
             <GlobalStyle/>
             <Grid/>
         </StateProvider>

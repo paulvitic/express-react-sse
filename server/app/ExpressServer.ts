@@ -32,6 +32,7 @@ const installMiddleware = (app: Application): Promise<void> => {
 
 const addRoutes = (app: Application): Promise<void> => {
     return new Promise<void>((resolve) => {
+        // EventSource API makes a 'GET' request by default
         app.get('/events', serverSentEvents(app));
         app.use('/api/v1/examples', examplesRouter);
         resolve();

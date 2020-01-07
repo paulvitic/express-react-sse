@@ -1,7 +1,6 @@
 import {TOGGLE_LISTENING} from "../reducers/actionTypes";
 
 export const serverSentEvents = (dispatch) => {
-
     let connTryCount = 0;
     let sse = null;
 
@@ -19,19 +18,37 @@ export const serverSentEvents = (dispatch) => {
             console.log("starting server sent events connection");
             connTryCount++;
             if (connTryCount < 5){
-                sse = new EventSource('http://localhost:3000/events');
-                sse.onerror = () => {
-                    console.log(`server sent events connection error`);
-                    close();
-                };
-                sse.onopen = (event) => {
-                    console.log(`server sent events connection opened ${JSON.stringify(event)}`);
-                    dispatch({type:TOGGLE_LISTENING, payload:true});
-                };
-                sse.onmessage = (event) => {
-                    console.log(`sse event received ${JSON.stringify(event)} with data ${event.data}`);
-                    dispatch(JSON.parse(event.data));
-                };
+                //see: https://www.html5rocks.com/en/tutorials/eventsource/basics/
+                if (!!window.EventSource) {
+                    sse = new EventSource('events');
+                    /*sse.addEventListener('message', function(e) {
+                        console.log(e.data);
+                    }, false);
+
+                    sse.addEventListener('open', function(e) {
+                        // Connection was opened.
+                    }, false);
+
+                    sse.addEventListener('error', function(e) {
+                        if (e.readyState === EventSource.CLOSED) {
+                            // Connection was closed.
+                        }
+                    }, false);*/
+                    sse.onerror = () => {
+                        console.log(`server sent events connection error`);
+                        close();
+                    };
+                    sse.onopen = (event) => {
+                        console.log(`server sent events connection opened ${JSON.stringify(event)}`);
+                        dispatch({type:TOGGLE_LISTENING, payload:true});
+                    };
+                    sse.onmessage = (event) => {
+                        console.log(`sse event received ${JSON.stringify(event)} with data ${event.data}`);
+                        dispatch(JSON.parse(event.data));
+                    };
+                } else {
+                    // TODO Result to xhr polling :(
+                }
             }
         }
     }
