@@ -1,3 +1,5 @@
+export const FETCH_SESSION = "FETCH_SESSION";
+export const FETCH_PROJECTS = "FETCH_PROJECTS";
 export const TOGGLE_LISTENING = "TOGGLE_LISTENING";
 export const DO_NOTHING = "DO_NOTHING";
 export const CHANGE_THEME = "CHANGE_THEME";

@@ -1,6 +1,6 @@
 import React from 'react';
 import styled from "styled-components";
-import { useStateValue } from '../../state';
+import { useStateValue } from '../../context';
 import { DO_NOTHING, CHANGE_THEME } from '../../reducers/actionTypes';
 
 const StyledButton = styled.button`

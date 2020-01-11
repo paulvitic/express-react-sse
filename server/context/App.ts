@@ -1,15 +1,28 @@
 import ExpressServer from "./ExpressServer";
 import LogFactory from "./LogFactory";
 import config, {Environment} from "./config";
-import RedisClient from "./RedisClient";
+import RedisCache from "./RedisCache";
 import RabbitClient from "./RabbitClient";
 import PostgresClient from "./PostgresClient";
+import {RequestHandler} from "express";
+import {ExamplesResource} from "../infra/rest";
+import ExamplesService from "../application/ExamplesService";
+import {SessionsResource} from "../infra/rest/SessionsResource";
+import SessionsQueryService from "../application/SessionsQueryService";
 
 const exit = process.exit;
 
 type Context = {
     clients: Map<string, any>
     server: ExpressServer | undefined,
+    application: {
+        services: []
+    },
+    infrastructure: {
+        rest: {
+            resources : Map<string, RequestHandler>
+        }
+    }
 }
 
 export default class App {
@@ -17,7 +30,15 @@ export default class App {
     private env: Environment;
     private context: Context = {
         clients: new Map<string, any>(),
-        server: undefined
+        server: undefined,
+        application: {
+            services: []
+        },
+        infrastructure: {
+            rest: {
+                resources : new Map<string, RequestHandler>(),
+            }
+        }
     };
 
     public start = () => {
@@ -74,7 +95,7 @@ export default class App {
                 .then((postgresClient) => {this.context.clients.set('postgresClient', postgresClient);})
                 .catch((err) => {reject(err)});
 
-            const redisClient = await new RedisClient(
+            const redisClient = await new RedisCache(
                 this.env.REDIS_HOST,
                 this.env.REDIS_PORT,
                 this.env.REDIS_PASS,
@@ -89,11 +110,22 @@ export default class App {
     };
 
     private initServer = (): Promise<void> => {
+        let {resources} = this.context.infrastructure.rest;
+
+        let examples = new ExamplesResource(new ExamplesService(undefined));
+        resources.set("examplesCreate", examples.create());
+        resources.set("examplesAll", examples.all());
+        resources.set("examplesById", examples.byId());
+
+        let sessions = new SessionsResource(new SessionsQueryService(this.context.clients.get('redisClient')));
+        resources.set("sessionsById", sessions.byId);
+
         return new Promise<void>((resolve, reject) => {
             new ExpressServer(
                 this.env.PORT,
                 this.env.SESSION_COOKIE_TTL,
-                this.context.clients.get('redisClient').sessionStore())
+                this.context.clients.get('redisClient').sessionStore(),
+                resources)
                 .init()
                 .then((server)=> {
                     this.context.server = server;

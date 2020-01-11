@@ -4,6 +4,7 @@ import LogFactory from "./LogFactory";
 const log = LogFactory.get("serverSentEvents");
 
 const serverSentEvents = (app: Application) => {
+    
     return (req: Request, res: Response, next: NextFunction) => {
         const clientId = req.session.id;
         log.info(`server sent events connection called by ${clientId}`);

@@ -1,26 +1,26 @@
+import React, {useEffect} from "react";
 import {TOGGLE_LISTENING} from "../reducers/actionTypes";
 
-export const serverSentEvents = (dispatch) => {
-    let connTryCount = 0;
-    let sse = null;
+const eventSource = (dispatch) => {
+    let connection = null, connTryCount = 0;
 
     function close(){
-        if (sse!==null){
+        if (connection!==null){
             console.log("closing server sent events connection");
-            sse.close();
-            sse = null;
+            connection.close();
+            connection = null;
             dispatch({type:TOGGLE_LISTENING, payload:false});
         }
     }
 
     function connect() {
-        if (sse===null) {
+        if (connection===null) {
             console.log("starting server sent events connection");
             connTryCount++;
             if (connTryCount < 5){
                 //see: https://www.html5rocks.com/en/tutorials/eventsource/basics/
                 if (!!window.EventSource) {
-                    sse = new EventSource('events');
+                    connection = new EventSource('/events');
                     /*sse.addEventListener('message', function(e) {
                         console.log(e.data);
                     }, false);
@@ -34,15 +34,15 @@ export const serverSentEvents = (dispatch) => {
                             // Connection was closed.
                         }
                     }, false);*/
-                    sse.onerror = () => {
+                    connection.onerror = () => {
                         console.log(`server sent events connection error`);
                         close();
                     };
-                    sse.onopen = (event) => {
+                    connection.onopen = (event) => {
                         console.log(`server sent events connection opened ${JSON.stringify(event)}`);
                         dispatch({type:TOGGLE_LISTENING, payload:true});
                     };
-                    sse.onmessage = (event) => {
+                    connection.onmessage = (event) => {
                         console.log(`sse event received ${JSON.stringify(event)} with data ${event.data}`);
                         dispatch(JSON.parse(event.data));
                     };
@@ -57,4 +57,14 @@ export const serverSentEvents = (dispatch) => {
         connect,
         close
     }
+};
+
+export const useStream = (listening, dispatch) => {
+    useEffect( () => {
+        let {close, connect} = eventSource(dispatch);
+        if (!listening) {
+            connect();
+        }
+        return () => !listening ? () => {} : close();
+    }, [listening, dispatch]);
 };

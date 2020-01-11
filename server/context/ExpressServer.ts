@@ -1,7 +1,7 @@
-import express, {Application, Response} from 'express';
+import express, {Application, RequestHandler, Response} from 'express';
 import path from 'path';
 import bodyParser from 'body-parser';
-import http, {Server} from 'http';
+import http from 'http';
 import cors from 'cors';
 import os from 'os';
 import installApiDocs from './apiDoc';
@@ -11,9 +11,9 @@ import LogFactory from "./LogFactory";
 import session, {Store} from "express-session";
 import errorHandler from "./errorHandler";
 import sessionCounter from "./sessionCounter";
-import examplesRouter from "../api/controllers/examples/router";
 import uuid from "../domain/uuid";
 import serverSentEvents from "./serverSentEvents";
+import { ExamplesResource } from "../infra/rest";
 
 const installMiddleware = (app: Application): Promise<void> => {
     return new Promise<void>((resolve, reject) => {
@@ -24,17 +24,20 @@ const installMiddleware = (app: Application): Promise<void> => {
         app.use(cookieParser());
         app.use(session(sessionConfig(app)));
         app.use(sessionCounter());
-        app.use(express.static(`${path.normalize(__dirname + '/../..')}/dist/static`));
         app.use(errorHandler);
         resolve();
     });
 };
 
-const addRoutes = (app: Application): Promise<void> => {
+const addRoutes = (app: Application, resources: Map<string, RequestHandler>): Promise<void> => {
     return new Promise<void>((resolve) => {
-        // EventSource API makes a 'GET' request by default
+        // provide the same static SPA files for all SPA internal routes used
+        app.use("/", express.static(`${path.normalize(__dirname + '/../..')}/dist/static`));
+        app.use("/login", express.static(`${path.normalize(__dirname + '/../..')}/dist/static`));
+        // EventSource API makes a 'GET' request by default, you can not use another HTTP method
         app.get('/events', serverSentEvents(app));
-        app.use('/api/v1/examples', examplesRouter);
+        app.use('/api/v1/sessions', express.Router()
+            .get('/:id', resources.get("sessionsById")));
         resolve();
     })
 };
@@ -46,7 +49,8 @@ export default class ExpressServer {
 
     constructor(private readonly port: number,
                 sessionCookieTtl: number,
-                sessionStore: Store) {
+                sessionStore: session.Store,
+                private readonly resources: Map<string, RequestHandler>) {
         this.app = express();
         this.app.set('sessionStore', sessionStore);
         this.app.set('sessionCookieTtl', sessionCookieTtl);
@@ -64,7 +68,7 @@ export default class ExpressServer {
                 reject(e);
             });
 
-            await addRoutes(this.app).catch(e => {
+            await addRoutes(this.app, this.resources).catch(e => {
                 this.log.error(`Error while adding routes: ${e}`);
                 reject(e);
             });

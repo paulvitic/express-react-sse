@@ -4,6 +4,7 @@ import LogFactory from "./LogFactory";
 const log = LogFactory.get("sessionCounter");
 
 export default function sessionCounter() {
+    // TODO change this to middleware that intercepts /login path and calls google to authenticate and toggles logged in flag. if not redirects to /login page
     return (req: Request, res: Response, next: NextFunction) => {
         if (req.session.views) {
             req.session.views++;

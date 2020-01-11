@@ -2,9 +2,10 @@ import redis, {RedisClient as Client} from 'redis';
 import session from 'express-session';
 import connectRedis, {RedisStore} from 'connect-redis';
 import LogFactory from "./LogFactory";
+import {KeyValueStore} from "../application/KeyValueStore";
 
-export default class RedisClient {
-    private readonly log = LogFactory.get(RedisClient.name);
+export default class RedisCache implements KeyValueStore<string, string> {
+    private readonly log = LogFactory.get(RedisCache.name);
     private readonly redisClient: Client;
 
     constructor(private readonly host: string,
@@ -15,10 +16,10 @@ export default class RedisClient {
         this.redisClient = redis.createClient({host, port, password});
     }
 
-    public init = (): Promise<RedisClient> => {
+    public init = (): Promise<RedisCache> => {
         this.log.info(`initializing @${this.host}:${this.port}`);
 
-        return new Promise<RedisClient>((resolve, reject) => {
+        return new Promise<RedisCache>((resolve, reject) => {
             this.redisClient.on('error', (err=> {
                 this.log.error('could not connect ', err);
                 reject(err);
@@ -46,7 +47,7 @@ export default class RedisClient {
         this.redisClient.set(key, value);
     };
 
-    public get = (key: string) => {
+    public get = (key: string): Promise<string> => {
         return new Promise((resolve, reject) => {
             this.redisClient.get(key, (err, response) => {
                 if(err) {

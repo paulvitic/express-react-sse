@@ -8,7 +8,7 @@ const datePrefix = (): string => {
     return `${y}${ m<=9 ? '0'+m : m }${ d <= 9 ? '0'+d : d}`;
 };
 
-export class Identity {
+export default class Identity {
 
     private constructor(readonly id: string,
                         readonly name: string | undefined) {
@@ -18,9 +18,9 @@ export class Identity {
         return new Identity(id, name)
     };
 
-    static generate(prefix: string | undefined, name: string | undefined): Identity {
-        const id = prefix ? `${prefix}-${datePrefix()}-${uuid()}` : `${datePrefix()}-${uuid()}`;
-        return new Identity(id, name);
+    static generate(...args: string[]): Identity {
+        const id = args[1] ? `${args[1]}-${datePrefix()}-${uuid()}` : `${datePrefix()}-${uuid()}`;
+        return new Identity(id, args[0]);
     }
 
     equals = (other: Identity) => {

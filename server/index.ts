@@ -1,3 +1,3 @@
-import App from "./app/App";
+import App from "./context/App";
 
 export default new App().start();

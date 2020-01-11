@@ -1,5 +1,5 @@
 import 'mocha';
-import LogFactory from "../../server/app/LogFactory";
+import LogFactory from "../../server/context/LogFactory";
 import winston, {createLogger, format, transports} from 'winston';
 
 describe('LoggerFactory', () => {

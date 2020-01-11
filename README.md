@@ -93,4 +93,7 @@ npm run test:debug
 * [State Management with React Hooks](https://medium.com/simply/state-management-with-react-hooks-and-context-api-at-10-lines-of-code-baf6be8302c)
 * [Express session with Redis](https://codeforgeek.com/using-redis-to-handle-session-in-node-js/)
 * [Express React server-sent-events](https://alligator.io/nodejs/server-sent-events-build-realtime-app/)
+* [React Router](https://reacttraining.com/react-router/web/example/basic)
+* [Basic React Authentication](https://medium.com/better-programming/building-basic-react-authentication-e20a574d5e71)
+* [Redirect Auth](https://reacttraining.com/react-router/web/example/auth-workflow)
 

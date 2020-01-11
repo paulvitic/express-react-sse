@@ -4,12 +4,12 @@ import uuid from "../domain/uuid";
 export default (app: Application) => {
 
     const sess = {
-        name: 'app.sid',
+        name: 'app.sid', // use process.env.SESSION_NAME some obscure name
         secret: process.env.SESSION_SECRET,
         store: app.get('sessionStore'),
         cookie: {
-            httpOnly: false,
-            secure: false,
+            httpOnly: true, // means you can not access session data with javascript
+            secure: false, // make it true for production
             maxAge: app.get("sessionCookieTtl")
         },
         genid: function(req) {

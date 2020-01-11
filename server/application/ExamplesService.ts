@@ -1,4 +1,6 @@
-import LogFactory from "../../app/LogFactory";
+import LogFactory from "../context/LogFactory";
+import ApplicationService from "./ApplicationService";
+import EventBus from "../domain/EventBus";
 
 let id = 0;
 interface Example {
@@ -11,8 +13,13 @@ const examples: Example[] = [
     { id: id++, name: 'example 1' }
 ];
 
-export class ExamplesService {
+export default class ExamplesService extends ApplicationService {
   private readonly log = LogFactory.get(ExamplesService.name);
+
+  constructor (eventBus: EventBus){
+    super(eventBus);
+  }
+
   all(): Promise<Example[]> {
     this.log.info('fetch all examples');
     return Promise.resolve(examples);
@@ -33,5 +40,3 @@ export class ExamplesService {
     return Promise.resolve(example);
   }
 }
-
-export default new ExamplesService();
