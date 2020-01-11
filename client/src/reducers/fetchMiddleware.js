@@ -1,15 +1,30 @@
-import {FETCH_SESSION, FETCH_PROJECTS} from "./actionTypes";
+import {FETCH_USER, FETCH_PROJECTS, AUTH_USER} from "./actionTypes";
 
 export default (dispatch) => {
     return (action) => {
         switch (action.type) {
-            case FETCH_SESSION:
-                fetch(`/api/v1/sessions/${action.payload.id}`)
+            case FETCH_USER:
+                fetch(`/api/v1/users?session=true`)
                     .then((response) => {
                         response.json()
-                            .then((data) => {
-                                console.log(data);
-                                dispatch({type: action.type, payload:data});
+                            .then((body) => {
+                                console.log(body);
+                                dispatch({
+                                    type: action.type,
+                                    payload:{
+                                        isLoading:false,
+                                        ...body,
+                                    }
+                                });
+                            });
+                    });
+                break;
+            case AUTH_USER:
+                fetch(`/api/v1/users/auth?code=${action.payload}`)
+                    .then((response) => {
+                        response.json()
+                            .then((body) => {
+                                dispatch({type: action.type, payload: body})
                             });
                     });
                 break;

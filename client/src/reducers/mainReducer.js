@@ -1,13 +1,13 @@
 import {themeReducer} from './themeReducer';
 import { DO_NOTHING } from "./actionTypes";
 import {sseReducer} from "./sseReducer";
-import {sessionReducer} from "./sessionReducer";
+import {userReducer} from "./userReducer";
 
 export const mainReducer = (state, action) => {
     // middleware goes here, i.e calling analytics service, etc.
     console.log(`state is ${JSON.stringify(state)}, action is ${JSON.stringify(action)}`);
 
-    const {session, listening, theme} = state;
+    const {user, listening, theme} = state;
 
     switch (action.type) {
         case DO_NOTHING:
@@ -15,7 +15,7 @@ export const mainReducer = (state, action) => {
         default:
             return {
                 ...state,
-                session: sessionReducer(session, action),
+                user: userReducer(user, action),
                 theme: themeReducer(theme, action),
                 listening: sseReducer(listening, action),
             };

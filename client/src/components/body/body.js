@@ -1,17 +1,18 @@
 import React, {useEffect} from "react";
 import {Home, Login, PrivateRoute} from "../../pages";
 import {useStateValue} from "../../context";
-import {Route, Switch } from 'react-router-dom';
-import {FETCH_SESSION} from "../../reducers/actionTypes";
+import {Route, Switch, useLocation } from 'react-router-dom';
+import {FETCH_USER, AUTH_USER} from "../../reducers/actionTypes";
+
 
 const Body = () => {
-    const [{ session }, dispatch] = useStateValue();
+    const [{ user }, dispatch] = useStateValue();
 
     useEffect(() => {
-        if (!session.synced) dispatch({type:FETCH_SESSION, payload: session.id});
-    }, [session.synced, dispatch]);
+        if (user.isLoading) dispatch({type:FETCH_USER});
+    }, [user.isLoading, dispatch]);
 
-    if (session.synced) {
+    if (!user.isLoading) {
         return (
             <Switch>
                 <Route path="/login">
@@ -24,7 +25,7 @@ const Body = () => {
         )
     } else {
         return (
-            <h2>getting session info</h2>
+            <h2>Getting user info</h2>
         )
     }
 };

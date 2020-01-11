@@ -96,4 +96,4 @@ npm run test:debug
 * [React Router](https://reacttraining.com/react-router/web/example/basic)
 * [Basic React Authentication](https://medium.com/better-programming/building-basic-react-authentication-e20a574d5e71)
 * [Redirect Auth](https://reacttraining.com/react-router/web/example/auth-workflow)
-
+* [Google Auth](https://medium.com/authpack/easy-google-auth-with-node-js-99ac40b97f4c)

@@ -1,19 +1,23 @@
-import React from "react";
+import React, {useEffect} from "react";
 import {useStateValue} from "../context";
-import { Route, Redirect, useHistory, useLocation } from "react-router-dom";
+import { Route, Redirect, useHistory, useLocation, useParams } from "react-router-dom";
+import { AUTH_USER } from "../reducers/actionTypes";
 
-export function PrivateRoute({ children, location, ...rest }) {
-    const [{ session }, dispatch] = useStateValue();
 
-    const search = location.search;
-    const params = new URLSearchParams(search);
-    console.log(`code is; ${params.get("code")}`);
+export const PrivateRoute = ({ children, location, ...rest }) => {
+    const [{ user }, dispatch] = useStateValue();
 
-    // TODO here use dispatch to call server with code
+    useEffect(() => {
+        if (!user.name && location.pathname === "/") {
+            const code = new URLSearchParams(location.search).get("code");
+            if (code) dispatch({type: AUTH_USER, payload: code})
+        }
+    }, [user.name, location, dispatch]);
 
+    console.log(`re-rendering with user name ${user.name}`);
     return (
         <Route {...rest} location={location} render={({ location }) =>
-            session.user ? (
+            user.name ? (
                     children
                 ) : (
                     <Redirect
@@ -26,4 +30,4 @@ export function PrivateRoute({ children, location, ...rest }) {
             }
         />
     );
-}
+};

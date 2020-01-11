@@ -7,8 +7,8 @@ import PostgresClient from "./PostgresClient";
 import {RequestHandler} from "express";
 import {ExamplesResource} from "../infra/rest";
 import ExamplesService from "../application/ExamplesService";
-import {SessionsResource} from "../infra/rest/SessionsResource";
 import SessionsQueryService from "../application/SessionsQueryService";
+import {UsersResource} from "../infra/rest/UsersResource";
 
 const exit = process.exit;
 
@@ -117,8 +117,9 @@ export default class App {
         resources.set("examplesAll", examples.all());
         resources.set("examplesById", examples.byId());
 
-        let sessions = new SessionsResource(new SessionsQueryService(this.context.clients.get('redisClient')));
-        resources.set("sessionsById", sessions.byId);
+        let users = new UsersResource(this.env.GOOGLE_APP_CLIENT_ID, this.env.GOOGLE_APP_CLIENT_SECRET);
+        resources.set("usersAuth", users.authenticate);
+        resources.set("usersSearch", users.search);
 
         return new Promise<void>((resolve, reject) => {
             new ExpressServer(

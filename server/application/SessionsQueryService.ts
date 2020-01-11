@@ -4,7 +4,7 @@ import LogFactory from "../context/LogFactory";
 
 export type Session = {
     id: string
-    synced: boolean
+    isSynced: boolean
     user: string
     email: string
 }
@@ -21,7 +21,7 @@ export default class SessionsQueryService extends QueryService {
         return new Promise<Session>((resolve, reject) => {
             const session = this.store.get(id);
             this.log.info(`session is ${JSON.stringify(session)}`);
-            return resolve({id, synced:true, user:"nnn", email:"ssss"})
+            return resolve({id, isSynced:true, user:"nnn", email:"ssss"})
         })
     }
 }

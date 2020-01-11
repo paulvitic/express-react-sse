@@ -4,18 +4,13 @@ import Cookie from "js-cookie";
 import dispatchMiddleware from "../reducers/fetchMiddleware";
 import {useStream} from "./useStream";
 
+// TODO move state data structure and initialization function to another file
 function init(initialState) {
     if (Object.keys(initialState).length === 0) {
             return {
                 user: {
-                    synced: false,
-                    isAuthenticated: false,
-                    name: "",
-                    email: ""
-                },
-                session: {
-                    id: Cookie.get("app.sid"),
-                    synced: false
+                    isLoading: true,
+                    name: undefined
                 },
                 agent: {
                     appCodeName: navigator.appCodeName,
@@ -47,6 +42,7 @@ const StateContext = createContext();
 export const StateProvider = ({initialState, children}) => {
     const [state, dispatch] = useReducer(mainReducer, initialState, init);
 
+    // TODO do this after syncing user and auth
     useStream(state.listening, dispatch);
 
     return (

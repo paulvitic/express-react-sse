@@ -36,8 +36,9 @@ const addRoutes = (app: Application, resources: Map<string, RequestHandler>): Pr
         app.use("/login", express.static(`${path.normalize(__dirname + '/../..')}/dist/static`));
         // EventSource API makes a 'GET' request by default, you can not use another HTTP method
         app.get('/events', serverSentEvents(app));
-        app.use('/api/v1/sessions', express.Router()
-            .get('/:id', resources.get("sessionsById")));
+        app.use('/api/v1/users', express.Router()
+            .get('/', resources.get("usersSearch"))
+            .get('/auth', resources.get("usersAuth")));
         resolve();
     })
 };
