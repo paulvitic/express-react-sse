@@ -1,36 +1,26 @@
 import {FETCH_USER, FETCH_PROJECTS, AUTH_USER} from "./actionTypes";
 
+const filter = (dispatch, type, responsePromise) => {
+    responsePromise
+        .then((response) => {
+            response.json()
+                .then((payload) => {
+                    dispatch({type, payload})
+                });
+        });
+};
+
 export default (dispatch) => {
     return (action) => {
         switch (action.type) {
             case FETCH_USER:
-                fetch(`/api/v1/users?session=true`)
-                    .then((response) => {
-                        response.json()
-                            .then((body) => {
-                                console.log(body);
-                                dispatch({
-                                    type: action.type,
-                                    payload:{
-                                        isLoading:false,
-                                        ...body,
-                                    }
-                                });
-                            });
-                    });
+                filter(dispatch, action.type, fetch(`/api/v1/users?session=true`));
                 break;
             case AUTH_USER:
-                fetch(`/api/v1/users/auth?code=${action.payload}`)
-                    .then((response) => {
-                        response.json()
-                            .then((body) => {
-                                dispatch({type: action.type, payload: body})
-                            });
-                    });
+                filter(dispatch, action.type, fetch(`/api/v1/users/auth?code=${action.payload}`));
                 break;
             case FETCH_PROJECTS:
-                fetch("/api/v1/projects")
-                    .then(() => dispatch(action));
+                filter(dispatch, action.type, fetch("/api/v1/projects"));
                 break;
             default:
                 return dispatch(action);

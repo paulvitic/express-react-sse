@@ -2,34 +2,38 @@ import React, {useEffect} from "react";
 import {Column, Row} from "../components/grid";
 import { useHistory, useLocation } from "react-router-dom";
 import {useStateValue} from "../context";
+import config from "../config"
 
-const queryParams = `client_id=883505003275-m819381prdb0s3dhl31r3kidmu4ocfj5.apps.googleusercontent.com&
-redirect_uri=http://localhost:3000&
-scope=https://www.googleapis.com/auth/userinfo.profile&
+const {url, clientId, redirectUri, scope } = config.googleAuth;
+
+const queryParams = `
+client_id=${clientId}&
+redirect_uri=${redirectUri}&
+scope=${scope}&
 response_type=code&
 access_type=offline&
 prompt=consent`;
 
-const googleLoginUrl = `https://accounts.google.com/o/oauth2/v2/auth?${queryParams}`;
-
 export function Login() {
-    const [{ user }] = useStateValue();
+    let [{ user }] = useStateValue();
 
     let history = useHistory();
     let location = useLocation();
+
     let { from } = location.state || { from: { pathname: "/" } };
+    let { name } = user;
 
     useEffect(() => {
-        if (user.name) {
+        if (name) {
             history.replace(from);
         }
-    }, [user.name]);
+    }, [name, history, from]);
 
     return (
         <Row>
             <Column xs={12} sm={1}/>
             <Column xs={12} sm={10}>
-                <a href={googleLoginUrl}>
+                <a href={`${url}?${queryParams}`}>
                     Login with Google
                 </a>
             </Column>

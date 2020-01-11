@@ -1,33 +1,40 @@
-import React, {useEffect} from "react";
+import React, {useEffect, useMemo} from "react";
 import {useStateValue} from "../context";
-import { Route, Redirect, useHistory, useLocation, useParams } from "react-router-dom";
-import { AUTH_USER } from "../reducers/actionTypes";
-
+import { Route, Redirect } from "react-router-dom";
+import {AUTH_USER, FETCH_USER} from "../reducers/actionTypes";
 
 export const PrivateRoute = ({ children, location, ...rest }) => {
-    const [{ user }, dispatch] = useStateValue();
+    let [{ user }, dispatch] = useStateValue();
 
-    useEffect(() => {
-        if (!user.name && location.pathname === "/") {
-            const code = new URLSearchParams(location.search).get("code");
-            if (code) dispatch({type: AUTH_USER, payload: code})
+    let code = useMemo(() => {
+        if (location.pathname === "/") {
+            return new URLSearchParams(location.search).get("code");
         }
-    }, [user.name, location, dispatch]);
+    }, [location]);
 
-    console.log(`re-rendering with user name ${user.name}`);
+    useEffect( () => {
+        if (user.isLoading) {
+            dispatch({ type:FETCH_USER })
+        } else if (!user.name && code) {
+            dispatch({ type: AUTH_USER, payload: code} )
+        }
+    }, [user, dispatch, code]);
+
     return (
-        <Route {...rest} location={location} render={({ location }) =>
-            user.name ? (
-                    children
-                ) : (
-                    <Redirect
-                        to={{
-                            pathname: "/login",
-                            state: { from: location }
-                        }}
-                    />
-                )
-            }
-        />
+        user.isLoading ?
+            <h2>Getting user info</h2> :
+            <Route {...rest} location={location} render={({ location }) =>
+                user.name ? (
+                        children
+                    ) : (
+                        <Redirect
+                            to={{
+                                pathname: "/login",
+                                state: { from: location }
+                            }}
+                        />
+                    )
+                }
+            />
     );
 };

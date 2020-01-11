@@ -1,9 +1,10 @@
 import React from 'react';
 import { BrowserRouter as Router, Route, Switch } from 'react-router-dom'
 import { createGlobalStyle } from "styled-components";
-import {StateProvider, useStateValue} from "./context";
+import {StateProvider} from "./context";
 import Header from "./components/header/header";
-import Body from "./components/body/body";
+import {Home, Login, PrivateRoute} from "./pages";
+
 const GlobalStyle = createGlobalStyle`
   body {
     display: block;
@@ -25,7 +26,14 @@ const App = () => {
             <Router>
                 <div>
                     <Header />
-                    <Body />
+                    <Switch>
+                        <Route path="/login">
+                            <Login />
+                        </Route>
+                        <PrivateRoute path="/">
+                            <Home />
+                        </PrivateRoute>
+                    </Switch>
                 </div>
             </Router>
         </StateProvider>

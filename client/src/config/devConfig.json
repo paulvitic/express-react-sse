@@ -29,5 +29,11 @@
   "resources" : {
     "userUrl" : "https://randomuser.me/api?results=",
     "useRemote": true
+  },
+  "googleAuth" : {
+      "url": "https://accounts.google.com/o/oauth2/v2/auth",
+      "clientId": "883505003275-m819381prdb0s3dhl31r3kidmu4ocfj5.apps.googleusercontent.com",
+      "redirectUri": "http://localhost:3000",
+      "scope": "https://www.googleapis.com/auth/userinfo.profile"
   }
 }
