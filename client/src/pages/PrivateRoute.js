@@ -2,6 +2,7 @@ import React, {useEffect, useMemo} from "react";
 import {useStateValue} from "../context";
 import { Route, Redirect } from "react-router-dom";
 import {AUTH_USER, FETCH_USER} from "../reducers/actionTypes";
+import {Loader} from "../components/loader";
 
 export const PrivateRoute = ({ children, location, ...rest }) => {
     let [{ user }, dispatch] = useStateValue();
@@ -22,11 +23,13 @@ export const PrivateRoute = ({ children, location, ...rest }) => {
 
     return (
         user.isLoading ?
-            <h2>Getting user info</h2> :
+            <Loader/> :
             <Route {...rest} location={location} render={({ location }) =>
-                user.name ? (
+                user.name ?
+                    (
                         children
-                    ) : (
+                    ) :
+                    (
                         <Redirect
                             to={{
                                 pathname: "/login",
