@@ -5,16 +5,22 @@ import RedisCache from "./RedisCache";
 import RabbitClient from "./RabbitClient";
 import PostgresClient from "./PostgresClient";
 import {RequestHandler} from "express";
-import {ExamplesResource} from "../infra/rest";
-import ExamplesService from "../application/ExamplesService";
-import SessionsQueryService from "../application/SessionsQueryService";
-import {UsersResource} from "../infra/rest/UsersResource";
+import {ExamplesResource} from "../rest";
+import ExamplesService from "../../application/ExamplesService";
+import SessionsQueryService from "../../application/SessionsQueryService";
+import {UsersResource} from "../rest/UsersResource";
+import PostgresEventStore from "../persistence/PostgresEventStore";
+import EventStore from "../../domain/EventStore";
+import RabbitEventBus from "../message/RabbitEventBus";
+import EventBus from "../../domain/EventBus";
 
 const exit = process.exit;
 
 type Context = {
-    clients: Map<string, any>
-    server: ExpressServer | undefined,
+    clients: Map<string, any>,
+    eventStore: EventStore,
+    eventBus: EventBus;
+    server: ExpressServer,
     application: {
         services: []
     },
@@ -30,6 +36,8 @@ export default class App {
     private env: Environment;
     private context: Context = {
         clients: new Map<string, any>(),
+        eventStore: undefined,
+        eventBus: undefined,
         server: undefined,
         application: {
             services: []
@@ -63,18 +71,18 @@ export default class App {
     private init = (): Promise<void> => {
         return new Promise<void>((resolve, reject) => {
             this.initClients()
-                .then(() => {
-                    this.initServer()
-                        .then(() => resolve())
-                        .catch((err)=> reject(err))
+                .then((success) => {
+                    if (success) {
+                        this.initServer()
+                            .then(() => resolve())
+                            .catch((err)=> reject(err))
+                    }
                 });
         })
     };
 
-    private initClients = (): Promise<void> => {
-        this.context.clients = new Map<string, any>();
-        return new Promise<void>(async (resolve, reject) => {
-
+    private initClients = (): Promise<boolean> => {
+        return new Promise<boolean>(async (resolve, reject) => {
             new RabbitClient(
                 this.env.RABBIT_HOST,
                 this.env.RABBIT_PORT,
@@ -82,34 +90,42 @@ export default class App {
                 this.env.RABBIT_PASS,
                 this.env.RABBIT_VHOST
             ).init()
-                .then((rabbitClient) => {this.context.clients.set('rabbitClient', rabbitClient);})
-                .catch((err) => {reject(err)});
-
-            const postgresClient = await new PostgresClient(
-                this.env.POSTGRES_HOST,
-                this.env.POSTGRES_PORT,
-                this.env.POSTGRES_USER,
-                this.env.POSTGRES_DATABASE,
-                this.env.POSTGRES_PASS
-            ).init()
-                .then((postgresClient) => {this.context.clients.set('postgresClient', postgresClient);})
-                .catch((err) => {reject(err)});
-
-            const redisClient = await new RedisCache(
-                this.env.REDIS_HOST,
-                this.env.REDIS_PORT,
-                this.env.REDIS_PASS,
-                this.env.SESSION_COOKIE_TTL
-            ).init()
-                .catch((err) => {reject(err)});
-
-            this.context.clients.set('redisClient', redisClient);
-
-            return resolve();
+                .then((rabbitClient) => {
+                    this.context.clients.set('rabbitClient', rabbitClient);
+                    new PostgresClient(
+                        this.env.POSTGRES_HOST,
+                        this.env.POSTGRES_PORT,
+                        this.env.POSTGRES_USER,
+                        this.env.POSTGRES_DATABASE,
+                        this.env.POSTGRES_PASS
+                    ).init()
+                        .then((postgresClient) => {
+                            this.context.clients.set('postgresClient', postgresClient);
+                            new RedisCache(
+                                this.env.REDIS_HOST,
+                                this.env.REDIS_PORT,
+                                this.env.REDIS_PASS,
+                                this.env.SESSION_COOKIE_TTL
+                            ).init()
+                                .then((redisClient) => {
+                                    this.context.clients.set('redisClient', redisClient);
+                                    resolve(true)
+                                })
+                                .catch((err) => {reject(err)});
+                        })
+                        .catch((err) => {reject(err)});
+                }).catch((err)=> {
+                    reject(err)
+            });
         })
     };
 
     private initServer = (): Promise<void> => {
+        this.context.eventStore = new PostgresEventStore(this.context.clients.get("postgresClient"));
+        this.context.eventBus = new RabbitEventBus(
+            this.context.clients.get("rabbitClient"),
+            this.context.eventStore);
+
         let {resources} = this.context.infrastructure.rest;
 
         let examples = new ExamplesResource(new ExamplesService(undefined));

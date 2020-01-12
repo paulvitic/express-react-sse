@@ -1,6 +1,6 @@
 import QueryService from "./QueryService";
 import {KeyValueStore} from "./KeyValueStore";
-import LogFactory from "../context/LogFactory";
+import LogFactory from "../infrastructure/context/LogFactory";
 
 export type Session = {
     id: string

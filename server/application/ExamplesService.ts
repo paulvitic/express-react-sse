@@ -1,4 +1,4 @@
-import LogFactory from "../context/LogFactory";
+import LogFactory from "../infrastructure/context/LogFactory";
 import ApplicationService from "./ApplicationService";
 import EventBus from "../domain/EventBus";
 

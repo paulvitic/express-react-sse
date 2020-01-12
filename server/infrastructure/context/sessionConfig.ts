@@ -1,5 +1,5 @@
 import {Application} from "express";
-import uuid from "../domain/uuid";
+import uuid from "../../domain/uuid";
 
 export default (app: Application) => {
 

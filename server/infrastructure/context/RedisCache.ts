@@ -2,7 +2,7 @@ import redis, {RedisClient as Client} from 'redis';
 import session from 'express-session';
 import connectRedis, {RedisStore} from 'connect-redis';
 import LogFactory from "./LogFactory";
-import {KeyValueStore} from "../application/KeyValueStore";
+import {KeyValueStore} from "../../application/KeyValueStore";
 
 export default class RedisCache implements KeyValueStore<string, string> {
     private readonly log = LogFactory.get(RedisCache.name);

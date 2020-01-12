@@ -1,10 +1,9 @@
 export default interface DomainEvent {
-    eventType(): string;
+    eventType: string;
     aggregate(): string;
     aggregateId(): string;
     generatedOn(): Date;
 }
-
 
 export abstract class AbstractDomainEvent implements DomainEvent {
     private readonly _eventType: string;
@@ -33,9 +32,9 @@ export abstract class AbstractDomainEvent implements DomainEvent {
         throw Error
     };
 
-    eventType = (): string =>{
+    get eventType(): string {
         return this._eventType;
-    };
+    }
 }
 
 export class EventRegistry {

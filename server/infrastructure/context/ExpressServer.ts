@@ -11,9 +11,9 @@ import LogFactory from "./LogFactory";
 import session, {Store} from "express-session";
 import errorHandler from "./errorHandler";
 import sessionCounter from "./sessionCounter";
-import uuid from "../domain/uuid";
+import uuid from "../../domain/uuid";
 import serverSentEvents from "./serverSentEvents";
-import { ExamplesResource } from "../infra/rest";
+import { ExamplesResource } from "../rest";
 
 const installMiddleware = (app: Application): Promise<void> => {
     return new Promise<void>((resolve, reject) => {

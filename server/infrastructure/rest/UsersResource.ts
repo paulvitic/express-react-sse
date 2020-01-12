@@ -1,4 +1,4 @@
-import LogFactory from "../../context/LogFactory";
+import LogFactory from "../context/LogFactory";
 import {Request, Response} from "express";
 import axios from 'axios'
 

@@ -1,10 +1,11 @@
 import DomainEvent from "./DomainEvent";
-import EventListener from "./EventListener";
+
+export type EventHandler = <T extends DomainEvent = DomainEvent, S extends DomainEvent = DomainEvent>(event: T) => S | void;
 
 /**
  *
  */
 export default interface EventBus {
-    publish(event: DomainEvent): void
-    subscribe<T extends DomainEvent>(eventType: string, handler:(event: T) => void): void
+    publish<T extends DomainEvent = DomainEvent>(event: T): Promise<boolean>
+    subscribe(eventType: string, handler: EventHandler): Promise<boolean>
 }

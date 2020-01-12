@@ -1,5 +1,5 @@
 import LogFactory from "./LogFactory";
-import { Pool} from "pg";
+import {Pool, QueryConfig} from "pg";
 
 export default class PostgresClient {
     private readonly log = LogFactory.get(PostgresClient.name);
@@ -39,5 +39,33 @@ export default class PostgresClient {
 
             resolve(this);
         })
+    };
+
+    insert(query: QueryConfig): Promise<number> {
+        return new Promise<number>((resolve, reject) => {
+            this.connPool.query(query)
+                .then((result) => {
+                    this.log.info(`Inserted ${result.rows.length} records`);
+                    resolve(result.rows.length);
+                })
+                .catch(err => {
+                    console.log("error while inserting: ", err);
+                    reject(err);
+                })
+        });
+    }
+
+    read(query: QueryConfig):Promise<any[]> {
+        return new Promise<any[]>((resolve, reject) => {
+            this.connPool.query(query)
+                .then((result) => {
+                    this.log.info(`Read ${result.rows.length} records`);
+                    resolve(result.rows);
+                })
+                .catch(err => {
+                    console.log("error while reading: ", err);
+                    reject(err);
+                })
+        });
     }
 }

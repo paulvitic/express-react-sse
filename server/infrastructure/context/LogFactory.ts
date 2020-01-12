@@ -1,4 +1,4 @@
-import winston, {LoggerOptions, createLogger, format, transports} from 'winston';
+import winston, {LoggerOptions, format, transports} from 'winston';
 
 const DEFAULT_CATEGORY = 'DEFAULT';
 
@@ -31,9 +31,13 @@ const DEFAULT_LOGGER = (() => {
 
 
 export default class LogFactory {
+  // TODO change value to an abstraction for logger
+  static loggers: Map<string, any>;
 
+  // TODO abstract LogFactory return type and create an interface for LogFactory at domain
   public static get(module:string | undefined) {
     if (module) {
+
       if (!winston.loggers.has(module)) {
         add(module);
       }
