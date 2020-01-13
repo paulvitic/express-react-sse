@@ -83,13 +83,12 @@ export default class App {
 
     private initClients = (): Promise<boolean> => {
         return new Promise<boolean>(async (resolve, reject) => {
-            new RabbitClient(
+            RabbitClient.init(
                 this.env.RABBIT_HOST,
                 this.env.RABBIT_PORT,
                 this.env.RABBIT_USER,
                 this.env.RABBIT_PASS,
-                this.env.RABBIT_VHOST
-            ).init()
+                this.env.RABBIT_VHOST)
                 .then((rabbitClient) => {
                     this.context.clients.set('rabbitClient', rabbitClient);
                     new PostgresClient(
@@ -122,9 +121,10 @@ export default class App {
 
     private initServer = (): Promise<void> => {
         this.context.eventStore = new PostgresEventStore(this.context.clients.get("postgresClient"));
-        this.context.eventBus = new RabbitEventBus(
-            this.context.clients.get("rabbitClient"),
-            this.context.eventStore);
+        RabbitEventBus.init(this.context.clients.get("rabbitClient"), this.context.eventStore)
+            .then((eventBus) => {
+                this.context.eventBus = eventBus
+            });
 
         let {resources} = this.context.infrastructure.rest;
 

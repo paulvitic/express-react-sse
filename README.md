@@ -98,3 +98,4 @@ npm run test:debug
 * [Basic React Authentication](https://medium.com/better-programming/building-basic-react-authentication-e20a574d5e71)
 * [Redirect Auth](https://reacttraining.com/react-router/web/example/auth-workflow)
 * [Google Auth](https://medium.com/authpack/easy-google-auth-with-node-js-99ac40b97f4c)
+* [RabbitMQ Topic](https://www.rabbitmq.com/tutorials/tutorial-five-javascript.html)

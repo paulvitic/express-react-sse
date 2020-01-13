@@ -35,7 +35,7 @@ export default class PostgresEventStore implements EventStore {
         })
     };
 
-    logEvent = async (event: DomainEvent): Promise<boolean> => {
+    logEvent = async (event: DomainEvent, published: boolean): Promise<boolean> => {
         const query = {
             text: 'INSERT INTO jira.event_log(aggregate_id, aggregate, event_type, generated_on, event) VALUES($1, $2, $3, $4, $5) RETURNING event_type',
             values: [event.aggregateId(), event.aggregate(), event.eventType, event.generatedOn(), JSON.stringify(event)],

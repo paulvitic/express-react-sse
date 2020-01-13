@@ -4,23 +4,38 @@ import LogFactory from "./LogFactory";
 // if the connection is closed or fails to be established at all, we will reconnect
 export default class RabbitClient {
     private readonly log = LogFactory.get(RabbitClient.name);
-    private readonly rabbitMqUrl: string;
-    private amqpConn: Connection;
+    private readonly url: string;
+    private connection: Connection;
 
-    constructor(private readonly host: string,
+    private constructor(private readonly host: string,
                 private readonly port:number,
                 private readonly user: string,
                 password: string,
                 private readonly vhost: string
     ) {
-        this.rabbitMqUrl = `amqp://${user}:${password}@${host}:${port}${vhost}`;
+        this.url = `amqp://${user}:${password}@${host}:${port}${vhost}`;
     }
 
-    init = (): Promise<RabbitClient> => {
-        this.log.info(`initializing ${this.user}@${this.host}:${this.port}${this.vhost}`);
+    static init = (host: string,
+                   port: number,
+                   user: string,
+                   password: string,
+                   vhost: string): Promise<RabbitClient> => {
+
         return new Promise<RabbitClient>((resolve, reject) => {
-            let self = this;
-            amqp.connect(this.rabbitMqUrl + '?heartbeat=60')
+            let client = new RabbitClient(host, port, user, password, vhost);
+            client.log.info(`initializing ${user}@${host}:${port}${vhost}`);
+            client.connect()
+                .then(connected => {
+                    if (connected) resolve(client);
+                })
+        });
+    };
+
+    connect = (): Promise<boolean> => {
+        return new Promise<boolean>((resolve, reject) => {
+            const self = this;
+            amqp.connect(self.url + '?heartbeat=60')
                 .then((conn) => {
                     conn.on('error', function (err) {
                         if (err.message !== 'Connection closing') {
@@ -30,24 +45,38 @@ export default class RabbitClient {
 
                     conn.on('close', function () {
                         self.log.error('reconnecting');
-                        setTimeout(self.init, 7000);
+                        setTimeout(self.connect, 7000);
                     });
 
-                    self.amqpConn = conn;
+                    self.connection = conn;
                     self.log.info(`connected ${self.user}@${self.host}:${self.port}${self.vhost}`);
-                    resolve(this);
+                    resolve(true);
 
                 }).catch((err)=>{
-                    self.log.error(`${err.message}`);
-                    setTimeout(self.init, 7000);
-                });
-        });
+                self.log.error(`${err.message}`);
+                setTimeout(self.connect, 7000);
+            });
+        })
     };
 
-    createChannel = (queue:string): Promise<Channel> => {
+    closeOnErr = (err): Promise<boolean> => {
+        return new Promise<boolean>(resolve => {
+            if (!err) {
+                resolve(false);
+            } else {
+                this.log.error(`error: `, err);
+                this.connection.close()
+                    .then(() => {
+                        resolve(true);
+                    });
+            }
+        })
+    };
+
+    createTopic = (exchange:string) => {
         return new Promise<Channel>((resolve, reject) => {
             const self = this;
-            this.amqpConn.createChannel()
+            this.connection.createChannel()
                 .then((channel) => {
                     channel.on('error', function(err) {
                         self.log.error('channel error: ', err);
@@ -59,9 +88,9 @@ export default class RabbitClient {
 
                     channel.prefetch(10)
                         .then(() => {
-                            channel.assertQueue(queue, { durable: true })
-                                .then((assert) => {
-                                    self.log.info(`assert result: ${JSON.stringify(assert)}`);
+                            channel.assertExchange(exchange,'topic',{ durable: true })
+                                .then((exchangeAssert) => {
+                                    self.log.info(`exchange assert: ${JSON.stringify(exchangeAssert)}`);
                                     resolve(channel);
                                 })
                                 .catch(err => {
@@ -70,28 +99,14 @@ export default class RabbitClient {
                                             if (closed) self.log.info('connection closed');
                                         })
                                 });
-                    });
+                        });
 
                 }).catch((err) => {
                     self.closeOnErr(err)
                         .then((closed) => {
                             if (closed) self.log.info('connection closed');
-                        })
+                    })
             });
-        })
-    };
-
-    closeOnErr = (err): Promise<boolean> => {
-        return new Promise<boolean>(resolve => {
-            if (!err) {
-                resolve(false);
-            } else {
-                this.log.error(`error: `, err);
-                this.amqpConn.close()
-                    .then(() => {
-                        resolve(true);
-                    });
-            }
         })
     };
 }
