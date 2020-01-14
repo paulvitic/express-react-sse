@@ -43,8 +43,17 @@ export default class RedisCache implements KeyValueStore<string, string> {
         });
     };
 
-    public set = (key: string, value: string) => {
+    public set = (key: string, value: string): Promise<boolean>  => {
         this.redisClient.set(key, value);
+        return new Promise<boolean>((resolve, reject) => {
+            this.redisClient.set(key, value, (err: Error, reply: string) => {
+                if(err) {
+                    reject(err);
+                } else {
+                    resolve(reply==='OK');
+                }
+            })
+        })
     };
 
     public get = (key: string): Promise<string> => {

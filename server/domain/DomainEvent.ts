@@ -1,40 +1,43 @@
 export default interface DomainEvent {
-    eventType: string;
-    aggregate(): string;
-    aggregateId(): string;
-    generatedOn(): Date;
+    eventType: string
+    aggregate: string
+    aggregateId: string
+    sequence: number
+    generatedOn: Date
 }
 
 export abstract class AbstractDomainEvent implements DomainEvent {
     private readonly _eventType: string;
-    private readonly _aggregate: string;
-    private readonly _aggregateId: string;
     private readonly _generatedOn: Date;
 
-    constructor(_aggregate: string,
-                _aggregateId: string) {
+    protected constructor(private readonly _aggregate: string,
+                          private readonly _aggregateId: string,
+                          private readonly _sequence: number
+    ) {
             this._eventType = this.constructor.name;
-            this._aggregate = _aggregate;
-            this._aggregateId = _aggregateId;
             this._generatedOn= new Date();
     }
-
-    aggregate = (): string => {
-        return this._aggregate;
-    };
-
-    aggregateId = (): string => {
-        return this._aggregateId;
-    };
-
-    generatedOn = (): Date => {
-        if (this._generatedOn) return this._generatedOn;
-        throw Error
-    };
 
     get eventType(): string {
         return this._eventType;
     }
+
+    get aggregate(): string {
+        return this._aggregate;
+    };
+
+    get aggregateId(): string {
+        return this._aggregateId;
+    };
+
+    get sequence(): number {
+        return this._sequence;
+    };
+
+    get generatedOn(): Date {
+        if (this._generatedOn) return this._generatedOn;
+        throw Error
+    };
 }
 
 export class EventRegistry {

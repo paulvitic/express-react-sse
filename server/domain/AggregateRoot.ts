@@ -1,9 +1,10 @@
 import DomainEvent from "./DomainEvent";
 import Identity from "./Identity";
 
-export abstract class AggregateRoot {
+export default abstract class AggregateRoot {
     private readonly aggregateId: string;
     private readonly aggregateType: string;
+    private lastEventSequence: number;
 
     private readonly domainEvents: DomainEvent[] = new Array<DomainEvent>();
 

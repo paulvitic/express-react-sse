@@ -73,7 +73,7 @@ export default class RabbitClient {
         })
     };
 
-    createTopic = (exchange:string) => {
+    createChannel = (exchange:string) => {
         return new Promise<Channel>((resolve, reject) => {
             const self = this;
             this.connection.createChannel()
@@ -88,7 +88,7 @@ export default class RabbitClient {
 
                     channel.prefetch(10)
                         .then(() => {
-                            channel.assertExchange(exchange,'topic',{ durable: true })
+                            channel.assertExchange(exchange,'fanout',{ durable: true })
                                 .then((exchangeAssert) => {
                                     self.log.info(`exchange assert: ${JSON.stringify(exchangeAssert)}`);
                                     resolve(channel);

@@ -5,14 +5,17 @@ import RedisCache from "./RedisCache";
 import RabbitClient from "./RabbitClient";
 import PostgresClient from "./PostgresClient";
 import {RequestHandler} from "express";
-import {ExamplesResource} from "../rest";
-import ExamplesService from "../../application/ExamplesService";
+import {TicketBoardsResource} from "../rest";
+import TicketBoardsService from "../../application/product/TicketBoardsService";
 import SessionsQueryService from "../../application/SessionsQueryService";
 import {UsersResource} from "../rest/UsersResource";
 import PostgresEventStore from "../persistence/PostgresEventStore";
 import EventStore from "../../domain/EventStore";
 import RabbitEventBus from "../message/RabbitEventBus";
 import EventBus from "../../domain/EventBus";
+import {Repository} from "../../domain/Repository";
+import TicketBoard from "../../domain/product/TicketBoard";
+import {TicketBoardRedisRepo} from "../persistence/RedisRepository";
 
 const exit = process.exit;
 
@@ -24,6 +27,9 @@ type Context = {
     application: {
         services: []
     },
+    repositories: {
+        ticketBoardRepo: Repository<TicketBoard>
+    }
     infrastructure: {
         rest: {
             resources : Map<string, RequestHandler>
@@ -41,6 +47,9 @@ export default class App {
         server: undefined,
         application: {
             services: []
+        },
+        repositories: {
+            ticketBoardRepo: undefined
         },
         infrastructure: {
             rest: {
@@ -126,12 +135,18 @@ export default class App {
                 this.context.eventBus = eventBus
             });
 
+        this.context.repositories.ticketBoardRepo = new TicketBoardRedisRepo(
+            this.context.clients.get('redisClient'),
+            TicketBoard.name);
+
         let {resources} = this.context.infrastructure.rest;
 
-        let examples = new ExamplesResource(new ExamplesService(undefined));
-        resources.set("examplesCreate", examples.create());
-        resources.set("examplesAll", examples.all());
-        resources.set("examplesById", examples.byId());
+        let ticketBoardsResource = new TicketBoardsResource(
+            new TicketBoardsService(
+                this.context.eventBus,
+                this.context.repositories.ticketBoardRepo));
+        resources.set("examplesCreate", ticketBoardsResource.create);
+        resources.set("examplesById", ticketBoardsResource.byId);
 
         let users = new UsersResource(this.env.GOOGLE_APP_CLIENT_ID, this.env.GOOGLE_APP_CLIENT_SECRET);
         resources.set("usersAuth", users.authenticate);

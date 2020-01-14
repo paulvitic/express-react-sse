@@ -1,1 +1,1 @@
-export * from "./ExamplesResource"
+export * from "./product/TicketBoardsResource"

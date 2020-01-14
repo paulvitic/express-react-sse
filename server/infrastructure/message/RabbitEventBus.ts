@@ -8,6 +8,9 @@ import {Channel, Message} from 'amqplib';
 // each domain would have its own exchange
 const sourceDomainExchange = "source_domain";
 
+// the queue to receive messages
+const consumeQueueName = 'to_target_domain_events_of_all_aggregates';
+
 export default class RabbitEventBus implements EventBus {
     private readonly log = LogFactory.get(RabbitEventBus.name);
     private sendChannel: Channel;
@@ -21,29 +24,28 @@ export default class RabbitEventBus implements EventBus {
 
     static init = (client: RabbitClient, store: EventStore): Promise<RabbitEventBus> => {
         let eventBus = new RabbitEventBus(client, store);
-        return new Promise<RabbitEventBus>((resolve, reject) => {
-            eventBus.rabbitClient.createTopic(sourceDomainExchange)
-                .then((receiveChannel) => {
-                    receiveChannel.assertQueue(`to_target_domain_events_of_all_aggregates`, { exclusive: true})
-                        .then((queueAssert) => {
-                            eventBus.log.info(`queue assert: ${JSON.stringify(queueAssert)}`);
-                            // we can bind to multiple queues with different routing keys, but here we only use one
-                            receiveChannel.bindQueue(queueAssert.queue,  sourceDomainExchange, "targetDomain.*")
-                                .then(()=> {
-                                    eventBus.receiveChannel = receiveChannel;
-                                    eventBus.receiveChannel.consume(queueAssert.queue, eventBus.onMessage, { noAck: false })
-                                        .then((consume) => {
-                                            eventBus.log.info(`consume tag: ${JSON.stringify(consume)}`);
+        let {receiveChannel, sendChannel} = eventBus;
+        return new Promise<RabbitEventBus>(async (resolve, reject) => {
+            try {
+                // create a separate channel to send
+                sendChannel =  await eventBus.rabbitClient.createChannel(sourceDomainExchange);
 
-                                            eventBus.rabbitClient.createTopic(sourceDomainExchange)
-                                                .then((sendChannel) => {
-                                                    eventBus.sendChannel = sendChannel;
-                                                    resolve(eventBus)
-                                                });
-                                        });
-                                })
-                        });
-                });
+                // create a channel to receive
+                receiveChannel = await eventBus.rabbitClient.createChannel(sourceDomainExchange);
+
+                // create a named non-exclusive queue so other clients can connect as well and bind to it
+                let queueInfo = await receiveChannel.assertQueue(consumeQueueName, { exclusive: false});
+                eventBus.log.info(`queue info: ${JSON.stringify(queueInfo)}`);
+                await receiveChannel.bindQueue(queueInfo.queue,  sourceDomainExchange, '');
+
+                // start consuming from queue
+                let consumeInfo = receiveChannel.consume(queueInfo.queue, eventBus.onMessage, { noAck: false });
+                eventBus.log.info(`consume info: ${JSON.stringify(consumeInfo)}`);
+
+                resolve(eventBus)
+            } catch (e) {
+                reject(e);
+            }
         })
     };
 
@@ -52,7 +54,7 @@ export default class RabbitEventBus implements EventBus {
         return new Promise<boolean>((resolve, reject) => {
             let published: boolean = this.sendChannel.publish(
                 sourceDomainExchange,
-                `targetDomain.${event.aggregate()}`,
+                '',
                 Buffer.from(JSON.stringify(event)));
 
             this.store.logEvent(event, published)
@@ -102,12 +104,17 @@ export default class RabbitEventBus implements EventBus {
         this.log.info(`got msg: ${JSON.stringify(msg)}`);
         const msgStr = msg.content.toString();
         // TODO add a translator from message to Domain Event as an anti corruption layer
-        const event = EventRegistry.fromJsonString(msgStr);
-        this.subscribers.get(event.eventType)
-            .forEach( (handle) => {
-                handle(event)
-            }
-        );
-        ack(true)
+        try {
+            const event = EventRegistry.fromJsonString(msgStr);
+            this.subscribers.get(event.eventType)
+                .forEach( (handle) => {
+                        handle(event)
+                    }
+                );
+        } catch (e) {
+            this.log.error('error while processing received message', e);
+        } finally {
+            ack(true)
+        }
     }
 }
