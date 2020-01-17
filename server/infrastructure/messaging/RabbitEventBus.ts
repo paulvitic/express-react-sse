@@ -1,9 +1,10 @@
 import EventBus, {EventHandler} from "../../domain/EventBus";
-import DomainEvent, {EventRegistry} from "../../domain/DomainEvent";
+import DomainEvent from "../../domain/DomainEvent";
 import EventStore from "../../domain/EventStore";
 import LogFactory from "../context/LogFactory";
-import RabbitClient from "../context/RabbitClient";
+import RabbitClient from "../clients/RabbitClient";
 import {Channel, Message} from 'amqplib';
+import {translateMessage, translateEvent} from "./MessageTranslator";
 
 // each domain would have its own exchange
 const sourceDomainExchange = "source_domain";
@@ -52,22 +53,28 @@ export default class RabbitEventBus implements EventBus {
     publish = <T extends DomainEvent = DomainEvent>(event: T): Promise<boolean> => {
         this.log.info(`Publishing event type ${event.eventType}`);
         return new Promise<boolean>((resolve, reject) => {
-            let published: boolean = this.sendChannel.publish(
-                sourceDomainExchange,
-                '',
-                Buffer.from(JSON.stringify(event)));
+            translateEvent(event).then(({content, options}) => {
+                let published: boolean = this.sendChannel.publish(
+                    sourceDomainExchange,
+                    '',
+                    content,
+                    options);
 
-            this.store.logEvent(event, published)
-                .then((success) => {
-                    if (success) {
-                        resolve(success)
-                    } else {
-                        // TODO throw error
-                        resolve(false);
-                    }
-                }).catch((err) => {
-                    reject(err)
-            });
+                this.store.logEvent(event, published)
+                    .then((success) => {
+                        if (success) {
+                            resolve(success)
+                        } else {
+                            // TODO throw error
+                            resolve(false);
+                        }
+                    }).catch((err) => {
+                        reject(err)
+                });
+
+            }).catch(err => {
+                reject(err)
+            })
         })
     };
 
@@ -81,7 +88,7 @@ export default class RabbitEventBus implements EventBus {
         }))
     };
 
-    onMessage = (msg:Message) => {
+    onMessage = (msg: Message) => {
         this.log.info('msg [deliveryTag=' + msg.fields.deliveryTag + '] arrived');
         const self = this;
         this.emit(msg, function (ok) {
@@ -102,19 +109,16 @@ export default class RabbitEventBus implements EventBus {
 
     emit = (msg, ack) => {
         this.log.info(`got msg: ${JSON.stringify(msg)}`);
-        const msgStr = msg.content.toString();
-        // TODO add a translator from message to Domain Event as an anti corruption layer
-        try {
-            const event = EventRegistry.fromJsonString(msgStr);
-            this.subscribers.get(event.eventType)
-                .forEach( (handle) => {
-                        handle(event)
-                    }
-                );
-        } catch (e) {
-            this.log.error('error while processing received message', e);
-        } finally {
-            ack(true)
-        }
+        translateMessage(msg)
+            .then((event) => {
+                this.subscribers
+                    .get(event.eventType)
+                    .forEach((handle) => { handle(event)});
+                });
+                ack(true)
+            .catch(err => {
+                this.log.error('error while processing received message', err);
+                ack(true)
+            })
     }
 }

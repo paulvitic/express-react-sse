@@ -39,27 +39,3 @@ export abstract class AbstractDomainEvent implements DomainEvent {
         throw Error
     };
 }
-
-export class EventRegistry {
-    private static registry = new Map<string, any>();
-
-    static addEventType = (eventType: string, claz: any) => {
-        EventRegistry.registry.set(eventType, claz)
-    };
-
-    static fromJsonString = (jsonString: string): DomainEvent => {
-        const partial = JSON.parse(jsonString);
-        return EventRegistry.fromJsonObject(partial);
-    };
-
-    static fromJsonObject = (jsonObject: any): DomainEvent => {
-        const eventType = EventRegistry.registry.get(jsonObject._eventType);
-        if (eventType) {
-            const event = new eventType(jsonObject._aggregate, jsonObject._aggregateId);
-            Object.assign(event, jsonObject);
-            return event
-        } else {
-            throw new Error(`${jsonObject._eventType} is not a registered event type.`)
-        }
-    }
-}

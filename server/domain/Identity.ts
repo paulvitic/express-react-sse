@@ -18,9 +18,9 @@ export default class Identity {
         return new Identity(id, name)
     };
 
-    static generate(...args: string[]): Identity {
+    static generate(...args: string[]): string {
         const id = args[1] ? `${args[1]}-${datePrefix()}-${uuid()}` : `${datePrefix()}-${uuid()}`;
-        return new Identity(id, args[0]);
+        return new Identity(id, args[0]).id;
     }
 
     equals = (other: Identity) => {

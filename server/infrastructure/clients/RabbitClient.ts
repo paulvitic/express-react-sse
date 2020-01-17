@@ -1,5 +1,5 @@
 import amqp, {Channel, Connection} from 'amqplib';
-import LogFactory from "./LogFactory";
+import LogFactory from "../context/LogFactory";
 
 // if the connection is closed or fails to be established at all, we will reconnect
 export default class RabbitClient {

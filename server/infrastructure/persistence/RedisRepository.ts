@@ -14,6 +14,8 @@ export abstract class RedisRepository<T extends AggregateRoot> implements Reposi
     }
 
     find(item: T): Promise<T[]> {
+        // you can use 'SCAN 0 MATCH <pattern>' given that you construct your keys using the possible query params
+        // [aggregate]:[id]:[exists]:[name]
         throw new Error('not implemented');
     }
 

@@ -1,8 +1,9 @@
 import EventStore from "../../domain/EventStore";
-import DomainEvent, {EventRegistry} from "../../domain/DomainEvent";
-import PostgresClient from "../context/PostgresClient";
+import DomainEvent  from "../../domain/DomainEvent";
+import PostgresClient from "../clients/PostgresClient";
 import LogFactory from "../context/LogFactory";
 import {QueryConfig} from "pg";
+import translateQueryResult from "./QueryResultTranslator";
 
 export default class PostgresEventStore implements EventStore {
     private readonly log = LogFactory.get(PostgresEventStore.name);
@@ -10,6 +11,7 @@ export default class PostgresEventStore implements EventStore {
     constructor(private readonly client: PostgresClient) {}
 
     logEvent = async (event: DomainEvent, published: boolean): Promise<boolean> => {
+        // TODO add published flag
         const query = {
             text: 'INSERT INTO jira.event_log(aggregate_id, aggregate, event_type, generated_on, sequence, event) VALUES($1, $2, $3, $4, $5, $6) RETURNING event_type',
             values: [event.aggregateId, event.aggregate, event.eventType, event.generatedOn, event.sequence, JSON.stringify(event)],
@@ -55,15 +57,9 @@ export default class PostgresEventStore implements EventStore {
         return new Promise((resolve) => {
             const events = new Array<DomainEvent>();
             this.client.read(query)
-                .then((rows)=> {
-                    for (let row of rows){
-                        let event = EventRegistry.fromJsonObject(row.event);
-                        if (event) events.push(event);
-                        resolve(events);
-                    }
-                }).catch(()=> {
-                resolve(events)
+                .then((result)=> {
+                    resolve(translateQueryResult(result))
+                })
             })
-        });
     };
 }

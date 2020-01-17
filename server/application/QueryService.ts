@@ -1,3 +1,1 @@
-export default abstract class QueryService {
-    constructor(){}
-}
+export default abstract class QueryService {}

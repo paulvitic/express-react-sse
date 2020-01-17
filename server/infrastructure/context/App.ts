@@ -2,20 +2,21 @@ import ExpressServer from "./ExpressServer";
 import LogFactory from "./LogFactory";
 import config, {Environment} from "./config";
 import RedisCache from "./RedisCache";
-import RabbitClient from "./RabbitClient";
-import PostgresClient from "./PostgresClient";
+import RabbitClient from "../clients/RabbitClient";
+import PostgresClient from "../clients/PostgresClient";
 import {RequestHandler} from "express";
 import {TicketBoardsResource} from "../rest";
 import TicketBoardsService from "../../application/product/TicketBoardsService";
-import SessionsQueryService from "../../application/SessionsQueryService";
-import {UsersResource} from "../rest/UsersResource";
+import {UsersResource} from "../rest/team/UsersResource";
 import PostgresEventStore from "../persistence/PostgresEventStore";
 import EventStore from "../../domain/EventStore";
-import RabbitEventBus from "../message/RabbitEventBus";
+import RabbitEventBus from "../messaging/RabbitEventBus";
 import EventBus from "../../domain/EventBus";
 import {Repository} from "../../domain/Repository";
 import TicketBoard from "../../domain/product/TicketBoard";
 import {TicketBoardRedisRepo} from "../persistence/RedisRepository";
+import {registerDomainEvent} from "../JsonEventTranslator";
+import AddTicketBoard from "../../application/product/commands/AddTicketBoard";
 
 const exit = process.exit;
 
@@ -58,75 +59,70 @@ export default class App {
         }
     };
 
-    public start = () => {
+    public start = async () => {
         this.log.info(`getting configuration`);
-        config()
-            .then((env: Environment) => {
-                this.env = env;
-                this.init()
-                    .then(() => {
-                        this.log.info("App started");
-                    })
-                    .catch((err) => {
-                        this.log.error("App start failed", err);
-                        exit(1);
-                    });
-            }).catch((err) => {
-                this.log.error("Configuration failed", err);
-                exit(1);
-        });
+        try {
+            this.env = await config();
+            await this.init();
+            this.log.info("App started");
+        } catch (err) {
+            this.log.error("App start failed", err);
+            exit(1);
+        }
     };
 
     private init = (): Promise<void> => {
-        return new Promise<void>((resolve, reject) => {
-            this.initClients()
-                .then((success) => {
-                    if (success) {
-                        this.initServer()
-                            .then(() => resolve())
-                            .catch((err)=> reject(err))
-                    }
-                });
+        return new Promise<void>(async (resolve, reject) => {
+            try {
+                let success = await this.initClients();
+                if (success) {
+                    await this.registerEvents();
+                    await this.initServer();
+                }
+            } catch (err) {
+                reject(err)
+            }
         })
     };
 
     private initClients = (): Promise<boolean> => {
         return new Promise<boolean>(async (resolve, reject) => {
-            RabbitClient.init(
-                this.env.RABBIT_HOST,
-                this.env.RABBIT_PORT,
-                this.env.RABBIT_USER,
-                this.env.RABBIT_PASS,
-                this.env.RABBIT_VHOST)
-                .then((rabbitClient) => {
-                    this.context.clients.set('rabbitClient', rabbitClient);
-                    new PostgresClient(
+            try {
+                this.context.clients.set('rabbitClient',
+                    await RabbitClient.init(
+                        this.env.RABBIT_HOST,
+                        this.env.RABBIT_PORT,
+                        this.env.RABBIT_USER,
+                        this.env.RABBIT_PASS,
+                        this.env.RABBIT_VHOST));
+
+                this.context.clients.set('postgresClient',
+                    await new PostgresClient(
                         this.env.POSTGRES_HOST,
                         this.env.POSTGRES_PORT,
                         this.env.POSTGRES_USER,
                         this.env.POSTGRES_DATABASE,
                         this.env.POSTGRES_PASS
-                    ).init()
-                        .then((postgresClient) => {
-                            this.context.clients.set('postgresClient', postgresClient);
-                            new RedisCache(
-                                this.env.REDIS_HOST,
-                                this.env.REDIS_PORT,
-                                this.env.REDIS_PASS,
-                                this.env.SESSION_COOKIE_TTL
-                            ).init()
-                                .then((redisClient) => {
-                                    this.context.clients.set('redisClient', redisClient);
-                                    resolve(true)
-                                })
-                                .catch((err) => {reject(err)});
-                        })
-                        .catch((err) => {reject(err)});
-                }).catch((err)=> {
-                    reject(err)
-            });
+                    ).init());
+
+                this.context.clients.set('redisClient',
+                    await new RedisCache(
+                        this.env.REDIS_HOST,
+                        this.env.REDIS_PORT,
+                        this.env.REDIS_PASS,
+                        this.env.SESSION_COOKIE_TTL
+                    ).init());
+
+                resolve(true)
+            } catch (err) {
+                reject(err)
+            }
         })
     };
+
+    private registerEvents(){
+        registerDomainEvent(AddTicketBoard.name, AddTicketBoard)
+    }
 
     private initServer = (): Promise<void> => {
         this.context.eventStore = new PostgresEventStore(this.context.clients.get("postgresClient"));

@@ -1,3 +1,3 @@
-export default abstract class Command {
-
+export default class Command {
+    constructor(readonly type: string) {}
 }

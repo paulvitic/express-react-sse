@@ -1,4 +1,4 @@
-import LogFactory from "../context/LogFactory";
+import LogFactory from "../../context/LogFactory";
 import {Request, Response} from "express";
 import axios from 'axios'
 
@@ -21,6 +21,11 @@ export class UsersResource {
     constructor(private readonly googleAppClientId: string,
                 private readonly googleAppClientSecret: string){}
 
+    // Command
+    create = (req: Request, res: Response): void => {
+        throw new Error('not implemented')
+    };
+
     authenticate = (req: Request, res: Response): void => {
         this.log.info(`authenticating with ${req.query.code}`);
         this.accessToken(req.query.code)
@@ -38,6 +43,8 @@ export class UsersResource {
             })
     };
 
+
+    // Query
     byId = (req: Request, res: Response): void => {
 
     };
@@ -51,10 +58,6 @@ export class UsersResource {
         } else {
             res.json({});
         }
-    };
-
-    create = (req: Request, res: Response): void => {
-
     };
 
 

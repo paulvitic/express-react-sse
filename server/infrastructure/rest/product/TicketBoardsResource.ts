@@ -1,23 +1,31 @@
 import TicketBoardsService from '../../../application/product/TicketBoardsService';
-import {Request, RequestHandler, Response} from 'express';
+import {Request, Response} from 'express';
+import translateTicketBoardRequest from "./TicketBoardReqTranslator";
+import AddTicketBoard from "../../../application/product/commands/AddTicketBoard";
 
 export class TicketBoardsResource {
 
-  constructor (private examplesService: TicketBoardsService){}
+  constructor (private service: TicketBoardsService){}
 
   byId = (req: Request, res: Response): void => {
-      const id = Number.parseInt(req.params['id']);
-      this.examplesService.byId(id).then(r => {
-        if (r) res.json(r);
-        else res.status(404).end();
-      });
+      // use query service
+      throw Error('not implemented')
   };
 
   create = (req: Request, res: Response): void => {
-      this.examplesService.create(req.body.name)
-          .then(r => res.status(201)
-              .location(`/api/v1/examples/${r.id}`)
-              .json(r),
-      );
+      translateTicketBoardRequest(req)
+          .then(command => {
+              switch (command.type) {
+                  case AddTicketBoard.name:
+                      this.service.addTicketBoard(command)
+                          .then(id => res.status(201)
+                              .location(`/api/v1/ticketBoards/${id}`)
+                              .json(id))
+                          .catch((err) => {
+                              throw new Error(err);
+                          })
+                          .catch()
+              }
+      })
   }
 }
