@@ -2,8 +2,15 @@ import TicketBoardsService from '../../../application/product/TicketBoardsServic
 import {Request, Response} from 'express';
 import translateTicketBoardRequest from "./TicketBoardReqTranslator";
 import AddTicketBoard from "../../../application/product/commands/AddTicketBoard";
+import LogFactory from "../../context/LogFactory";
+
+export const TicketBoardsEndpoints = {
+    byId : "TicketBoardsById",
+    create: "TicketBoardsCreate"
+};
 
 export class TicketBoardsResource {
+    private readonly log = LogFactory.get(TicketBoardsResource.name)
 
   constructor (private service: TicketBoardsService){}
 
@@ -13,6 +20,7 @@ export class TicketBoardsResource {
   };
 
   create = (req: Request, res: Response): void => {
+      this.log.info(`create ticket board request received: ${req.body}`);
       translateTicketBoardRequest(req)
           .then(command => {
               switch (command.type) {

@@ -15,46 +15,59 @@ consumes:
 produces:
   - application/json
 
-
-definitions:
-  ExampleBody:
-    type: object
-    title: example
-    required:
-      - name
-    properties:
-      name:
-        type: string
-        example: no_stress
-
 paths:
-  /examples:
+  /users:
     get:
       tags:
-        - Examples
-      description: Fetch all examples
-      responses:
-        200:
-          description: Returns all examples
-    post:
-      tags:
-        - Examples
-      description: Create a new example
+        - Users
+      description: Searches users
       parameters:
-        - name: example
-          in: body
-          description: an example
+        - name: session
+          in: path
           required: true
-          schema: 
-            $ref: "#/definitions/ExampleBody"
+          description: should get current user
+          type: boolean
       responses:
         200:
           description: Returns all examples
-
-  /examples/{id}:
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  name:
+                    type: string
+                  given_name:
+                    type: string
+                  family_name:
+                    type: string
+                  picture:
+                    type: string
+                  locale:
+                    type: string
+  /users/auth:
     get:
       tags:
-        - Examples
+        - Users
+      description: Authenticate session
+      parameters:
+        - name: code
+          in: path
+          required: true
+          description: athentication code
+          type: string
+      responses:
+        200:
+          description: Returns all examples
+        404:
+          description: Authentication failed
+
+  /ticketBoards/{id}:
+    get:
+      tags:
+        - TicketBoards
       parameters:
         - name: id
           in: path
@@ -66,6 +79,24 @@ paths:
           description: Return the example with the specified id
         404:
           description: Example not found
+  /ticketBoards:
+    post:
+      summary: Add a ticket board
+      tags:
+        - TicketBoards
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          description: The user to create.
+          schema:
+            type: object
+            properties:
+              name:
+                type: string
+      responses:
+        '200':
+          description: Created
 
   /spec:
     get:

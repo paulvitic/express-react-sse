@@ -14,5 +14,5 @@ s.cp('-R', 'client/build/*', `${outDir}/static/`);
 s.cp('-R', 'server/public/api-explorer', `${outDir}/static/api-explorer`);
 
 s.cp('.env', `${outDir}/.env`);
-s.mkdir('-p', `${outDir}/app/swagger`);
-s.cp('server/app/api.yml', `${outDir}/app/api.yml`);
+//s.mkdir('-p', `${outDir}/app/swagger`);
+//s.cp('server/infrastructure/context/api.yml', `${outDir}/app/api.yml`);

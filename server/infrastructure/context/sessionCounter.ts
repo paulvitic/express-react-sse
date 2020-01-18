@@ -11,7 +11,7 @@ export default function sessionCounter() {
         } else {
             req.session.views = 1
         }
-        log.info(`req url: ${req.url}, session id: ${JSON.stringify(req.session.id)}, session data: ${JSON.stringify(req.session)}`);
+        log.debug(`req url: ${req.url}, session id: ${JSON.stringify(req.session.id)}, session data: ${JSON.stringify(req.session)}`);
         next();
     }
 }

@@ -10,10 +10,17 @@ type AccessToken = {
 }
 
 type UserInfo = {
-    id, email,
+    id,
+    email,
     given_name,
     family_name
 }
+
+export const UsersEndpoints = {
+    authenticate: "AuthenticateUser",
+    search: "SearchUser",
+    create: "CreateUser"
+};
 
 export class UsersResource {
     private readonly log = LogFactory.get(UsersResource.name);

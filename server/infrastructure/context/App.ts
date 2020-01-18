@@ -1,13 +1,13 @@
 import ExpressServer from "./ExpressServer";
 import LogFactory from "./LogFactory";
-import config, {Environment} from "./config";
+import config, {Environment} from "../config/config";
 import RedisCache from "./RedisCache";
 import RabbitClient from "../clients/RabbitClient";
 import PostgresClient from "../clients/PostgresClient";
 import {RequestHandler} from "express";
-import {TicketBoardsResource} from "../rest";
+import {TicketBoardsResource, TicketBoardsEndpoints} from "../rest";
 import TicketBoardsService from "../../application/product/TicketBoardsService";
-import {UsersResource} from "../rest/team/UsersResource";
+import {UsersEndpoints, UsersResource} from "../rest/team/UsersResource";
 import PostgresEventStore from "../persistence/PostgresEventStore";
 import EventStore from "../../domain/EventStore";
 import RabbitEventBus from "../messaging/RabbitEventBus";
@@ -124,12 +124,9 @@ export default class App {
         registerDomainEvent(AddTicketBoard.name, AddTicketBoard)
     }
 
-    private initServer = (): Promise<void> => {
+    private initServer = async (): Promise<void> => {
         this.context.eventStore = new PostgresEventStore(this.context.clients.get("postgresClient"));
-        RabbitEventBus.init(this.context.clients.get("rabbitClient"), this.context.eventStore)
-            .then((eventBus) => {
-                this.context.eventBus = eventBus
-            });
+        this.context.eventBus = await RabbitEventBus.init(this.context.clients.get("rabbitClient"), this.context.eventStore);
 
         this.context.repositories.ticketBoardRepo = new TicketBoardRedisRepo(
             this.context.clients.get('redisClient'),
@@ -141,12 +138,12 @@ export default class App {
             new TicketBoardsService(
                 this.context.eventBus,
                 this.context.repositories.ticketBoardRepo));
-        resources.set("examplesCreate", ticketBoardsResource.create);
-        resources.set("examplesById", ticketBoardsResource.byId);
+        resources.set(TicketBoardsEndpoints.create, ticketBoardsResource.create);
+        resources.set(TicketBoardsEndpoints.byId, ticketBoardsResource.byId);
 
         let users = new UsersResource(this.env.GOOGLE_APP_CLIENT_ID, this.env.GOOGLE_APP_CLIENT_SECRET);
-        resources.set("usersAuth", users.authenticate);
-        resources.set("usersSearch", users.search);
+        resources.set(UsersEndpoints.authenticate, users.authenticate);
+        resources.set(UsersEndpoints.search, users.search);
 
         return new Promise<void>((resolve, reject) => {
             new ExpressServer(
@@ -155,10 +152,10 @@ export default class App {
                 this.context.clients.get('redisClient').sessionStore(),
                 resources)
                 .init()
-                .then((server)=> {
+                .then((server) => {
                     this.context.server = server;
                 }).catch(err => {
-                    reject(err);
+                reject(err);
             })
         })
     }

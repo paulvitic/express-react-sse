@@ -13,7 +13,8 @@ import errorHandler from "./errorHandler";
 import sessionCounter from "./sessionCounter";
 import uuid from "../../domain/uuid";
 import serverSentEvents from "./serverSentEvents";
-import { TicketBoardsResource } from "../rest";
+import {TicketBoardsResource, TicketBoardsEndpoints} from "../rest";
+import {UsersEndpoints} from "../rest/team/UsersResource";
 
 const installMiddleware = (app: Application): Promise<void> => {
     return new Promise<void>((resolve, reject) => {
@@ -32,13 +33,21 @@ const installMiddleware = (app: Application): Promise<void> => {
 const addRoutes = (app: Application, resources: Map<string, RequestHandler>): Promise<void> => {
     return new Promise<void>((resolve) => {
         // provide the same static SPA files for all SPA internal routes used
-        app.use("/", express.static(`${path.normalize(__dirname + '/../..')}/dist/static`));
-        app.use("/login", express.static(`${path.normalize(__dirname + '/../..')}/dist/static`));
+        app.use("/", express.static(`${path.normalize(__dirname + '/../../../')}/dist/static`));
+        app.use("/login", express.static(`${path.normalize(__dirname + '/../../../')}/dist/static`));
+
         // EventSource API makes a 'GET' request by default, you can not use another HTTP method
         app.get('/events', serverSentEvents(app));
+
         app.use('/api/v1/users', express.Router()
-            .get('/', resources.get("usersSearch"))
-            .get('/auth', resources.get("usersAuth")));
+            .get('/', resources.get(UsersEndpoints.search))
+            .get('/auth', resources.get(UsersEndpoints.authenticate)));
+
+        app.use('/api/v1/ticketBoards', express.Router()
+            .post('/', resources.get(TicketBoardsEndpoints.create))
+            .get('/:id', resources.get(TicketBoardsEndpoints.byId)));
+
+
         resolve();
     })
 };
@@ -69,13 +78,13 @@ export default class ExpressServer {
                 reject(e);
             });
 
-            await addRoutes(this.app, this.resources).catch(e => {
-                this.log.error(`Error while adding routes: ${e}`);
+            await installApiDocs(this.app).catch(e => {
+                this.log.error(`Error while installing api docs middleware: ${e}`);
                 reject(e);
             });
 
-            await installApiDocs(this.app).catch(e => {
-                this.log.error(`Error while installing api docs middleware: ${e}`);
+            await addRoutes(this.app, this.resources).catch(e => {
+                this.log.error(`Error while adding routes: ${e}`);
                 reject(e);
             });
 
@@ -90,7 +99,7 @@ export default class ExpressServer {
                     resolve(this);
                 });
             } catch (e) {
-                this.log.error(`error while starting server: ${e}`)
+                this.log.error(`error while starting server: ${e}`);
                 reject(e);
             }
         })
