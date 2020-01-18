@@ -16,7 +16,7 @@ import {Repository} from "../../domain/Repository";
 import TicketBoard from "../../domain/product/TicketBoard";
 import {TicketBoardRedisRepo} from "../persistence/RedisRepository";
 import {registerDomainEvent} from "../JsonEventTranslator";
-import AddTicketBoard from "../../application/product/commands/AddTicketBoard";
+import {TicketBoardCreated} from "../../domain/product/events/TicketBoardCreated";
 
 const exit = process.exit;
 
@@ -37,6 +37,10 @@ type Context = {
         }
     }
 }
+
+const registerEvents = function(){
+    registerDomainEvent(TicketBoardCreated.name, TicketBoardCreated)
+};
 
 export default class App {
     private readonly log = LogFactory.get(App.name);
@@ -76,7 +80,7 @@ export default class App {
             try {
                 let success = await this.initClients();
                 if (success) {
-                    await this.registerEvents();
+                    await registerEvents();
                     await this.initServer();
                 }
             } catch (err) {
@@ -119,10 +123,6 @@ export default class App {
             }
         })
     };
-
-    private registerEvents(){
-        registerDomainEvent(AddTicketBoard.name, AddTicketBoard)
-    }
 
     private initServer = async (): Promise<void> => {
         this.context.eventStore = new PostgresEventStore(this.context.clients.get("postgresClient"));

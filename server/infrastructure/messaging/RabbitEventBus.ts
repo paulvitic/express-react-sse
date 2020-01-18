@@ -16,33 +16,32 @@ export default class RabbitEventBus implements EventBus {
     private readonly log = LogFactory.get(RabbitEventBus.name);
     private sendChannel: Channel;
     private receiveChannel: Channel;
-    private subscribers: Map<string, EventHandler[]>;
+    private subscribers: Map<string, EventHandler[]> = new Map<string, EventHandler[]>();
 
     private constructor(
         private readonly rabbitClient: RabbitClient,
         private readonly store: EventStore
     ) {}
 
-    static init = (client: RabbitClient, store: EventStore): Promise<RabbitEventBus> => {
-        let eventBus = new RabbitEventBus(client, store);
-        let {receiveChannel, sendChannel} = eventBus;
+    static init = async (client: RabbitClient, store: EventStore): Promise<RabbitEventBus> => {
+        const eventBus = new RabbitEventBus(client, store);
+        // create a separate channel to send
+        eventBus.sendChannel =  await eventBus.rabbitClient.createChannel(sourceDomainExchange);
+
+        // create a channel to receive
+        eventBus.receiveChannel = await eventBus.rabbitClient.createChannel(sourceDomainExchange);
+
+        // create a named non-exclusive queue so other clients can connect as well and bind to it
+        let queueInfo = await eventBus.receiveChannel.assertQueue(consumeQueueName, { exclusive: false});
+        eventBus.log.info(`queue info: ${JSON.stringify(queueInfo)}`);
+        await eventBus.receiveChannel.bindQueue(queueInfo.queue,  sourceDomainExchange, '');
+
+        // start consuming from queue
+        let consumeInfo = eventBus.receiveChannel.consume(queueInfo.queue, eventBus.onMessage, { noAck: false });
+        eventBus.log.info(`consume info: ${JSON.stringify(consumeInfo)}`);
+
         return new Promise<RabbitEventBus>(async (resolve, reject) => {
             try {
-                // create a separate channel to send
-                sendChannel =  await eventBus.rabbitClient.createChannel(sourceDomainExchange);
-
-                // create a channel to receive
-                receiveChannel = await eventBus.rabbitClient.createChannel(sourceDomainExchange);
-
-                // create a named non-exclusive queue so other clients can connect as well and bind to it
-                let queueInfo = await receiveChannel.assertQueue(consumeQueueName, { exclusive: false});
-                eventBus.log.info(`queue info: ${JSON.stringify(queueInfo)}`);
-                await receiveChannel.bindQueue(queueInfo.queue,  sourceDomainExchange, '');
-
-                // start consuming from queue
-                let consumeInfo = receiveChannel.consume(queueInfo.queue, eventBus.onMessage, { noAck: false });
-                eventBus.log.info(`consume info: ${JSON.stringify(consumeInfo)}`);
-
                 resolve(eventBus)
             } catch (e) {
                 reject(e);
@@ -111,11 +110,12 @@ export default class RabbitEventBus implements EventBus {
         this.log.info(`got msg: ${JSON.stringify(msg)}`);
         translateMessage(msg)
             .then((event) => {
-                this.subscribers
-                    .get(event.eventType)
-                    .forEach((handle) => { handle(event)});
-                });
+                let handlers = this.subscribers.get(event.eventType);
+                if (handlers && handlers.length>0){
+                    handlers.forEach((handle) => { handle(event)})
+                }
                 ack(true)
+            })
             .catch(err => {
                 this.log.error('error while processing received message', err);
                 ack(true)

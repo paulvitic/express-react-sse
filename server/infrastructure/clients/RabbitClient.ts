@@ -74,39 +74,28 @@ export default class RabbitClient {
     };
 
     createChannel = (exchange:string) => {
-        return new Promise<Channel>((resolve, reject) => {
+        return new Promise<Channel>(async (resolve, reject) => {
             const self = this;
-            this.connection.createChannel()
-                .then((channel) => {
-                    channel.on('error', function(err) {
-                        self.log.error('channel error: ', err);
-                    });
+            try {
+                let channel = await this.connection.createChannel();
+                channel.on('error', function(err) {
+                    self.log.error('channel error: ', err);
+                });
 
-                    channel.on('close', function() {
-                        self.log.info('channel closed');
-                    });
+                channel.on('close', function() {
+                    self.log.info('channel closed');
+                });
 
-                    channel.prefetch(10)
-                        .then(() => {
-                            channel.assertExchange(exchange,'fanout',{ durable: true })
-                                .then((exchangeAssert) => {
-                                    self.log.info(`exchange assert: ${JSON.stringify(exchangeAssert)}`);
-                                    resolve(channel);
-                                })
-                                .catch(err => {
-                                    self.closeOnErr(err)
-                                        .then((closed) => {
-                                            if (closed) self.log.info('connection closed');
-                                        })
-                                });
-                        });
+                await channel.prefetch(10)
 
-                }).catch((err) => {
-                    self.closeOnErr(err)
-                        .then((closed) => {
-                            if (closed) self.log.info('connection closed');
-                    })
-            });
+                let exchangeAssert = await channel.assertExchange(exchange,'fanout',{ durable: true })
+                self.log.info(`exchange assert: ${JSON.stringify(exchangeAssert)}`);
+                resolve(channel);
+
+            } catch (err) {
+                let closed = await self.closeOnErr(err)
+                if (closed) self.log.info('connection closed');
+            }
         })
     };
 }
