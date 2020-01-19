@@ -4,7 +4,6 @@ export class TicketBoardCreated extends AbstractDomainEvent {
     constructor(
         aggregate: string,
         aggregateId: string,
-        sequence: number,
-        readonly key:string){
+        sequence: number){
         super(aggregate, aggregateId, sequence);}
 }

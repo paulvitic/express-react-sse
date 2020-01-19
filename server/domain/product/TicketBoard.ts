@@ -1,7 +1,6 @@
 import AggregateRoot from "../AggregateRoot";
 import {Except, Failure, Succeed, withSuccess} from "../Except";
 import {TicketBoardCreated} from "./events/TicketBoardCreated";
-import Identity from "../Identity";
 import DomainEvent from "../DomainEvent";
 
 export class TicketBoardFailure implements Failure<string> {
@@ -10,7 +9,6 @@ export class TicketBoardFailure implements Failure<string> {
 }
 
 export default class TicketBoard extends AggregateRoot {
-    private key: string;
 
     static fromEvents(id: string, events: DomainEvent[]): TicketBoard {
         const dataCollection = new TicketBoard(id);
@@ -32,9 +30,8 @@ export default class TicketBoard extends AggregateRoot {
                 let ticketBoard = new TicketBoard(key);
                 let event = new TicketBoardCreated(
                     TicketBoard.name,
-                    Identity.generate(key),
-                    ticketBoard.nextEventSequence(),
-                    key);
+                    key,
+                    ticketBoard.nextEventSequence());
                 ticketBoard.onTicketBoardCreated(event); // we dont need ths, constructor inititlizes state anyway, just to show as example for other business methods
                 ticketBoard.recordEvent(event); // may be constructor records this event too
                 resolve(withSuccess(ticketBoard));
@@ -42,8 +39,7 @@ export default class TicketBoard extends AggregateRoot {
         })
     }
 
-    private onTicketBoardCreated(event: TicketBoardCreated) {// we shoud not need this mutator as construtor initializes
+    private onTicketBoardCreated(event: TicketBoardCreated) { // we shoud not need this mutator as construtor initializes
         this.assertEventSequence(event.sequence);
-        this.key = event.key;
     }
 }

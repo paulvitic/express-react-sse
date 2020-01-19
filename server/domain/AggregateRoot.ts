@@ -36,7 +36,7 @@ export default abstract class AggregateRoot {
         if (eventSequence === this.lastEventSequence + 1) {
             this.lastEventSequence = eventSequence
         } else {
-            // TODO throw error or and maybe reconstruct Aggregate from event store, like a self-healing state
+            throw new Error(`Expected event sequence was ${this.lastEventSequence + 1} but got ${eventSequence}`)
         }
     }
 
