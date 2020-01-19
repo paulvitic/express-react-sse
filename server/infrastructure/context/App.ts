@@ -1,7 +1,7 @@
 import ExpressServer from "./ExpressServer";
 import LogFactory from "./LogFactory";
 import config, {Environment} from "../config/config";
-import RedisCache from "./RedisCache";
+import RedisClient from "../clients/RedisClient";
 import RabbitClient from "../clients/RabbitClient";
 import PostgresClient from "../clients/PostgresClient";
 import {RequestHandler} from "express";
@@ -110,11 +110,10 @@ export default class App {
                     ).init());
 
                 this.context.clients.set('redisClient',
-                    await new RedisCache(
+                    await new RedisClient(
                         this.env.REDIS_HOST,
                         this.env.REDIS_PORT,
-                        this.env.REDIS_PASS,
-                        this.env.SESSION_COOKIE_TTL
+                        this.env.REDIS_PASS
                     ).init());
 
                 resolve(true)
@@ -149,7 +148,7 @@ export default class App {
             new ExpressServer(
                 this.env.PORT,
                 this.env.SESSION_COOKIE_TTL,
-                this.context.clients.get('redisClient').sessionStore(),
+                this.context.clients.get('redisClient'),
                 resources)
                 .init()
                 .then((server) => {

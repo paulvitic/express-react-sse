@@ -3,7 +3,6 @@ import Identity from "./Identity";
 
 export default abstract class AggregateRoot {
     private readonly aggregateId: string;
-    private readonly aggregateType: string;
 
     private readonly domainEvents: DomainEvent[] = new Array<DomainEvent>();
     private exists: boolean = true; // switch to false when soft deleted
@@ -11,11 +10,9 @@ export default abstract class AggregateRoot {
 
     protected constructor(id?: string) {
         this.aggregateId = id ? id : Identity.generate();
-        this.aggregateType = this.constructor.name;
     }
 
-    protected static fromEvents(id: string, events: DomainEvent[]): AggregateRoot {
-        // TODO use javacsript generator
+    static fromEvents(id: string, events: DomainEvent[]): AggregateRoot {
         throw Error;
     }
 
@@ -24,7 +21,7 @@ export default abstract class AggregateRoot {
     }
 
     get type() {
-        return this.aggregateType;
+        return typeof this;
     }
 
     protected recordEvent(event: DomainEvent): void {
@@ -39,7 +36,7 @@ export default abstract class AggregateRoot {
         if (eventSequence === this.lastEventSequence + 1) {
             this.lastEventSequence = eventSequence
         } else {
-            // TODO throw error or and maybe reconstruct Aggregate from ent store, like a self-healing state
+            // TODO throw error or and maybe reconstruct Aggregate from event store, like a self-healing state
         }
     }
 

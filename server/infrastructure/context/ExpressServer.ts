@@ -13,8 +13,9 @@ import errorHandler from "./errorHandler";
 import sessionCounter from "./sessionCounter";
 import uuid from "../../domain/uuid";
 import serverSentEvents from "./serverSentEvents";
-import {TicketBoardsResource, TicketBoardsEndpoints} from "../rest";
+import {TicketBoardsEndpoints} from "../rest";
 import {UsersEndpoints} from "../rest/team/UsersResource";
+import RedisClient from "../clients/RedisClient";
 
 const installMiddleware = (app: Application): Promise<void> => {
     return new Promise<void>((resolve, reject) => {
@@ -59,10 +60,10 @@ export default class ExpressServer {
 
     constructor(private readonly port: number,
                 sessionCookieTtl: number,
-                sessionStore: session.Store,
+                redisClient: RedisClient,
                 private readonly resources: Map<string, RequestHandler>) {
         this.app = express();
-        this.app.set('sessionStore', sessionStore);
+        this.app.set('redisClient', redisClient);
         this.app.set('sessionCookieTtl', sessionCookieTtl);
         this.app.set('instanceId', uuid());
         this.app.set('sseClients', new Map<string, Response>());

@@ -10,7 +10,7 @@ export default function translateTicketBoardRequest(req: Request): Promise<Ticke
     return new Promise<TicketBoardCommand>((resolve, reject) => {
         switch (req.method) {
             case 'POST':
-                resolve(new AddTicketBoard(req.body.name));
+                resolve(new AddTicketBoard(req.body.key));
                 return;
             default:
                 reject(new Error('not implemented'))

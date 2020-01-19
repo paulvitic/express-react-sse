@@ -4,16 +4,29 @@ info:
   title: app-with-express-no-stress
   description: App with express-no-stress
 basePath: /api/v1
+
 tags:
-  - name: Examples
-    description: Simple example endpoints
   - name: Specification
     description: The swagger API specification
+  - name: Uers
+    description: Users endpoints
+
+  - name: Uers
+    description: Users endpoints
 
 consumes:
   - application/json
 produces:
   - application/json
+
+definitions:
+  createTicketBoardRequest:
+    type: object
+    required:
+      - key
+    properties:
+      key:
+        type: string
 
 paths:
   /users:
@@ -72,7 +85,7 @@ paths:
         - name: id
           in: path
           required: true
-          description: The id of the example to retrieve
+          description: The id of the ticket board to retrieve
           type: integer
       responses:
         200:
@@ -84,12 +97,13 @@ paths:
       summary: Add a ticket board
       tags:
         - TicketBoards
-      consumes:
-        - application/json
       parameters:
-        - in: body
-          description: The user to create.
+        - name: createTicketBoardRequest
+          in: body
+          description: Create ticket board request.
+          required: true
           schema:
+            $ref: "#/definitions/createTicketBoardRequest"
             type: object
             properties:
               name:

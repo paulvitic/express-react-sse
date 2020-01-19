@@ -1,12 +1,25 @@
 import {Application} from "express";
 import uuid from "../../domain/uuid";
+import connectRedis, {RedisStore} from "connect-redis";
+import session from "express-session";
 
 export default (app: Application) => {
+
+    const sessionStore = (): RedisStore => {
+        const redisStore = connectRedis(session);
+        return  new redisStore({
+            host: this.host,
+            port: this.port,
+            db: 0,
+            client: app.get('redisClient'),
+            ttl:  app.get('sessionCookieTtl')
+        });
+    };
 
     const sess = {
         name: 'app.sid', // use process.env.SESSION_NAME some obscure name
         secret: process.env.SESSION_SECRET,
-        store: app.get('sessionStore'),
+        store: sessionStore(),
         cookie: {
             httpOnly: true, // means you can not access session data with javascript
             secure: false, // make it true for production

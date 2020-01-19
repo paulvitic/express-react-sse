@@ -5,7 +5,7 @@ import {Repository} from "../domain/Repository";
 export default abstract class ApplicationService<T extends AggregateRoot> {
     protected constructor(
         private readonly eventBus: EventBus,
-        private readonly repository: Repository<T>
+        protected readonly repository: Repository<T>
     ) {}
 
     protected aggregateState(is: string): Promise<T> {

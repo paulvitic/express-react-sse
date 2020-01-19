@@ -2,11 +2,11 @@ import fs from "fs"
 import {Repository} from "../../domain/Repository";
 import AggregateRoot from "../../domain/AggregateRoot";
 import TicketBoard from "../../domain/product/TicketBoard";
-import RedisCache from "../context/RedisCache";
+import RedisClient from "../clients/RedisClient";
 
 export abstract class RedisRepository<T extends AggregateRoot> implements Repository<T> {
 
-    constructor(private readonly cache: RedisCache,
+    constructor(private readonly redisClient: RedisClient,
                 private readonly hash: string) {}
 
     delete(id: string): Promise<boolean> {
@@ -22,13 +22,9 @@ export abstract class RedisRepository<T extends AggregateRoot> implements Reposi
     findOne = async (id: string): Promise<T> => {
         return new Promise<T>((resolve, reject) => {
             let result: T;
-            this.cache.get(`${this.hash}:${id}`)
-                .then(json => {
-                    try {
-                        resolve(JSON.parse(json));
-                    } catch (err) {
-                        reject(err);
-                    }
+            this.redisClient.get(`${this.hash}:${id}`)
+                .then(value => {
+                    resolve(value);
                 }).catch(err => {
                     reject(err)
             })
@@ -38,7 +34,7 @@ export abstract class RedisRepository<T extends AggregateRoot> implements Reposi
     save = (item: T): Promise<T> => {
         return new Promise<T>((resolve, reject) => {
             let result: T;
-            this.cache.set(`${this.hash}:${item.id}`, JSON.stringify(item))
+            this.redisClient.set(`${this.hash}:${item.id}`, JSON.stringify(item))
                 .then(ok => {
                     if (ok) resolve(item);
                     else reject(new Error('save failed'))
