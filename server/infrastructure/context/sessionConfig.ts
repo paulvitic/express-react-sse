@@ -12,7 +12,7 @@ export default (app: Application) => {
             port: this.port,
             db: 0,
             client: app.get('redisClient'),
-            ttl:  app.get('sessionCookieTtl')
+            ttl: app.get('sessionCookieTtl')
         });
     };
 

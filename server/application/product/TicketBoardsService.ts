@@ -22,7 +22,6 @@ export default class TicketBoardsService extends ApplicationService<TicketBoard>
 
   addTicketBoard(command: AddTicketBoard): Promise<string> {
     return new Promise<string>(async (resolve, reject) => {
-      let exists = await this.repository.findOne(command.key);
       let outcome = await TicketBoard.create(command.key, this.queryService);
 
       outcome.onSuccess(ticketBoard => {

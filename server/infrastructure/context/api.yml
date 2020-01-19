@@ -27,6 +27,13 @@ definitions:
     properties:
       key:
         type: string
+  errorBody:
+    type: object
+    properties:
+      message:
+        type: string
+      stack:
+        type: string
 
 paths:
   /users:
@@ -104,13 +111,16 @@ paths:
           required: true
           schema:
             $ref: "#/definitions/createTicketBoardRequest"
-            type: object
-            properties:
-              name:
-                type: string
       responses:
         '200':
           description: Created
+        '400':
+          description: Failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/definitions/errorBody'
+
 
   /spec:
     get:

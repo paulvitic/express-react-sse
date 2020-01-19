@@ -10,7 +10,7 @@ export const TicketBoardsEndpoints = {
 };
 
 export class TicketBoardsResource {
-    private readonly log = LogFactory.get(TicketBoardsResource.name)
+    private readonly log = LogFactory.get(TicketBoardsResource.name);
 
   constructor (private service: TicketBoardsService){}
 
@@ -30,9 +30,11 @@ export class TicketBoardsResource {
                               .location(`/api/v1/ticketBoards/${id}`)
                               .json(id))
                           .catch((err) => {
-                              throw new Error(err);
-                          })
-                          .catch()
+                              res.status(400).json(err)
+                          });
+                      return;
+                  default:
+                      res.status(400).json({reason: `${command.type} not known`})
               }
       })
   }
