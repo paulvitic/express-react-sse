@@ -11,9 +11,6 @@ tags:
   - name: Uers
     description: Users endpoints
 
-  - name: Uers
-    description: Users endpoints
-
 consumes:
   - application/json
 produces:
@@ -120,8 +117,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/definitions/errorBody'
-
-
   /spec:
     get:
       tags:

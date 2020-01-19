@@ -8,7 +8,7 @@ import installApiDocs from './apiDoc';
 import cookieParser from 'cookie-parser';
 import sessionConfig from "./sessionConfig";
 import LogFactory from "./LogFactory";
-import session, {Store} from "express-session";
+import session from "express-session";
 import errorHandler from "./errorHandler";
 import sessionCounter from "./sessionCounter";
 import uuid from "../../domain/uuid";
@@ -47,7 +47,6 @@ const addRoutes = (app: Application, resources: Map<string, RequestHandler>): Pr
         app.use('/api/v1/ticketBoards', express.Router()
             .post('/', resources.get(TicketBoardsEndpoints.create))
             .get('/:id', resources.get(TicketBoardsEndpoints.byId)));
-
 
         resolve();
     })
@@ -96,7 +95,7 @@ export default class ExpressServer {
 
             try {
                 http.createServer(this.app).listen(this.port,() => {
-                    this.log.info(`up and running in ${process.env.NODE_ENV || 'development'} @: ${os.hostname()} on port: ${this.port}}`);
+                    this.log.info(`up and running in ${process.env.NODE_ENV || 'development'} @: ${os.hostname()} on port: ${this.port}`);
                     resolve(this);
                 });
             } catch (e) {

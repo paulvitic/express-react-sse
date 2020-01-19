@@ -159,8 +159,8 @@ export default class App {
                 .then((server) => {
                     this.context.server = server;
                 }).catch(err => {
-                reject(err);
-            })
+                    reject(err);
+                })
         })
     }
 }
