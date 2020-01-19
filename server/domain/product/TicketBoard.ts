@@ -1,7 +1,8 @@
 import AggregateRoot from "../AggregateRoot";
-import {Except, Failure, Succeed, withSuccess} from "../Except";
+import {Except, Failure, Succeed, withFailure, withSuccess} from "../Except";
 import {TicketBoardCreated} from "./events/TicketBoardCreated";
 import DomainEvent from "../DomainEvent";
+import {QueryService} from "../QueryService";
 
 export class TicketBoardFailure implements Failure<string> {
     reason: string;
@@ -23,10 +24,10 @@ export default class TicketBoard extends AggregateRoot {
         return dataCollection;
     }
 
-    static create(key: string): Promise<Except<TicketBoardFailure, TicketBoard>> {
+    // FIXME can not import from infrastructure
+    static create(key: string, queryService: QueryService<TicketBoard>): Promise<Except<TicketBoardFailure, TicketBoard>> {
         return new Promise<Except<TicketBoardFailure, TicketBoard>>((resolve) => {
-            let boardCanBeCreated = true; // some business logic
-            if (boardCanBeCreated) {
+            if (!queryService.exists(key)) {
                 let ticketBoard = new TicketBoard(key);
                 let event = new TicketBoardCreated(
                     TicketBoard.name,
@@ -35,6 +36,8 @@ export default class TicketBoard extends AggregateRoot {
                 ticketBoard.onTicketBoardCreated(event); // we dont need ths, constructor inititlizes state anyway, just to show as example for other business methods
                 ticketBoard.recordEvent(event); // may be constructor records this event too
                 resolve(withSuccess(ticketBoard));
+            } else {
+                resolve(withFailure({reason: "Ticket board exists", type: "TicketBoardCreationError"}))
             }
         })
     }

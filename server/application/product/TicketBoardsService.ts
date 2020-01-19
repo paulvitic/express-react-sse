@@ -4,13 +4,15 @@ import EventBus from "../../domain/EventBus";
 import {Repository} from "../../domain/Repository";
 import TicketBoard from "../../domain/product/TicketBoard";
 import AddTicketBoard from "./commands/AddTicketBoard";
+import {TicketBoardsQueryService} from "../../infrastructure/persistence/RedisQueryService";
 
 
 export default class TicketBoardsService extends ApplicationService<TicketBoard> {
   private readonly log = LogFactory.get(TicketBoardsService.name);
 
   constructor (eventBus: EventBus,
-               repository: Repository<TicketBoard>){
+               repository: Repository<TicketBoard>,
+               private readonly queryService: TicketBoardsQueryService){
     super(eventBus,repository);
   }
 
@@ -21,7 +23,7 @@ export default class TicketBoardsService extends ApplicationService<TicketBoard>
   addTicketBoard(command: AddTicketBoard): Promise<string> {
     return new Promise<string>(async (resolve, reject) => {
       let exists = await this.repository.findOne(command.key);
-      let outcome = await TicketBoard.create(command.key);
+      let outcome = await TicketBoard.create(command.key, this.queryService);
 
       outcome.onSuccess(ticketBoard => {
         this.publishEventsOf(ticketBoard);
