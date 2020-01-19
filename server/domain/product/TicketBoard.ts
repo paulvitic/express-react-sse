@@ -25,8 +25,10 @@ export default class TicketBoard extends AggregateRoot {
     }
 
     static create(key: string, queryService: QueryService<TicketBoard>): Promise<Except<TicketBoardFailure, TicketBoard>> {
-        return new Promise<Except<TicketBoardFailure, TicketBoard>>((resolve) => {
-            if (!queryService.exists(key)) {
+        return new Promise<Except<TicketBoardFailure, TicketBoard>>(async (resolve) => {
+            if (await queryService.exists(key)) {
+                resolve(withFailure({reason: "Ticket board exists", type: "TicketBoardCreationError"}))
+            } else {
                 let ticketBoard = new TicketBoard(key);
                 let event = new TicketBoardCreated(
                     TicketBoard.name,
@@ -35,8 +37,6 @@ export default class TicketBoard extends AggregateRoot {
                 ticketBoard.onTicketBoardCreated(event); // we dont need ths, constructor inititlizes state anyway, just to show as example for other business methods
                 ticketBoard.recordEvent(event); // may be constructor records this event too
                 resolve(withSuccess(ticketBoard));
-            } else {
-                resolve(withFailure({reason: "Ticket board exists", type: "TicketBoardCreationError"}))
             }
         })
     }

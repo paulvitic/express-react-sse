@@ -19,7 +19,7 @@ export default abstract class RedisQueryService<A extends AggregateRoot> impleme
         return new Promise<boolean>(resolve => {
             let cached = this.redisClient.get(id);
             this.log.info(`cached: ${JSON.stringify(cached)}`);
-            // FIXME always returns false
+            // FIXME always returns true
             resolve(cached!==null);
         })
     };

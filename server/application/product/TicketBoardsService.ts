@@ -22,16 +22,17 @@ export default class TicketBoardsService extends ApplicationService<TicketBoard>
 
   addTicketBoard(command: AddTicketBoard): Promise<string> {
     return new Promise<string>(async (resolve, reject) => {
-      let outcome = await TicketBoard.create(command.key, this.queryService);
+      TicketBoard.create(command.key, this.queryService)
+          .then(result => {
+            result.onSuccess(ticketBoard => {
+              this.publishEventsOf(ticketBoard);
+              this.repository.save(ticketBoard);
+              resolve(command.key)
 
-      outcome.onSuccess(ticketBoard => {
-        this.publishEventsOf(ticketBoard);
-        this.repository.save(ticketBoard);
-        resolve(command.key)
-
-      }).else((exception) => {
-        reject(new Error(exception.reason));
-      })
+            }).else((exception) => {
+              reject(new Error(exception.reason));
+            })
+          });
     })
   }
 }
