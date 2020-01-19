@@ -47,7 +47,7 @@ export default class RedisClient {
                 if(err) {
                     reject(err);
                 } else {
-                    resolve(JSON.parse(response));
+                    resolve(response);
                 }
             })
         })

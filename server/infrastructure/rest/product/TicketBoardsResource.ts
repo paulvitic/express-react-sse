@@ -30,6 +30,7 @@ export class TicketBoardsResource {
                               .location(`/api/v1/ticketBoards/${id}`)
                               .json(id))
                           .catch((err) => {
+                              this.log.error(`Error: `, err)
                               res.status(400).json(err)
                           });
                       return;

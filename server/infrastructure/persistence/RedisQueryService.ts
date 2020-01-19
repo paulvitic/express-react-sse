@@ -3,8 +3,10 @@ import AggregateRoot from "../../domain/AggregateRoot";
 import EventStore from "../../domain/EventStore";
 import TicketBoard from "../../domain/product/TicketBoard";
 import {QueryService} from "../../domain/QueryService";
+import LogFactory from "../context/LogFactory";
 
 export default abstract class RedisQueryService<A extends AggregateRoot> implements QueryService<A>{
+    private readonly log = LogFactory.get(RedisQueryService.name)
     private readonly hash: string;
 
     constructor(private readonly aggregateType: any,
@@ -16,6 +18,8 @@ export default abstract class RedisQueryService<A extends AggregateRoot> impleme
     exists = (id: string): Promise<boolean> => {
         return new Promise<boolean>(resolve => {
             let cached = this.redisClient.get(id);
+            this.log.info(`cached: ${JSON.stringify(cached)}`);
+            // FIXME always returns false
             resolve(cached!==null);
         })
     };

@@ -24,7 +24,6 @@ export default class TicketBoard extends AggregateRoot {
         return dataCollection;
     }
 
-    // FIXME can not import from infrastructure
     static create(key: string, queryService: QueryService<TicketBoard>): Promise<Except<TicketBoardFailure, TicketBoard>> {
         return new Promise<Except<TicketBoardFailure, TicketBoard>>((resolve) => {
             if (!queryService.exists(key)) {
