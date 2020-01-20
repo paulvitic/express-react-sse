@@ -4,9 +4,10 @@ import EventStore from "../../domain/EventStore";
 import TicketBoard from "../../domain/product/TicketBoard";
 import {QueryService} from "../../domain/QueryService";
 import LogFactory from "../context/LogFactory";
+import DomainEvent from "../../domain/DomainEvent";
 
 export default abstract class RedisQueryService<A extends AggregateRoot> implements QueryService<A>{
-    private readonly log = LogFactory.get(RedisQueryService.name)
+    private readonly log = LogFactory.get(RedisQueryService.name);
     private readonly hash: string;
 
     constructor(private readonly aggregateType: any,
@@ -16,29 +17,31 @@ export default abstract class RedisQueryService<A extends AggregateRoot> impleme
     }
 
     exists = (id: string): Promise<boolean> => {
-        return new Promise<boolean>(resolve => {
-            let cached = this.redisClient.get(id);
-            this.log.info(`cached: ${JSON.stringify(cached)}`);
-            // FIXME always returns true
-            resolve(cached!==null);
+        return new Promise<boolean>((resolve, reject) => {
+            this.findOne(id).then(cached => {
+                resolve(cached!==null);
+            }).catch(err => {
+                reject(err);
+            });
         })
     };
 
-    findOne = (aggregateType: string, id: string): Promise<A> => {
+    findOne = (id: string): Promise<A> => {
+        let hashedId = `${this.hash}:${id}`;
         return new Promise<A>(async resolve => {
-            let cacheValue = await this.redisClient.get(id);
-
+            let cacheValue = await this.redisClient.get(hashedId);
             if (cacheValue) {
                 const cached:A = new this.aggregateType(id);
                 Object.assign(cached, JSON.parse(cacheValue));
                 resolve(cached);
-
             } else {
-                let events = await this.eventStore.eventsOfAggregate(aggregateType, id);
-                if (events && events.length>0) {
+                let events: DomainEvent[] = await this.eventStore.eventsOfAggregate(this.hash, id);
+                if (events && events.length > 0) {
                     let reconstructed:A = new this.aggregateType(events);
-                    await this.redisClient.set(id, JSON.stringify(reconstructed));
+                    await this.redisClient.set(hashedId, JSON.stringify(reconstructed));
                     resolve(reconstructed);
+                } else {
+                    resolve(null)
                 }
             }
         })

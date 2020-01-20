@@ -40,7 +40,7 @@ export default class PostgresEventStore implements EventStore {
             values: [aggregate, aggregateId],
         };
 
-        return this.queryEvents(query);
+        return await this.queryEvents(query);
     };
 
 
@@ -53,13 +53,17 @@ export default class PostgresEventStore implements EventStore {
     };
 
 
-    private queryEvents = (query: QueryConfig): Promise<DomainEvent[]> => {
-        return new Promise((resolve) => {
-            const events = new Array<DomainEvent>();
-            this.client.read(query)
-                .then((result)=> {
-                    resolve(translateQueryResult(result))
-                })
+    private queryEvents = async (query: QueryConfig): Promise<DomainEvent[]> => {
+        try {
+            let result = await this.client.read(query);
+            let events = await translateQueryResult(result);
+            return new Promise( (resolve) => {
+                resolve(events);
             })
+        } catch (e) {
+            return new Promise( (resolve, reject) => {
+                reject(e);
+            })
+        }
     };
 }

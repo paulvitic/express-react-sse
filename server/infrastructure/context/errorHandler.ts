@@ -3,11 +3,9 @@ import LogFactory from "./LogFactory";
 
 const log = LogFactory.get("errorHandler");
 
-export default function errorHandler(err,  req: Request, res: Response, next: NextFunction) {
+export default function errorHandler(err, req: Request, res: Response, next: NextFunction) {
   log.error(`error while handing request ${req.url}`, err);
-  res.status(err.status || 500);
-  res.send(
-    `<h1>${err.status || 500} Error</h1>` +
-    `<pre>${err.message}</pre>`);
+  res.status(res.statusCode || 500);
+  res.json({message: err.message});
 }
 

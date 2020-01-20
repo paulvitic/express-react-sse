@@ -19,7 +19,7 @@ export class TicketBoardsResource {
       throw Error('not implemented')
   };
 
-  create = (req: Request, res: Response): void => {
+  create = (req: Request, res: Response, next): void => {
       this.log.info(`create ticket board request received: ${req.body}`);
       translateTicketBoardRequest(req)
           .then(command => {
@@ -30,8 +30,8 @@ export class TicketBoardsResource {
                               .location(`/api/v1/ticketBoards/${id}`)
                               .json(id))
                           .catch((err) => {
-                              this.log.error(`Error: `, err)
-                              res.status(400).json(err)
+                              res.status(400)
+                              next(err);
                           });
                       return;
                   default:

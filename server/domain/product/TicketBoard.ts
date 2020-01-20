@@ -27,7 +27,9 @@ export default class TicketBoard extends AggregateRoot {
     static create(key: string, queryService: QueryService<TicketBoard>): Promise<Except<TicketBoardFailure, TicketBoard>> {
         return new Promise<Except<TicketBoardFailure, TicketBoard>>(async (resolve) => {
             if (await queryService.exists(key)) {
-                resolve(withFailure({reason: "Ticket board exists", type: "TicketBoardCreationError"}))
+                resolve(withFailure({
+                    type: "TicketBoardCreationError",
+                    reason: `Ticket board ${key} exists` }))
             } else {
                 let ticketBoard = new TicketBoard(key);
                 let event = new TicketBoardCreated(

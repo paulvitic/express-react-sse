@@ -6,7 +6,7 @@ export default function translateQueryResult(res: QueryResult<any>): Promise<Dom
     return new Promise<DomainEvent[]>((resolve, reject) => {
         const events = new Array<DomainEvent>();
         for (let row of res.rows){
-            translateJsonObject(row)
+            translateJsonObject(row.event)
                 .then(event => events.push(event))
                 .catch(err => {
                     // TODO what to do?

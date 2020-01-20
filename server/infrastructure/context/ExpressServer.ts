@@ -26,7 +26,7 @@ const installMiddleware = (app: Application): Promise<void> => {
         app.use(cookieParser());
         app.use(session(sessionConfig(app)));
         app.use(sessionCounter());
-        app.use(errorHandler);
+        //app.use(errorHandler);
         resolve();
     });
 };
@@ -87,6 +87,8 @@ export default class ExpressServer {
                 this.log.error(`Error while adding routes: ${e}`);
                 reject(e);
             });
+
+            this.app.use(errorHandler);
 
             this.log.info(`Listing server middleware:`);
             require('express-list-middleware')(this.app).forEach((m) => {
