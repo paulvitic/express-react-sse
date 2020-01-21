@@ -26,9 +26,9 @@ export interface Environment {
     SESSION_COOKIE_TTL: number,
     GOOGLE_APP_CLIENT_ID: string,
     GOOGLE_APP_CLIENT_SECRET: string
-    //JIRA_URL: string,
-    //JIRA_USER: string,
-    //JIRA_API_TOKEN: string
+    JIRA_URL: string,
+    JIRA_USER: string,
+    JIRA_API_TOKEN: string
 }
 
 const getStringValueOrThrow = (objectVariables: NodeJS.ProcessEnv, key: string): string => {
@@ -76,8 +76,8 @@ export default async function config(): Promise<Environment> {
         SESSION_COOKIE_TTL: process.env.SESSION_COOKIE_TTL ? parseInt(process.env.SESSION_COOKIE_TTL) : 1000 * 60 * 60 * 24,
         GOOGLE_APP_CLIENT_ID: getStringValueOrThrow(process.env, 'GOOGLE_APP_CLIENT_ID'),
         GOOGLE_APP_CLIENT_SECRET: getStringValueOrThrow(process.env, 'GOOGLE_APP_CLIENT_SECRET'),
-        //JIRA_URL: getStringValueOrThrow(process.env, 'JIRA_URL'),
-        //JIRA_USER: getStringValueOrThrow(process.env, 'JIRA_USER'),
-        //JIRA_API_TOKEN: getStringValueOrThrow(process.env, 'JIRA_API_TOKEN'),
+        JIRA_URL: getStringValueOrThrow(process.env, 'JIRA_URL'),
+        JIRA_USER: getStringValueOrThrow(process.env, 'JIRA_USER'),
+        JIRA_API_TOKEN: getStringValueOrThrow(process.env, 'JIRA_API_TOKEN'),
     };
 }

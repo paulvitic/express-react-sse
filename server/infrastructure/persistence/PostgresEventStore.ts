@@ -39,7 +39,6 @@ export default class PostgresEventStore implements EventStore {
             text: 'SELECT event FROM jira.event_log WHERE aggregate=$1 AND aggregate_id=$2 ORDER BY (sequence ,generated_on)',
             values: [aggregate, aggregateId],
         };
-
         return await this.queryEvents(query);
     };
 

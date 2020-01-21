@@ -18,6 +18,7 @@ import {TicketBoardRedisRepo} from "../persistence/RedisRepository";
 import {registerDomainEvent} from "../JsonEventTranslator";
 import {TicketBoardCreated} from "../../domain/product/events/TicketBoardCreated";
 import {TicketBoardsQueryService} from "../persistence/RedisQueryService";
+import JiraIntegration from "../integration/JiraIntegration";
 
 const exit = process.exit;
 
@@ -138,10 +139,12 @@ export default class App {
             new TicketBoardsService(
                 this.context.eventBus,
                 this.context.repositories.ticketBoardRepo,
-                new TicketBoardsQueryService(
-                    TicketBoard,
+                new TicketBoardsQueryService(TicketBoard,
                     this.context.clients.get('redisClient'),
-                    this.context.eventStore)));
+                    this.context.eventStore),
+                new JiraIntegration(this.env.JIRA_URL,
+                    this.env.JIRA_USER,
+                    this.env.JIRA_API_TOKEN)));
         resources.set(TicketBoardsEndpoints.create, ticketBoardsResource.create);
         resources.set(TicketBoardsEndpoints.byId, ticketBoardsResource.byId);
 
