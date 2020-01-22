@@ -1,4 +1,4 @@
-import TicketBoardIntegration, {ProjectDetails} from "../../domain/product/TicketBoardIntegration";
+import TicketBoardIntegration, {TicketBoardInfo} from "../../domain/product/TicketBoardIntegration";
 import axios from "axios";
 import LogFactory from "../context/LogFactory";
 import {withFailure, withSuccess} from "../../domain/Except";

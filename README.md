@@ -99,3 +99,4 @@ npm run test:debug
 * [Redirect Auth](https://reacttraining.com/react-router/web/example/auth-workflow)
 * [Google Auth](https://medium.com/authpack/easy-google-auth-with-node-js-99ac40b97f4c)
 * [RabbitMQ Topic](https://www.rabbitmq.com/tutorials/tutorial-five-javascript.html)
+* [Jira API](https://developer.atlassian.com/cloud/jira/platform/rest/v2/#api-rest-api-2-project-projectIdOrKey-get)

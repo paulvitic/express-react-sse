@@ -1,6 +1,6 @@
 import {Except, Failure} from "../Except";
 
-export type ProjectDetails = {
+export type TicketBoardInfo = {
     id: string,
     key: string,
     name: string,
@@ -18,5 +18,5 @@ export class TicketBoardIntegrationFailure implements Failure<string> {
 }
 
 export default interface TicketBoardIntegration {
-    assertProject(key:string): Promise<Except<TicketBoardIntegrationFailure, ProjectDetails>>
+    assertProject(key:string): Promise<Except<TicketBoardIntegrationFailure, TicketBoardInfo>>
 }

@@ -1,8 +1,8 @@
-import {ProjectDetails, TicketBoardIntegrationFailure} from "../../domain/product/TicketBoardIntegration";
+import {TicketBoardInfo, TicketBoardIntegrationFailure} from "../../domain/product/TicketBoardIntegration";
 import {Except, withFailure, withSuccess} from "../../domain/Except";
 
-export function translateProjectAssertResponse(status: number, data?: any): Promise<Except<TicketBoardIntegrationFailure, ProjectDetails>>{
-    return new Promise<Except<TicketBoardIntegrationFailure, ProjectDetails>>(resolve => {
+export function translateProjectAssertResponse(status: number, data?: any): Promise<Except<TicketBoardIntegrationFailure, TicketBoardInfo>>{
+    return new Promise<Except<TicketBoardIntegrationFailure, TicketBoardInfo>>(resolve => {
             if(status===200) {
                 resolve(withSuccess({
                     id: data.id,
