@@ -2,8 +2,9 @@ import AggregateRoot from "../AggregateRoot";
 import {Except, Failure, withFailure, withSuccess} from "../Except";
 import {TicketBoardCreated} from "./events/TicketBoardCreated";
 import DomainEvent from "../DomainEvent";
-import {QueryService} from "../QueryService";
 import TicketBoardIntegration from "./TicketBoardIntegration";
+import {TicketBoardRepository} from "./TicketBoardRepository";
+import Identity from "../Identity";
 
 export class TicketBoardFailure implements Failure<string> {
     reason: string;
@@ -11,13 +12,19 @@ export class TicketBoardFailure implements Failure<string> {
 }
 
 export default class TicketBoard extends AggregateRoot {
-
     constructor(id: string,
-                private key?: string,
-                private externalRefId?: string) {
+                private _externalId?: number,
+                private _externalKey?: string) {
         super(id);
     }
 
+    get externalId() {
+        return this._externalId;
+    }
+
+    get externalKey() {
+        return this._externalKey;
+    }
 
     static fromEvents(id: string, events: DomainEvent[]): TicketBoard {
         const dataCollection = new TicketBoard(id);
@@ -34,12 +41,13 @@ export default class TicketBoard extends AggregateRoot {
 
 
     static create(key: string,
-                  queryService: QueryService<TicketBoard>,
+                  repository: TicketBoardRepository,
                   integration: TicketBoardIntegration):
         Promise<Except<TicketBoardFailure, TicketBoard>> {
 
         return new Promise<Except<TicketBoardFailure, TicketBoard>>(async (resolve) => {
-            if (await queryService.exists(key)) {
+            let ticketBoardWithSameKey = await repository.findOneByExternalKey(key);
+            if (ticketBoardWithSameKey) {
                 resolve(withFailure({
                     type: "TicketBoardCreationError",
                     reason: `Ticket board ${key} exists` }))
@@ -50,6 +58,7 @@ export default class TicketBoard extends AggregateRoot {
 
                     // TODO generate add external ref as jira id and key, build redis hash using these
                     let ticketBoard = new TicketBoard(
+                        Identity.generate(),
                         ticketBoardInfo.id,
                         ticketBoardInfo.key);
 
@@ -58,7 +67,8 @@ export default class TicketBoard extends AggregateRoot {
                         TicketBoard.name,
                         ticketBoard.id,
                         ticketBoard.nextEventSequence(),
-                        key);
+                        ticketBoardInfo.id,
+                        ticketBoardInfo.key);
 
                     ticketBoard.onTicketBoardCreated(event);
                     ticketBoard.recordEvent(event);
@@ -74,6 +84,7 @@ export default class TicketBoard extends AggregateRoot {
 
     private onTicketBoardCreated(event: TicketBoardCreated) {
         this.assertEventSequence(event.sequence);
-        this.key = event.key;
+        this._externalId = event.externalId;
+        this._externalKey = event.externalKey;
     }
 }

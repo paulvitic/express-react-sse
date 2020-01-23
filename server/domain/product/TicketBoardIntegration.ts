@@ -1,7 +1,7 @@
 import {Except, Failure} from "../Except";
 
 export type TicketBoardInfo = {
-    id: string,
+    id: number,
     key: string,
     name: string,
     description: string,

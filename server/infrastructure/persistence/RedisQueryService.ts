@@ -47,7 +47,7 @@ export default abstract class RedisQueryService<A extends AggregateRoot> impleme
         })
     };
 
-    execute(query: any): Promise<A[]> {
+    search(query: any): Promise<A[]> {
         return undefined;
     }
 }

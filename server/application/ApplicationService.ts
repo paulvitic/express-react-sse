@@ -3,10 +3,7 @@ import AggregateRoot from "../domain/AggregateRoot";
 import {Repository} from "../domain/Repository";
 
 export default abstract class ApplicationService<T extends AggregateRoot> {
-    protected constructor(
-        private readonly eventBus: EventBus,
-        protected readonly repository: Repository<T>
-    ) {}
+    protected constructor(private readonly eventBus: EventBus) {}
 
     protected aggregateState(is: string): Promise<T> {
         return new Promise<T>((resolve, reject) => {
