@@ -1,15 +1,11 @@
 import AggregateRoot from "../AggregateRoot";
-import {Except, Failure, withFailure, withSuccess} from "../Except";
 import {TicketBoardCreated} from "./events/TicketBoardCreated";
 import DomainEvent from "../DomainEvent";
 import TicketBoardIntegration from "./TicketBoardIntegration";
-import {TicketBoardRepository} from "./TicketBoardRepository";
 import Identity from "../Identity";
+import {Either, left, right} from "fp-ts/lib/Either";
 
-export class TicketBoardFailure implements Failure<string> {
-    reason: string;
-    type: string;
-}
+export class TicketBoardFailure extends Error {}
 
 export default class TicketBoard extends AggregateRoot {
     constructor(id: string,
@@ -17,6 +13,7 @@ export default class TicketBoard extends AggregateRoot {
                 private _externalKey?: string) {
         super(id);
     }
+
 
     get externalId() {
         return this._externalId;
@@ -41,44 +38,33 @@ export default class TicketBoard extends AggregateRoot {
 
 
     static create(key: string,
-                  repository: TicketBoardRepository,
                   integration: TicketBoardIntegration):
-        Promise<Except<TicketBoardFailure, TicketBoard>> {
+        Promise<Either<TicketBoardFailure, TicketBoard>> {
 
-        return new Promise<Except<TicketBoardFailure, TicketBoard>>(async (resolve) => {
-            let ticketBoardWithSameKey = await repository.findOneByExternalKey(key);
-            if (ticketBoardWithSameKey) {
-                resolve(withFailure({
-                    type: "TicketBoardCreationError",
-                    reason: `Ticket board ${key} exists` }))
-
-            } else {
+        return new Promise<Either<TicketBoardFailure, TicketBoard>>(async (resolve) => {
                 let assertion = await integration.assertProject(key);
-                assertion.onSuccess(ticketBoardInfo => {
-
-                    // TODO generate add external ref as jira id and key, build redis hash using these
+                if (assertion.isRight()) {
+                    let info = assertion.value;
                     let ticketBoard = new TicketBoard(
                         Identity.generate(),
-                        ticketBoardInfo.id,
-                        ticketBoardInfo.key);
+                        info.id,
+                        info.key);
 
                     // TODO add transient data from ticketBoard info to create a Development Project and assign this board to it
                     let event = new TicketBoardCreated(
                         TicketBoard.name,
                         ticketBoard.id,
                         ticketBoard.nextEventSequence(),
-                        ticketBoardInfo.id,
-                        ticketBoardInfo.key);
+                        info.id,
+                        info.key);
 
                     ticketBoard.onTicketBoardCreated(event);
                     ticketBoard.recordEvent(event);
 
-                    resolve(withSuccess(ticketBoard));
-
-                }).else(failure => {
-                    resolve(withFailure(failure));
-                })
-            }
+                    resolve(right(ticketBoard));
+                } else {
+                    resolve(left(new TicketBoardFailure(assertion.value.message)));
+                }
         })
     }
 

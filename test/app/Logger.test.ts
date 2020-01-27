@@ -1,4 +1,3 @@
-import 'mocha';
 import LogFactory from "../../server/infrastructure/context/LogFactory";
 import winston, {createLogger, format, transports} from 'winston';
 

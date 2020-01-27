@@ -41,31 +41,7 @@ export default class PostgresClient {
         })
     };
 
-    insert(query: QueryConfig): Promise<number> {
-        return new Promise<number>((resolve, reject) => {
-            this.connPool.query(query)
-                .then((result) => {
-                    this.log.info(`Inserted ${result.rows.length} records`);
-                    resolve(result.rows.length);
-                })
-                .catch(err => {
-                    console.log("error while inserting: ", err);
-                    reject(err);
-                })
-        });
-    }
-
-    read(query: QueryConfig): Promise<QueryResult<any>> {
-        return new Promise<QueryResult<any>>((resolve, reject) => {
-            this.connPool.query(query)
-                .then((result) => {
-                    this.log.info(`Read ${result.rows.length} records`);
-                    resolve(result);
-                })
-                .catch(err => {
-                    console.log("error while reading: ", err);
-                    reject(err);
-                })
-        });
+    execute(query: QueryConfig): Promise<QueryResult<any>> {
+        return this.connPool.query(query);
     }
 }

@@ -3,7 +3,7 @@ import DomainEvent  from "../../domain/DomainEvent";
 import PostgresClient from "../clients/PostgresClient";
 import LogFactory from "../context/LogFactory";
 import {QueryConfig} from "pg";
-import translateQueryResult from "./QueryResultTranslator";
+import {translateToDomainEvents} from "./QueryResultTranslator";
 
 export default class PostgresEventStore implements EventStore {
     private readonly log = LogFactory.get(PostgresEventStore.name);
@@ -55,7 +55,7 @@ export default class PostgresEventStore implements EventStore {
     private queryEvents = async (query: QueryConfig): Promise<DomainEvent[]> => {
         try {
             let result = await this.client.read(query);
-            let events = await translateQueryResult(result);
+            let events = await translateToDomainEvents(result);
             return new Promise( (resolve) => {
                 resolve(events);
             })

@@ -19,6 +19,7 @@ import {registerDomainEvent} from "../JsonEventTranslator";
 import {TicketBoardCreated} from "../../domain/product/events/TicketBoardCreated";
 import {TicketBoardsQueryService} from "../persistence/RedisQueryService";
 import JiraIntegration from "../integration/JiraIntegration";
+import TicketBoardPostgresRepo from "../persistence/TicketBoardPostgresRepo";
 
 const exit = process.exit;
 
@@ -129,19 +130,12 @@ export default class App {
         this.context.eventStore = new PostgresEventStore(this.context.clients.get("postgresClient"));
         this.context.eventBus = await RabbitEventBus.init(this.context.clients.get("rabbitClient"), this.context.eventStore);
 
-        this.context.repositories.ticketBoardRepo = new TicketBoardRedisRepo(
-            this.context.clients.get('redisClient'),
-            TicketBoard.name);
-
         let {resources} = this.context.infrastructure.rest;
 
         let ticketBoardsResource = new TicketBoardsResource(
             new TicketBoardsService(
                 this.context.eventBus,
-                this.context.repositories.ticketBoardRepo,
-                new TicketBoardsQueryService(TicketBoard,
-                    this.context.clients.get('redisClient'),
-                    this.context.eventStore),
+                new TicketBoardPostgresRepo(this.context.clients.get("postgresClient")),
                 new JiraIntegration(this.env.JIRA_URL,
                     this.env.JIRA_USER,
                     this.env.JIRA_API_TOKEN)));

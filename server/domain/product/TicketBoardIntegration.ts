@@ -1,4 +1,4 @@
-import {Except, Failure} from "../Except";
+import {Either} from "fp-ts/lib/Either";
 
 export type TicketBoardInfo = {
     id: number,
@@ -6,17 +6,14 @@ export type TicketBoardInfo = {
     name: string,
     description: string,
     category: {
-        id: string
+        id: number
         name: string,
         description: string
     }
 }
 
-export class TicketBoardIntegrationFailure implements Failure<string> {
-    reason: string;
-    type: string;
-}
+export class TicketBoardIntegrationFailure extends Error {}
 
 export default interface TicketBoardIntegration {
-    assertProject(key:string): Promise<Except<TicketBoardIntegrationFailure, TicketBoardInfo>>
+    assertProject(key:string): Promise<Either<TicketBoardIntegrationFailure, TicketBoardInfo>>
 }

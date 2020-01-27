@@ -1,7 +1,6 @@
 import TicketBoardIntegration, {TicketBoardInfo} from "../../domain/product/TicketBoardIntegration";
 import axios from "axios";
 import LogFactory from "../context/LogFactory";
-import {withFailure, withSuccess} from "../../domain/Except";
 import {translateProjectAssertResponse} from "./JiraIntegrationTranslator";
 
 /**

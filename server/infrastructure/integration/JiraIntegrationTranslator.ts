@@ -1,10 +1,10 @@
 import {TicketBoardInfo, TicketBoardIntegrationFailure} from "../../domain/product/TicketBoardIntegration";
-import {Except, withFailure, withSuccess} from "../../domain/Except";
+import {Either, left, right} from "fp-ts/lib/Either";
 
-export function translateProjectAssertResponse(status: number, data?: any): Promise<Except<TicketBoardIntegrationFailure, TicketBoardInfo>>{
-    return new Promise<Except<TicketBoardIntegrationFailure, TicketBoardInfo>>(resolve => {
+export function translateProjectAssertResponse(status: number, data?: any): Promise<Either<TicketBoardIntegrationFailure, TicketBoardInfo>>{
+    return new Promise<Either<TicketBoardIntegrationFailure, TicketBoardInfo>>(resolve => {
             if(status===200) {
-                resolve(withSuccess({
+                resolve(right({
                     id: data.id,
                     key: data.key,
                     name: data.name,
@@ -18,22 +18,16 @@ export function translateProjectAssertResponse(status: number, data?: any): Prom
             } else {
                 switch (status) {
                     case 401:
-                        resolve(withFailure({
-                            type: "",
-                            reason: "project is not found or the user does not have permission to view it"
-                        }));
+                        resolve(left(new TicketBoardIntegrationFailure(
+                            "project is not found or the user does not have permission to view it")));
                         return;
                     case 404:
-                        resolve(withFailure({
-                            type: "",
-                            reason: "project is not found or the user does not have permission to view it"
-                        }));
+                        resolve(left(new TicketBoardIntegrationFailure(
+                            "project is not found or the user does not have permission to view it")));
                         return;
                     default:
-                        resolve(withFailure({
-                            type: "",
-                            reason: "project is not found or the user does not have permission to view it"
-                        }));
+                        resolve(left(new TicketBoardIntegrationFailure(
+                            `project assert failed with unknown jira API error status code ${status}`)));
                         return;
                 }
             }
