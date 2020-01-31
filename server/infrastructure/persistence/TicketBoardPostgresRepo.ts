@@ -2,10 +2,12 @@ import TicketBoard from "../../domain/product/TicketBoard";
 import {TicketBoardRepository} from "../../domain/product/TicketBoardRepository";
 import LogFactory from "../context/LogFactory";
 import PostgresClient from "../clients/PostgresClient";
-import {QueryConfig} from "pg";
-import {translateToTicketBoard} from "./QueryResultTranslator";
-import {fromNullable, none, Option, some} from "fp-ts/lib/Option";
-import {Either, left, right, tryCatch} from "fp-ts/lib/Either";
+import {QueryConfig, QueryResultRow} from "pg";
+import {translateToOptionalTicketBoard, translateToTicketBoard, assertDelete } from "./QueryResultTranslator";
+import * as TE from 'fp-ts/lib/TaskEither'
+import * as O from 'fp-ts/lib/Option'
+import {pipe} from "fp-ts/lib/pipeable";
+
 
 class TicketBoardSaveError extends Error {
     constructor(message) {
@@ -24,62 +26,57 @@ export default class TicketBoardPostgresRepo implements TicketBoardRepository {
 
     constructor(private readonly client: PostgresClient) {}
 
-    delete(id: string): Promise<Either<TicketBoardDeleteError, boolean>> {
+    delete(id: string): TE.TaskEither<TicketBoardDeleteError, boolean> {
         const query = {
             text: 'DELETE FROM jira.ticket_board WHERE id=$1',
             values: [id],
         };
-        return new Promise<Either<TicketBoardDeleteError, boolean>>(resolve => {
-            this.client.execute(query)
-                .then(result => {
-                    resolve(right(result.rowCount === 1))
-                })
-                .catch(err => {
-                   resolve(left(new TicketBoardDeleteError(err)))
-                })
-        })
+        return pipe(
+            this.executeQuery(query),
+            TE.map(assertDelete),
+            TE.chain(TE.fromEither)
+        )
     }
 
-    find(item: TicketBoard): Promise<TicketBoard[]> {
+    find(item: TicketBoard): TE.TaskEither<Error, TicketBoard[]> {
         return undefined;
     }
 
-    findOne(id: string): Promise<TicketBoard> {
+    findOne(id: string): TE.TaskEither<Error, O.Option<TicketBoard>> {
         return undefined;
     }
 
-    findOneByExternalKey(key: string): Promise<Option<TicketBoard>> {
+    findOneByExternalKey(key: string): TE.TaskEither<Error, O.Option<TicketBoard>> {
         const query = {
             text: 'SELECT * FROM jira.ticket_board WHERE external_key=$1',
             values: [key],
         };
-        return this.queryTicketBoard(query);
+        return pipe(
+            this.executeQuery(query),
+            TE.map(translateToOptionalTicketBoard),
+            TE.chain(TE.fromEither)
+        )
     }
 
-    save = async (item: TicketBoard): Promise<Either<TicketBoardSaveError, TicketBoard>> => {
+    save = (item: TicketBoard): TE.TaskEither<TicketBoardSaveError, TicketBoard> => {
         const query = {
-            text: 'INSERT INTO jira.ticket_board(id, external_id, external_key) VALUES($1, $2, $3) RETURNING id',
+            text: 'INSERT INTO jira.ticket_board(id, external_id, external_key) VALUES($1, $2, $3) RETURNING *',
             values: [item.id, item.externalId, item.externalKey],
         };
-        return new Promise<Either<TicketBoardSaveError, TicketBoard>>(resolve => {
-            this.client.execute(query)
-                .then(result => {
-                    resolve(translateToTicketBoard(result))
-                })
-                .catch(err => {
-                    resolve(left(new TicketBoardSaveError(err)))
-                })
-        })
+        return pipe(
+            this.executeQuery(query),
+            TE.map(translateToTicketBoard),
+            TE.chain(TE.fromEither)
+        )
     };
 
-    update(id: string, item: TicketBoard): Promise<TicketBoard> {
+    update(id: string, item: TicketBoard): TE.TaskEither<Error, TicketBoard> {
         return undefined;
     }
 
-    private queryTicketBoard = async (query: QueryConfig): Promise<Option<TicketBoard>> => {
-        let result = await this.client.execute(query);
-        return new Promise<Option<TicketBoard>>(resolve => {
-            resolve(fromNullable(translateToTicketBoard(result).getOrElse(null)));
-        })
-    };
+    private executeQuery(query: QueryConfig): TE.TaskEither<Error, QueryResultRow>{
+        return TE.tryCatch(
+            () => this.client.execute(query),
+                error => new Error(`Error while executing query: ${String(error)}`))
+    }
 }

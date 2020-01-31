@@ -1,8 +1,10 @@
 import TicketBoard from "../../domain/product/TicketBoard";
 import {Repository} from "../Repository";
-import {Option} from "fp-ts/lib/Option";
+import * as O from "fp-ts/lib/Option";
+import * as T from "fp-ts/lib/Task";
+import * as TE from "fp-ts/lib/TaskEither";
 
 export interface TicketBoardRepository extends Repository<TicketBoard> {
-    findOneByExternalKey(key: string): Promise<Option<TicketBoard>>
+    findOneByExternalKey(key: string): TE.TaskEither<Error, O.Option<TicketBoard>>
 }
 

@@ -1,4 +1,5 @@
 import {Either} from "fp-ts/lib/Either";
+import {TaskEither} from "fp-ts/lib/TaskEither";
 
 export type TicketBoardInfo = {
     id: number,
@@ -15,5 +16,5 @@ export type TicketBoardInfo = {
 export class TicketBoardIntegrationFailure extends Error {}
 
 export default interface TicketBoardIntegration {
-    assertProject(key:string): Promise<Either<TicketBoardIntegrationFailure, TicketBoardInfo>>
+    assertProject(key:string): TaskEither<TicketBoardIntegrationFailure, TicketBoardInfo>
 }

@@ -10,6 +10,7 @@ import {TicketBoardRepository} from "../../domain/product/TicketBoardRepository"
 import {either, Either, left, right} from "fp-ts/lib/Either";
 import {pipe} from "fp-ts/lib/pipeable";
 import {chain} from "fp-ts/lib/TaskEither";
+import {filter} from "fp-ts/lib/Option";
 
 
 export default class TicketBoardsService extends ApplicationService<TicketBoard> {
@@ -27,7 +28,11 @@ export default class TicketBoardsService extends ApplicationService<TicketBoard>
 
   addTicketBoard(command: AddTicketBoard): Promise<Either<Error,string>> {
       return new Promise<Either<Error,string>>( async (resolve, reject) => {
-          let exists = await this.repository.findOneByExternalKey(command.key);
+          let exist = await this.repository.findOneByExternalKey(command.key);
+          pipe(
+              exist.isNone,
+              chain(() => return await TicketBoard.create(command.key, this.integration))
+          );
 
           if (exists.isNone()) {
               let created = await TicketBoard.create(command.key, this.integration);
@@ -35,11 +40,7 @@ export default class TicketBoardsService extends ApplicationService<TicketBoard>
                   this.publishEventsOf(created.value);
                   let saved = await this.repository.save(created.value);
                   // see: https://dev.to/gcanti/getting-started-with-fp-ts-either-vs-validation-5eja
-                  /*pipe(
-                      await this.repository.save(created.value),
-                      chain(oneCapital),
-                      chain(oneNumber)
-                  );*/
+                  /**/
                   if (saved.isRight()) {
                       resolve(right(saved.value.id))
                   } else {

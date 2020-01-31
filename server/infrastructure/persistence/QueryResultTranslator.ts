@@ -1,9 +1,9 @@
-import {QueryResult} from "pg";
+import {QueryResult, QueryResultRow} from "pg";
 import DomainEvent from "../../domain/DomainEvent";
 import {translateJsonObject} from "../JsonEventTranslator";
 import TicketBoard from "../../domain/product/TicketBoard";
-import {Option} from "fp-ts/lib/Option";
-import {Either, tryCatch} from "fp-ts/lib/Either";
+import * as O from "fp-ts/lib/Option";
+import * as E from 'fp-ts/lib/Either'
 
 class TicketBoardValidationError extends Error {
     constructor(message) {
@@ -25,19 +25,40 @@ export function translateToDomainEvents(res: QueryResult<any>): Promise<DomainEv
     })
 }
 
-export function translateTicketBoardQueryResult(res: QueryResult<any>): Promise<Option<TicketBoard>> {
-    return new Promise<Option<TicketBoard>>(resolve => {
-
-    })
-}
-
-export function translateToTicketBoard(result: QueryResult<any>): Either<TicketBoardValidationError, TicketBoard> {
-    return tryCatch(() => {
-            if (result.rows.length > 1) throw new Error("too many results");
-            let [row] =  result.rows;
+export function translateToTicketBoard(result: QueryResultRow):
+    E.Either<TicketBoardValidationError, TicketBoard> {
+    return E.tryCatch(() => {
+            let {rows} = result;
+            if (rows.length === 0 || rows.length > 1) throw new Error("none or too many results");
+            let [row] = rows;
             return new TicketBoard(
                 row.id,
-                row.some_thing
+                row.external_id,
+                row.external_key
             )},
-            reason => new TicketBoardValidationError(reason))
+            reason => reason as Error)
+}
+
+export function translateToOptionalTicketBoard(result: QueryResultRow):
+    E.Either<TicketBoardValidationError, O.Option<TicketBoard>> {
+    return E.tryCatch(() => {
+            let {rows} = result;
+            if (rows.length === 0) return O.none;
+            if (rows.length > 1) throw new Error("too many results");
+            let [row] = rows;
+            return O.some(new TicketBoard(
+                row.id,
+                row.external_id,
+                row.external_key
+            ))},
+        reason => reason as Error)
+}
+
+export function assertDelete(result: QueryResultRow):
+    E.Either<TicketBoardValidationError, boolean> {
+    return E.tryCatch(() => {
+        let {rows} = result;
+        return rows.length === 1;
+    },
+        reason => reason as Error)
 }

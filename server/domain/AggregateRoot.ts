@@ -8,8 +8,8 @@ export default abstract class AggregateRoot {
     private exists: boolean = true; // switch to false when soft deleted
     private lastEventSequence: number = 0;
 
-    protected constructor(id?: string) {
-        this.aggregateId = id ? id : Identity.generate();
+    protected constructor(id: string) {
+        this.aggregateId = id;
     }
 
     static fromEvents(id: string, events: DomainEvent[]): AggregateRoot {

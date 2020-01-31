@@ -1,11 +1,13 @@
-import TicketBoardIntegration, {TicketBoardInfo} from "../../domain/product/TicketBoardIntegration";
-import axios from "axios";
+import TicketBoardIntegration, {
+    TicketBoardInfo,
+    TicketBoardIntegrationFailure
+} from "../../domain/product/TicketBoardIntegration";
+import axios, {AxiosResponse, AxiosError} from "axios";
 import LogFactory from "../context/LogFactory";
-import {translateProjectAssertResponse} from "./JiraIntegrationTranslator";
+import { pipe } from 'fp-ts/lib/pipeable'
+import * as TE from 'fp-ts/lib/TaskEither'
+import {toTicketInfoAssertionFailure, toProjectInfo} from "./JiraIntegrationTranslator";
 
-/**
- *
- */
 export default class JiraIntegration implements TicketBoardIntegration {
     private readonly log = LogFactory.get(JiraIntegration.name);
     private readonly and ="AND ";
@@ -13,7 +15,7 @@ export default class JiraIntegration implements TicketBoardIntegration {
     private readonly projects = "project in (Contact) ";
     private readonly createdAfter = "createdDate >= ";
 
-    private basicAuthorization: string;
+    private readonly basicAuthorization: string;
 
     constructor(private readonly jiraUrl: string,
                 jiraUser: string,
@@ -21,31 +23,28 @@ export default class JiraIntegration implements TicketBoardIntegration {
         this.basicAuthorization = `Basic ${Buffer.from(jiraUser + ":" + jiraApiToken).toString("base64")}`
     }
 
-    assertProject(key: string): Promise<any> {
-        return new Promise<any>((resolve, reject) => {
-            const url = `${this.jiraUrl}/rest/api/2/project/${key}`;
-            //const fields = "&fields=created,updated,statuscategorychangedate,project,issuetype,labels,assignee,status,customfield_10010"
-
-            axios(url, {
-                method: 'GET',
-                headers: {
-                    Authorization: this.basicAuthorization,
-                    Accept: 'application/json'
-                },
-            }).then(resp => {
-                resolve(translateProjectAssertResponse(resp.status, resp.data));
-            }).catch(err => {
-                this.log.error(`Error while asserting project key ${key}`, err);
-                resolve(translateProjectAssertResponse(err.response.status));
-            })
-        })
+    assertProject(key: string): TE.TaskEither<TicketBoardIntegrationFailure, TicketBoardInfo> {
+        const url = `${this.jiraUrl}/rest/api/2/project/${key}`;
+        return pipe(
+                this.requestProjectInfo(url),
+                TE.map(toProjectInfo),
+                TE.chain(TE.fromEither)
+        )
     }
 
-    private toDateString = (date: Date) => {
+    private requestProjectInfo(url: string): TE.TaskEither<TicketBoardIntegrationFailure, AxiosResponse<any>> {
+        return TE.tryCatch(() => axios(url, {
+            method: 'GET',
+            headers: {
+                Authorization: this.basicAuthorization,
+                Accept: 'application/json'
+            }}), error => toTicketInfoAssertionFailure(error as AxiosError))
+    }
+
+    private toDateString = (date: Date): string => {
         const d = date.getDate();
         const m = date.getMonth() + 1; //Month from 0 to 11
         const y = date.getFullYear();
         return `"${y}/${ m<=9 ? '0'+m : m }/${ d <= 9 ? '0'+d : d}"`;
     };
-
 }

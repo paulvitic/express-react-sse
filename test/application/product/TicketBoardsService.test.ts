@@ -1,19 +1,14 @@
 import TicketBoardsService from "../../../server/application/product/TicketBoardsService";
 import {TicketBoardRepository} from "../../../server/domain/product/TicketBoardRepository";
 import TicketBoardIntegration, {
-    TicketBoardInfo,
-    TicketBoardIntegrationFailure
+    TicketBoardInfo
 } from "../../../server/domain/product/TicketBoardIntegration";
-import RabbitEventBus from "../../../server/infrastructure/messaging/RabbitEventBus";
 import EventBus from "../../../server/domain/EventBus";
 import {fromNullable, Option} from "fp-ts/lib/Option";
 import TicketBoard from "../../../server/domain/product/TicketBoard";
 import {Either, right} from "fp-ts/lib/Either";
 import {PROJECT_INFO_FIXTURE} from "../../domain/product/fixtures";
 import Identity from "../../../server/domain/Identity";
-
-// https://klzns.github.io/how-to-use-type-script-and-jest-mocks
-// https://patrickdesjardins.com/blog/strongly-typed-mock-with-typescript-and-jest
 
 let mockEventBus: EventBus = {
     publish: jest.fn(),

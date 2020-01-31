@@ -41,7 +41,7 @@ export default class PostgresClient {
         })
     };
 
-    execute(query: QueryConfig): Promise<QueryResult<any>> {
+    execute(query: QueryConfig): Promise<QueryResultRow> {
         return this.connPool.query(query);
     }
 }

@@ -1,12 +1,15 @@
 /**
  *
  */
-import {Either} from "fp-ts/lib/Either";
+import * as TE from "fp-ts/lib/TaskEither";
+import * as O from "fp-ts/lib/Option";
+import * as E from "fp-ts/lib/Either";
+import TicketBoard from "./product/TicketBoard";
 
-export interface Repository<T> {
-    find(item: T): Promise<T[]>;
-    findOne(id: string): Promise<T>;
-    save(item: T): Promise<Either<Error, T>>;
-    update(id: string, item: T): Promise<T>;
-    delete(id: string): Promise<Either<Error, boolean>>;
+export interface Repository<A> {
+    find(item: A): TE.TaskEither<Error, A[]>;
+    findOne(id: string): TE.TaskEither<Error, O.Option<A>>;
+    save(item: A): TE.TaskEither<Error, A>
+    update(id: string, item: A): TE.TaskEither<Error, A>;
+    delete(id: string): TE.TaskEither<Error, boolean>;
 }
