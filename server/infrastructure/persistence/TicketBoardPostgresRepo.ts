@@ -2,7 +2,6 @@ import TicketBoard from "../../domain/product/TicketBoard";
 import {TicketBoardRepository} from "../../domain/product/TicketBoardRepository";
 import LogFactory from "../context/LogFactory";
 import PostgresClient from "../clients/PostgresClient";
-import {QueryConfig, QueryResultRow} from "pg";
 import {translateToOptionalTicketBoard, translateToTicketBoard, assertDelete } from "./QueryResultTranslator";
 import * as TE from 'fp-ts/lib/TaskEither'
 import * as O from 'fp-ts/lib/Option'
@@ -32,7 +31,7 @@ export default class TicketBoardPostgresRepo implements TicketBoardRepository {
             values: [id],
         };
         return pipe(
-            this.executeQuery(query),
+            this.client.executeQuery(query),
             TE.map(assertDelete),
             TE.chain(TE.fromEither)
         )
@@ -52,7 +51,7 @@ export default class TicketBoardPostgresRepo implements TicketBoardRepository {
             values: [key],
         };
         return pipe(
-            this.executeQuery(query),
+            this.client.executeQuery(query),
             TE.map(translateToOptionalTicketBoard),
             TE.chain(TE.fromEither)
         )
@@ -64,7 +63,7 @@ export default class TicketBoardPostgresRepo implements TicketBoardRepository {
             values: [item.id, item.externalId, item.externalKey],
         };
         return pipe(
-            this.executeQuery(query),
+            this.client.executeQuery(query),
             TE.map(translateToTicketBoard),
             TE.chain(TE.fromEither)
         )
@@ -72,11 +71,5 @@ export default class TicketBoardPostgresRepo implements TicketBoardRepository {
 
     update(id: string, item: TicketBoard): TE.TaskEither<Error, TicketBoard> {
         return undefined;
-    }
-
-    private executeQuery(query: QueryConfig): TE.TaskEither<Error, QueryResultRow>{
-        return TE.tryCatch(
-            () => this.client.execute(query),
-                error => new Error(`Error while executing query: ${String(error)}`))
     }
 }

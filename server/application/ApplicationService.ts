@@ -1,12 +1,12 @@
 import EventBus from "../domain/EventBus";
 import AggregateRoot from "../domain/AggregateRoot";
-import {Repository} from "../domain/Repository";
+import * as TE from "fp-ts/lib/TaskEither";
 
-export default abstract class ApplicationService<T extends AggregateRoot> {
+export default abstract class ApplicationService<A extends AggregateRoot> {
     protected constructor(private readonly eventBus: EventBus) {}
 
-    protected aggregateState(is: string): Promise<T> {
-        return new Promise<T>((resolve, reject) => {
+    protected aggregateState(is: string): Promise<A> {
+        return new Promise<A>((resolve, reject) => {
             reject(new Error('not implemented'))
         })
     }
@@ -17,7 +17,8 @@ export default abstract class ApplicationService<T extends AggregateRoot> {
         })
     }
 
-    publishEventsOf = async (aggregate: T): Promise<void> => {
-        aggregate.publishEventsUsing(this.eventBus.publish);
+    publishEvents = (aggregate: A): TE.TaskEither<Error, A> => {
+        // @ts-ignore
+        return aggregate.publishEventsUsing(this.eventBus.publishEvent);
     };
 }

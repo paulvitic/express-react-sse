@@ -1,12 +1,15 @@
 import AggregateRoot from "../AggregateRoot";
 import {TicketBoardCreated} from "./events/TicketBoardCreated";
 import DomainEvent from "../DomainEvent";
-import TicketBoardIntegration, {TicketBoardInfo, TicketBoardIntegrationFailure} from "./TicketBoardIntegration";
+import TicketBoardIntegration, {TicketBoardInfo} from "./TicketBoardIntegration";
 import Identity from "../Identity";
 import { pipe } from 'fp-ts/lib/pipeable'
 import * as TE from 'fp-ts/lib/TaskEither'
+import * as E from 'fp-ts/lib/Either'
+import * as O from "fp-ts/lib/Option";
+import {TicketBoardRepository} from "./TicketBoardRepository";
 
-export class TicketBoardFailure extends Error {}
+export class TicketBoardCreationFailure extends Error {}
 
 export default class TicketBoard extends AggregateRoot {
     private _externalId: number;
@@ -45,33 +48,46 @@ export default class TicketBoard extends AggregateRoot {
         return dataCollection;
     }
 
-    static create = (key: string, integration: TicketBoardIntegration):
-        TE.TaskEither<TicketBoardFailure, TicketBoard> => {
+    static create = (key: string, repo: TicketBoardRepository, integration: TicketBoardIntegration):
+        TE.TaskEither<TicketBoardCreationFailure, TicketBoard> => {
         return pipe(
-            integration.assertProject(key),
-            TE.map(TicketBoard.createFromProjectInfo)
+            TicketBoard.newExternalKey(key, repo),
+            TE.chain(TE.fromOption(() => new TicketBoardCreationFailure('External key already exists.'))),
+            TE.chain(integration.assertProject),
+            TE.map(TicketBoard.fromExternalProjectInfo),
+            TE.chain(TE.fromEither)
         )
     };
 
-    // TODO could return TaskEither in case there was some exception during creation
-    private static createFromProjectInfo = (info: TicketBoardInfo): TicketBoard => {
-        let ticketBoard = new TicketBoard(
-            Identity.generate(),
-            info.id,
-            info.key);
+    private static fromExternalProjectInfo(info: TicketBoardInfo):
+        E.Either<TicketBoardCreationFailure,TicketBoard> {
+        return E.tryCatch(() => {
+            let ticketBoard = new TicketBoard(
+                Identity.generate(),
+                info.id,
+                info.key);
 
-        // TODO add transient data from ticketBoard info to create a Development Project and assign this board to it
-        let event = new TicketBoardCreated(
-            TicketBoard.name,
-            ticketBoard.id,
-            ticketBoard.nextEventSequence(),
-            info.id,
-            info.key);
+            // TODO add transient data from ticketBoard info to create a Development Project and assign this board to it
+            let event = new TicketBoardCreated(
+                TicketBoard.name,
+                ticketBoard.id,
+                ticketBoard.nextEventSequence(),
+                info.id,
+                info.key);
 
-        ticketBoard.onTicketBoardCreated(event);
-        ticketBoard.recordEvent(event);
-        return ticketBoard
+            ticketBoard.onTicketBoardCreated(event);
+            ticketBoard.recordEvent(event);
+            return ticketBoard
+        }, reason => new TicketBoardCreationFailure(String(reason)))
     };
+
+    private static newExternalKey(key:string, repo:TicketBoardRepository):
+        TE.TaskEither<Error, O.Option<string>> {
+        return pipe(
+            repo.findOneByExternalKey(key),
+            TE.map(found => {return found.isSome() ? O.none : O.some(key)})
+        )
+    }
 
     private onTicketBoardCreated(event: TicketBoardCreated) {
         this.assertEventSequence(event.sequence);

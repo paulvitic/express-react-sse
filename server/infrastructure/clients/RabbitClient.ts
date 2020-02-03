@@ -1,5 +1,6 @@
-import amqp, {Channel, Connection} from 'amqplib';
+import amqp, {Channel, ConfirmChannel, Connection} from 'amqplib';
 import LogFactory from "../context/LogFactory";
+
 
 // if the connection is closed or fails to be established at all, we will reconnect
 export default class RabbitClient {
@@ -73,7 +74,7 @@ export default class RabbitClient {
         })
     };
 
-    createChannel = (exchange:string) => {
+    createChannel = (exchange:string): Promise<Channel> => {
         return new Promise<Channel>(async (resolve, reject) => {
             const self = this;
             try {
@@ -86,14 +87,40 @@ export default class RabbitClient {
                     self.log.info('channel closed');
                 });
 
-                await channel.prefetch(10)
+                await channel.prefetch(10);
 
                 let exchangeAssert = await channel.assertExchange(exchange,'fanout',{ durable: true })
                 self.log.info(`exchange assert: ${JSON.stringify(exchangeAssert)}`);
                 resolve(channel);
 
             } catch (err) {
-                let closed = await self.closeOnErr(err)
+                let closed = await self.closeOnErr(err);
+                if (closed) self.log.info('connection closed');
+            }
+        })
+    };
+
+    createConfirmChannel = (exchange:string): Promise<ConfirmChannel> => {
+        return new Promise<ConfirmChannel>(async (resolve, reject) => {
+            const self = this;
+            try {
+                let channel = await this.connection.createConfirmChannel();
+                channel.on('error', function(err) {
+                    self.log.error('channel error: ', err);
+                });
+
+                channel.on('close', function() {
+                    self.log.info('channel closed');
+                });
+
+                await channel.prefetch(10);
+
+                let exchangeAssert = await channel.assertExchange(exchange,'fanout',{ durable: true });
+                self.log.info(`exchange assert: ${JSON.stringify(exchangeAssert)}`);
+                resolve(channel);
+
+            } catch (err) {
+                let closed = await self.closeOnErr(err);
                 if (closed) self.log.info('connection closed');
             }
         })

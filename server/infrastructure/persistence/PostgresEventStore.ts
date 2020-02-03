@@ -2,35 +2,30 @@ import EventStore from "../../domain/EventStore";
 import DomainEvent  from "../../domain/DomainEvent";
 import PostgresClient from "../clients/PostgresClient";
 import LogFactory from "../context/LogFactory";
-import {QueryConfig} from "pg";
-import {translateToDomainEvents} from "./QueryResultTranslator";
+import {QueryConfig, QueryResultRow} from "pg";
+import {translateToDomainEvents, translateToOptionalTicketBoard} from "./QueryResultTranslator";
+import {pipe} from "fp-ts/lib/pipeable";
+import * as TE from "fp-ts/lib/TaskEither";
+import * as E from "fp-ts/lib/Either";
 
 export default class PostgresEventStore implements EventStore {
     private readonly log = LogFactory.get(PostgresEventStore.name);
 
     constructor(private readonly client: PostgresClient) {}
 
-    logEvent = async (event: DomainEvent, published: boolean): Promise<boolean> => {
+    logEvent = (event: DomainEvent, published: boolean):
+        TE.TaskEither<Error, boolean> => {
         // TODO add published flag
         const query = {
-            text: 'INSERT INTO jira.event_log(aggregate_id, aggregate, event_type, generated_on, sequence, event) VALUES($1, $2, $3, $4, $5, $6) RETURNING event_type',
+            text: 'INSERT INTO jira.event_log(aggregate_id, aggregate, event_type, generated_on, sequence, event) VALUES($1, $2, $3, $4, $5, $6) returning event_type, aggregate, aggregate_id',
             values: [event.aggregateId, event.aggregate, event.eventType, event.generatedOn, event.sequence, JSON.stringify(event)],
         };
 
-        return new Promise<boolean>((resolve) => {
-            this.client.insert(query)
-                .then((count) => {
-                    if (count === 1) {
-                        this.log.info(`Logged ${event.eventType}`);
-                        resolve(true);
-                    } else {
-                        // TODO rollback
-                        resolve(false);
-                    }
-                }).catch(()=> {
-                resolve(false)
-            })
-        })
+        return pipe(
+            this.client.executeQuery(query),
+            TE.map(this.assertLogAppended),
+            TE.chain(TE.fromEither)
+        );
     };
 
 
@@ -54,7 +49,7 @@ export default class PostgresEventStore implements EventStore {
 
     private queryEvents = async (query: QueryConfig): Promise<DomainEvent[]> => {
         try {
-            let result = await this.client.read(query);
+            let result = await this.client.execute(query);
             let events = await translateToDomainEvents(result);
             return new Promise( (resolve) => {
                 resolve(events);
@@ -65,4 +60,12 @@ export default class PostgresEventStore implements EventStore {
             })
         }
     };
+
+    private assertLogAppended(result: QueryResultRow): E.Either<Error, boolean> {
+        return E.tryCatch(() => {
+                let {rows} = result;
+                return rows.length === 1;
+            },
+            reason => new Error(String(reason)))
+    }
 }

@@ -11,7 +11,7 @@ class TicketBoardValidationError extends Error {
     }
 }
 
-export function translateToDomainEvents(res: QueryResult<any>): Promise<DomainEvent[]> {
+export function translateToDomainEvents(res: QueryResultRow): Promise<DomainEvent[]> {
     return new Promise<DomainEvent[]>((resolve, reject) => {
         const events = new Array<DomainEvent>();
         for (let row of res.rows){

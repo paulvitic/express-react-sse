@@ -1,5 +1,6 @@
 import LogFactory from "../context/LogFactory";
 import {Pool, QueryConfig, QueryResult, QueryResultRow} from "pg";
+import * as TE from "fp-ts/lib/TaskEither";
 
 export default class PostgresClient {
     private readonly log = LogFactory.get(PostgresClient.name);
@@ -43,5 +44,10 @@ export default class PostgresClient {
 
     execute(query: QueryConfig): Promise<QueryResultRow> {
         return this.connPool.query(query);
+    }
+
+     executeQuery(query: QueryConfig): TE.TaskEither<Error, QueryResultRow>{
+        return TE.tryCatch(() => this.connPool.query(query),
+                error => new Error(`Error while executing query: ${String(error)}`))
     }
 }

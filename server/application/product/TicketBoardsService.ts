@@ -1,16 +1,13 @@
 import LogFactory from "../../infrastructure/context/LogFactory";
 import ApplicationService from "../ApplicationService";
 import EventBus from "../../domain/EventBus";
-import {Repository} from "../../domain/Repository";
 import TicketBoard from "../../domain/product/TicketBoard";
 import AddTicketBoard from "./commands/AddTicketBoard";
-import {TicketBoardsQueryService} from "../../infrastructure/persistence/RedisQueryService";
 import TicketBoardIntegration from "../../domain/product/TicketBoardIntegration";
 import {TicketBoardRepository} from "../../domain/product/TicketBoardRepository";
-import {either, Either, left, right} from "fp-ts/lib/Either";
 import {pipe} from "fp-ts/lib/pipeable";
-import {chain} from "fp-ts/lib/TaskEither";
-import {filter} from "fp-ts/lib/Option";
+import * as TE from "fp-ts/lib/TaskEither";
+import * as T from "fp-ts/lib/Task";
 
 
 export default class TicketBoardsService extends ApplicationService<TicketBoard> {
@@ -26,32 +23,13 @@ export default class TicketBoardsService extends ApplicationService<TicketBoard>
     throw new Error('not implemented');
   }
 
-  addTicketBoard(command: AddTicketBoard): Promise<Either<Error,string>> {
-      return new Promise<Either<Error,string>>( async (resolve, reject) => {
-          let exist = await this.repository.findOneByExternalKey(command.key);
-          pipe(
-              exist.isNone,
-              chain(() => return await TicketBoard.create(command.key, this.integration))
-          );
-
-          if (exists.isNone()) {
-              let created = await TicketBoard.create(command.key, this.integration);
-              if (created.isRight()) {
-                  this.publishEventsOf(created.value);
-                  let saved = await this.repository.save(created.value);
-                  // see: https://dev.to/gcanti/getting-started-with-fp-ts-either-vs-validation-5eja
-                  /**/
-                  if (saved.isRight()) {
-                      resolve(right(saved.value.id))
-                  } else {
-                      resolve(left(new Error(saved.value.message)));
-                  }
-              } else {
-                  resolve(left(new Error(created.value.message)));
-              }
-          } else {
-              resolve(left(new Error("Exists")))
-          }
-      })
+  addTicketBoard(command: AddTicketBoard): TE.TaskEither<Error,string> {
+      return pipe(
+          TicketBoard.create(command.key, this.repository, this.integration),
+          TE.chain(this.publishEvents),// better to use filter or just pass through
+          //TE.fold(error => T.of(error), ticketBoard => ticketBoard), // https://github.com/anotherhale/fp-ts_async-example/blob/master/src/async-example.ts
+          TE.chain(this.repository.save),
+          TE.map((ticketBoard => ticketBoard.id))
+      )
   }
 }

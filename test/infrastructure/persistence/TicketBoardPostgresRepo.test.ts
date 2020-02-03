@@ -5,7 +5,7 @@ import TicketBoard from "../../../server/domain/product/TicketBoard";
 import TicketBoardIntegration from "../../../server/domain/product/TicketBoardIntegration";
 import * as E from "fp-ts/lib/Either";
 import * as TE from "fp-ts/lib/TaskEither";
-import {EXTERNAL_KEY_FIXTURE, PROJECT_INFO_FIXTURE} from "../../domain/product/fixtures";
+import {EXTERNAL_KEY_FIXTURE, PROJECT_INFO_FIXTURE} from "../../domain/product/productFixtures";
 
 let repo: TicketBoardPostgresRepo;
 let ticketBoardFixture: TicketBoard;

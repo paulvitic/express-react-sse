@@ -1,5 +1,11 @@
 import DomainEvent from "./DomainEvent";
-import Identity from "./Identity";
+import * as TE from "fp-ts/lib/TaskEither";
+import {array} from "fp-ts/lib/Array";
+import {pipe} from "fp-ts/lib/pipeable";
+import * as E from "fp-ts/lib/Either";
+import * as M from 'fp-ts/lib/Monoid'
+
+
 
 export default abstract class AggregateRoot {
     private readonly aggregateId: string;
@@ -40,11 +46,18 @@ export default abstract class AggregateRoot {
         }
     }
 
-    publishEventsUsing(publisher: (event: DomainEvent) => void) {
-        let nextEvent = this.domainEvents.pop();
-        while (nextEvent) {
-            publisher(nextEvent);
-            nextEvent = this.domainEvents.pop();
-        }
+    publishEventsUsing(publisher: (event: DomainEvent) => TE.TaskEither<Error, boolean>):
+        TE.TaskEither<Error, AggregateRoot> {
+        return pipe(
+            array.traverse(TE.taskEither)(this.domainEvents, (event) => publisher(event)),
+            TE.chain((deliveries) => TE.fromEither(this.assertAllDelivered(deliveries))),
+        )
+    }
+
+    private assertAllDelivered = (deliveries: boolean[]): E.Either<Error, AggregateRoot> => {
+        let allDelivered = M.fold(M.monoidAll)(deliveries); // https://dev.to/gcanti/getting-started-with-fp-ts-monoid-ja0
+        // let allDelivered = deliveries.every(delivered => delivered===true);
+        // TODO you can remove the events here
+        return allDelivered ? E.right(this) : E.left(new Error('Not all events are delivered'))
     }
 }

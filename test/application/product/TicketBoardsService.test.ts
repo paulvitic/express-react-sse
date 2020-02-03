@@ -6,12 +6,15 @@ import TicketBoardIntegration, {
 import EventBus from "../../../server/domain/EventBus";
 import {fromNullable, Option} from "fp-ts/lib/Option";
 import TicketBoard from "../../../server/domain/product/TicketBoard";
-import {Either, right} from "fp-ts/lib/Either";
-import {PROJECT_INFO_FIXTURE} from "../../domain/product/fixtures";
+import * as E from "fp-ts/lib/Either";
+import * as TE from "fp-ts/lib/TaskEither";
+import {PROJECT_INFO_FIXTURE} from "../../domain/product/productFixtures";
 import Identity from "../../../server/domain/Identity";
+import {pipe} from "fp-ts/lib/pipeable";
+import AddTicketBoard from "../../../server/application/product/commands/AddTicketBoard";
 
 let mockEventBus: EventBus = {
-    publish: jest.fn(),
+    publishEvent: jest.fn(),
     subscribe: jest.fn()
 };
 
@@ -33,26 +36,66 @@ let service: TicketBoardsService = new TicketBoardsService(mockEventBus, mockRep
 test('should not find ticket board', async () => {
     const expectedId = Identity.generate();
     mockRepository.findOneByExternalKey = jest.fn().mockImplementationOnce(() => {
-        return new Promise<Option<TicketBoard>>(resolve=> {
-            resolve(fromNullable(null))
-        })
-    });
-    mockIntegration.assertProject = jest.fn().mockImplementationOnce(() => {
-        return new Promise<Either<Error, TicketBoardInfo>>(resolve=> {
-            resolve(right(PROJECT_INFO_FIXTURE))
-        })
-    });
-    mockEventBus.publish = jest.fn(() => {
-        return new Promise<boolean>(resolve => {
-            resolve(true)
-        })
-    });
-    mockRepository.save = jest.fn().mockImplementationOnce(() => {
-        return new Promise<Either<Error, TicketBoard>>(resolve=> {
-            resolve(right(new TicketBoard(expectedId, 1000,"TEST")))
-        })
+        return TE.tryCatch(() => {
+            return new Promise<Option<TicketBoard>>(resolve=> {
+                resolve(fromNullable(null))
+            })
+        }, reason => new Error(String(reason)))
     });
 
-    let ticketBoardId = await service.addTicketBoard({key: "TEST", type: "MockCommand"});
-    expect(ticketBoardId.value).toEqual(expectedId)
+    mockIntegration.assertProject = jest.fn().mockImplementationOnce(() => {
+        return TE.tryCatch(() => {
+            return new Promise<TicketBoardInfo>(resolve => {
+                resolve(PROJECT_INFO_FIXTURE)
+            })
+        }, reason => new Error(String(reason)))
+
+    });
+
+    mockEventBus.publishEvent = jest.fn(() => {
+        return TE.tryCatch(() => {
+            return new Promise<boolean>(resolve => {
+                resolve(true)
+            })
+        }, reason => new Error(String(reason)))
+    });
+
+    mockRepository.save = jest.fn().mockImplementationOnce(() => {
+        return TE.tryCatch(() => {
+            return new Promise<TicketBoard>(resolve=> {
+                resolve(new TicketBoard(expectedId, 1000,"TEST"))
+            })
+        }, reason => new Error(String(reason)))
+    });
+
+    let addTicketBoardTask = service.addTicketBoard(new AddTicketBoard("TEST"));
+
+    addTicketBoardTask.run()
+        .then(ticketBoardId => {
+            expect(ticketBoardId.value).toEqual(expectedId)
+        }).catch(reason =>
+            expect(reason).toBeNull()
+        );
+});
+
+test("test for fold", () => {
+    function onLeft(errors: Array<string>): string {
+        return `Errors: ${errors.join(', ')}`
+    }
+
+    function onRight(value: number): string {
+        return `Ok: ${value}`
+    }
+
+    let res = pipe(
+        E.right(1),
+        E.fold(onLeft, onRight)
+    );
+    expect(res).toEqual('Ok: 1');
+
+    let res2 = pipe(
+        E.left(['error 1', 'error 2']),
+        E.fold(onLeft, onRight)
+    );
+    expect(res2).toEqual('Errors: error 1, error 2')
 });

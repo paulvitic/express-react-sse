@@ -3,8 +3,35 @@ import DomainEvent from "../../domain/DomainEvent";
 import EventStore from "../../domain/EventStore";
 import LogFactory from "../context/LogFactory";
 import RabbitClient from "../clients/RabbitClient";
-import {Channel, Message} from 'amqplib';
+import {Channel, ConfirmChannel, Message, Options, Replies} from 'amqplib';
 import {translateMessage, translateEvent} from "./MessageTranslator";
+import {pipe} from "fp-ts/lib/pipeable";
+import * as TE from 'fp-ts/lib/TaskEither'
+
+export type OutgoingMessage = {
+    content: Buffer,
+    options: {
+        expiration?: string | number;
+        userId?: string;
+        CC?: string | string[];
+
+        mandatory?: boolean;
+        persistent?: boolean;
+        deliveryMode?: boolean | number;
+        BCC?: string | string[];
+
+        contentType?: string;
+        contentEncoding?: string;
+        headers?: any;
+        priority?: number;
+        correlationId?: string;
+        replyTo?: string;
+        messageId?: string;
+        timestamp?: number;
+        type?: string;
+        appId?: string;
+    }
+}
 
 // each domain would have its own exchange
 const sourceDomainExchange = "source_domain";
@@ -14,7 +41,10 @@ const consumeQueueName = 'to_target_domain_events_of_all_aggregates';
 
 export default class RabbitEventBus implements EventBus {
     private readonly log = LogFactory.get(RabbitEventBus.name);
-    private sendChannel: Channel;
+    //private sendChannel: Channel;
+    private sendChannel: ConfirmChannel;
+    //private sendTask: (exchange: string, routingKey: string, content: Buffer, options?: Options.Publish) => TE.TaskEither<any, Replies.Empty>;
+
     private receiveChannel: Channel;
     private subscribers: Map<string, EventHandler[]> = new Map<string, EventHandler[]>();
 
@@ -26,7 +56,8 @@ export default class RabbitEventBus implements EventBus {
     static init = async (client: RabbitClient, store: EventStore): Promise<RabbitEventBus> => {
         const eventBus = new RabbitEventBus(client, store);
         // create a separate channel to send
-        eventBus.sendChannel =  await eventBus.rabbitClient.createChannel(sourceDomainExchange);
+        //eventBus.sendChannel =  await eventBus.rabbitClient.createChannel(sourceDomainExchange);
+        eventBus.sendChannel =  await eventBus.rabbitClient.createConfirmChannel(sourceDomainExchange);
 
         // create a channel to receive
         eventBus.receiveChannel = await eventBus.rabbitClient.createChannel(sourceDomainExchange);
@@ -49,32 +80,14 @@ export default class RabbitEventBus implements EventBus {
         })
     };
 
-    publish = <T extends DomainEvent = DomainEvent>(event: T): Promise<boolean> => {
+    publishEvent = <T extends DomainEvent = DomainEvent>(event: T): TE.TaskEither<Error, boolean> => {
         this.log.info(`Publishing event type ${event.eventType}`);
-        return new Promise<boolean>((resolve, reject) => {
-            translateEvent(event).then(({content, options}) => {
-                let published: boolean = this.sendChannel.publish(
-                    sourceDomainExchange,
-                    '',
-                    content,
-                    options);
-
-                this.store.logEvent(event, published)
-                    .then((success) => {
-                        if (success) {
-                            resolve(success)
-                        } else {
-                            // TODO throw error
-                            resolve(false);
-                        }
-                    }).catch((err) => {
-                        reject(err)
-                });
-
-            }).catch(err => {
-                reject(err)
-            })
-        })
+        return pipe(
+            translateEvent(event),
+            TE.fromEither,
+            TE.chain(this.send),
+            TE.chain(sent => this.store.logEvent(event, !!sent))
+        )
     };
 
     subscribe = (eventType: string, handler: EventHandler): Promise<boolean> => {
@@ -120,5 +133,22 @@ export default class RabbitEventBus implements EventBus {
                 this.log.error('error while processing received message', err);
                 ack(true)
             })
+    };
+
+    private send = ({content, options}: OutgoingMessage): TE.TaskEither<Error, boolean> => {
+        return TE.tryCatch(() => {
+            return new Promise<boolean>( resolve => {
+                this.sendChannel.publish(sourceDomainExchange, '', content, options);
+                this.sendChannel.waitForConfirms()
+                    .then(_ => {
+                        resolve(true )
+                    })
+                    .catch(_ =>
+                        resolve(false)
+                    )
+            })
+        }, reason => new Error(String(reason)))
     }
 }
+
+
