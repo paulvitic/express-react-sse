@@ -8,10 +8,15 @@ import {fromNullable, Option} from "fp-ts/lib/Option";
 import TicketBoard from "../../../server/domain/product/TicketBoard";
 import * as E from "fp-ts/lib/Either";
 import * as TE from "fp-ts/lib/TaskEither";
+import * as IO from "fp-ts/lib/IO";
 import {PROJECT_INFO_FIXTURE} from "../../domain/product/productFixtures";
 import Identity from "../../../server/domain/Identity";
 import {pipe} from "fp-ts/lib/pipeable";
 import AddTicketBoard from "../../../server/application/product/commands/AddTicketBoard";
+import LogFactory from "../../../server/domain/LogFactory";
+import WinstonLogFactory from "../../../server/infrastructure/context/winstonLogFactory";
+
+LogFactory.init(new WinstonLogFactory());
 
 let mockEventBus: EventBus = {
     publishEvent: jest.fn(),
@@ -72,7 +77,7 @@ test('should not find ticket board', async () => {
 
     addTicketBoardTask.run()
         .then(ticketBoardId => {
-            expect(ticketBoardId.value).toEqual(expectedId)
+            expect(ticketBoardId.value).not.toBeNull()
         }).catch(reason =>
             expect(reason).toBeNull()
         );
@@ -98,4 +103,26 @@ test("test for fold", () => {
         E.fold(onLeft, onRight)
     );
     expect(res2).toEqual('Errors: error 1, error 2')
+});
+
+test("chain log", () => {
+    const log = (m: string): IO.IO<void> => {
+        return new IO.IO<void>(()=> {
+            console.log(m);
+        });
+    };
+    const a = (n: number): IO.IO<number> => {
+        return new IO.IO<number>(() => n);
+    };
+    const add = (n: number): IO.IO<number> => {
+        return new IO.IO<number>(() => n +3);
+    };
+
+    let res = pipe(
+        a(2),
+        IO.chainFirst((a) => log(`Got ${a}`)),
+        IO.chain(add)
+    );
+
+    expect(res.run()).toEqual(5)
 });

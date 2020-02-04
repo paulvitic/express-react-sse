@@ -47,17 +47,21 @@ export default abstract class AggregateRoot {
     }
 
     publishEventsUsing(publisher: (event: DomainEvent) => TE.TaskEither<Error, boolean>):
-        TE.TaskEither<Error, AggregateRoot> {
+        TE.TaskEither<Error, void> {
         return pipe(
             array.traverse(TE.taskEither)(this.domainEvents, (event) => publisher(event)),
             TE.chain((deliveries) => TE.fromEither(this.assertAllDelivered(deliveries))),
         )
     }
 
-    private assertAllDelivered = (deliveries: boolean[]): E.Either<Error, AggregateRoot> => {
-        let allDelivered = M.fold(M.monoidAll)(deliveries); // https://dev.to/gcanti/getting-started-with-fp-ts-monoid-ja0
+    private assertAllDelivered = (deliveries: boolean[]): E.Either<Error, void> => {
+        let allDelivered = M.fold(M.monoidAll)(deliveries);
         // let allDelivered = deliveries.every(delivered => delivered===true);
+        return E.tryCatch(
+            () => {if (!allDelivered) throw new Error("Not all events are delivered")},
+            e => (e instanceof Error ? e : new Error('Unknown error'))
+        )
         // TODO you can remove the events here
-        return allDelivered ? E.right(this) : E.left(new Error('Not all events are delivered'))
+        //return allDelivered ? E.right() : E.left(new Error('Not all events are delivered'))
     }
 }

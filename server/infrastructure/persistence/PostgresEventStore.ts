@@ -1,12 +1,12 @@
 import EventStore from "../../domain/EventStore";
 import DomainEvent  from "../../domain/DomainEvent";
 import PostgresClient from "../clients/PostgresClient";
-import LogFactory from "../context/LogFactory";
 import {QueryConfig, QueryResultRow} from "pg";
-import {translateToDomainEvents, translateToOptionalTicketBoard} from "./QueryResultTranslator";
+import {translateToDomainEvents} from "./QueryResultTranslator";
 import {pipe} from "fp-ts/lib/pipeable";
 import * as TE from "fp-ts/lib/TaskEither";
 import * as E from "fp-ts/lib/Either";
+import LogFactory from "../../domain/LogFactory";
 
 export default class PostgresEventStore implements EventStore {
     private readonly log = LogFactory.get(PostgresEventStore.name);

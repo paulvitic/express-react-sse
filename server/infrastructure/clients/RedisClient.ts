@@ -1,9 +1,9 @@
 import redis, {RedisClient as Client} from 'redis';
-import LogFactory from "../context/LogFactory";
+import WinstonLogFactory from "../context/WinstonLogFactory";
 
 // TODO get rid og cache integrate tis to redis repository
 export default class RedisClient {
-    private readonly log = LogFactory.get(RedisClient.name);
+    private readonly log = WinstonLogFactory.get(RedisClient.name);
     private readonly client: Client;
 
     constructor(private readonly host: string,

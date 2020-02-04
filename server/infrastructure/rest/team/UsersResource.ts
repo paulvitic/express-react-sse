@@ -1,4 +1,4 @@
-import LogFactory from "../../context/LogFactory";
+import WinstonLogFactory from "../../context/WinstonLogFactory";
 import {Request, Response} from "express";
 import axios from 'axios'
 
@@ -23,7 +23,7 @@ export const UsersEndpoints = {
 };
 
 export class UsersResource {
-    private readonly log = LogFactory.get(UsersResource.name);
+    private readonly log = WinstonLogFactory.get(UsersResource.name);
 
     constructor(private readonly googleAppClientId: string,
                 private readonly googleAppClientSecret: string){}

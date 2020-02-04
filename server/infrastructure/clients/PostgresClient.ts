@@ -1,6 +1,6 @@
-import LogFactory from "../context/LogFactory";
 import {Pool, QueryConfig, QueryResult, QueryResultRow} from "pg";
 import * as TE from "fp-ts/lib/TaskEither";
+import LogFactory from "../../domain/LogFactory";
 
 export default class PostgresClient {
     private readonly log = LogFactory.get(PostgresClient.name);

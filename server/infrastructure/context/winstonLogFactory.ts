@@ -1,4 +1,5 @@
 import winston, {LoggerOptions, format, transports} from 'winston';
+import * as IO from "fp-ts/lib/IO";
 
 const DEFAULT_CATEGORY = 'DEFAULT';
 
@@ -30,19 +31,30 @@ const DEFAULT_LOGGER = (() => {
 })();
 
 
-export default class LogFactory {
-  // TODO change value to an abstraction for logger
-  static loggers: Map<string, any>;
-
+export default class WinstonLogFactory {
   // TODO abstract LogFactory return type and create an interface for LogFactory at domain
-  public static get(module:string | undefined) {
+  public get(module:string | undefined) {
+    let winstonLogger;
     if (module) {
-
       if (!winston.loggers.has(module)) {
         add(module);
       }
-      return winston.loggers.get(module);
+      winstonLogger = winston.loggers.get(module);
+    } else {
+        winstonLogger = DEFAULT_LOGGER;
     }
-    return DEFAULT_LOGGER;
+
+    return {
+        error: m => winstonLogger.error(m),
+        warn: winstonLogger.warn,
+        info:  m => winstonLogger.info(m),
+        debug: winstonLogger.debug,
+        io: {
+            error:  m => new IO.IO<void>(()=> winstonLogger.error(m)),
+            warn:  m => new IO.IO<void>(()=> winstonLogger.warn(m)),
+            info: m => new IO.IO<void>(()=> winstonLogger.info(m)),
+            debug:  m => new IO.IO<void>(()=> winstonLogger.debug(m)),
+        }
+    }
   }
 }

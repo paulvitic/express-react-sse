@@ -7,7 +7,7 @@ import os from 'os';
 import installApiDocs from './apiDoc';
 import cookieParser from 'cookie-parser';
 import sessionConfig from "./sessionConfig";
-import LogFactory from "./LogFactory";
+import WinstonLogFactory from "./WinstonLogFactory";
 import session from "express-session";
 import errorHandler from "./errorHandler";
 import sessionCounter from "./sessionCounter";
@@ -54,7 +54,7 @@ const addRoutes = (app: Application, resources: Map<string, RequestHandler>): Pr
 
 
 export default class ExpressServer {
-    private readonly log = LogFactory.get(ExpressServer.name);
+    private readonly log = WinstonLogFactory.get(ExpressServer.name);
     private readonly app: Application;
 
     constructor(private readonly port: number,

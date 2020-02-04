@@ -1,7 +1,7 @@
 import {NextFunction, Request, Response} from "express";
-import LogFactory from "./LogFactory";
+import WinstonLogFactory from "./WinstonLogFactory";
 
-const log = LogFactory.get("sessionCounter");
+const log = WinstonLogFactory.get("sessionCounter");
 
 export default function sessionCounter() {
     // TODO change this to middleware that intercepts /login path and calls google to authenticate and toggles logged in flag. if not redirects to /login page

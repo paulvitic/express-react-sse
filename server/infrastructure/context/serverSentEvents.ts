@@ -1,7 +1,7 @@
 import {Application, NextFunction, Request, Response} from "express";
-import LogFactory from "./LogFactory";
+import WinstonLogFactory from "./WinstonLogFactory";
 
-const log = LogFactory.get("serverSentEvents");
+const log = WinstonLogFactory.get("serverSentEvents");
 
 const serverSentEvents = (app: Application) => {
     

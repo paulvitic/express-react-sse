@@ -1,5 +1,5 @@
 import ExpressServer from "./ExpressServer";
-import LogFactory from "./LogFactory";
+import WinstonLogFactory from "./winstonLogFactory";
 import config, {Environment} from "../config/config";
 import RedisClient from "../clients/RedisClient";
 import RabbitClient from "../clients/RabbitClient";
@@ -14,12 +14,11 @@ import RabbitEventBus from "../messaging/RabbitEventBus";
 import EventBus from "../../domain/EventBus";
 import {Repository} from "../../domain/Repository";
 import TicketBoard from "../../domain/product/TicketBoard";
-import {TicketBoardRedisRepo} from "../persistence/RedisRepository";
 import {registerDomainEvent} from "../JsonEventTranslator";
 import {TicketBoardCreated} from "../../domain/product/events/TicketBoardCreated";
-import {TicketBoardsQueryService} from "../persistence/RedisQueryService";
 import JiraIntegration from "../integration/JiraIntegration";
 import TicketBoardPostgresRepo from "../persistence/TicketBoardPostgresRepo";
+import LogFactory from "../../domain/LogFactory";
 
 const exit = process.exit;
 
@@ -46,7 +45,7 @@ const registerEvents = function(){
 };
 
 export default class App {
-    private readonly log = LogFactory.get(App.name);
+    private log;
     private env: Environment;
     private context: Context = {
         clients: new Map<string, any>(),
@@ -67,6 +66,8 @@ export default class App {
     };
 
     public start = async () => {
+        LogFactory.init(new WinstonLogFactory());
+        this.log = LogFactory.get(App.name);
         this.log.info(`getting configuration`);
         try {
             this.env = await config();
@@ -79,6 +80,7 @@ export default class App {
     };
 
     private init = (): Promise<void> => {
+        LogFactory.init(new WinstonLogFactory());
         return new Promise<void>(async (resolve, reject) => {
             try {
                 let success = await this.initClients();

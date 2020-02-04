@@ -3,11 +3,11 @@ import AggregateRoot from "../../domain/AggregateRoot";
 import EventStore from "../../domain/EventStore";
 import TicketBoard from "../../domain/product/TicketBoard";
 import {QueryService} from "../../domain/QueryService";
-import LogFactory from "../context/LogFactory";
+import WinstonLogFactory from "../context/WinstonLogFactory";
 import DomainEvent from "../../domain/DomainEvent";
 
 export default abstract class RedisQueryService<A extends AggregateRoot> implements QueryService<A>{
-    private readonly log = LogFactory.get(RedisQueryService.name);
+    private readonly log = WinstonLogFactory.get(RedisQueryService.name);
     private readonly hash: string;
 
     constructor(private readonly aggregateType: any,

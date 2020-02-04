@@ -2,7 +2,7 @@ import TicketBoardsService from '../../../application/product/TicketBoardsServic
 import {Request, Response} from 'express';
 import translateTicketBoardRequest from "./TicketBoardReqTranslator";
 import AddTicketBoard from "../../../application/product/commands/AddTicketBoard";
-import LogFactory from "../../context/LogFactory";
+import WinstonLogFactory from "../../context/WinstonLogFactory";
 
 export const TicketBoardsEndpoints = {
     byId : "TicketBoardsById",
@@ -10,7 +10,7 @@ export const TicketBoardsEndpoints = {
 };
 
 export class TicketBoardsResource {
-    private readonly log = LogFactory.get(TicketBoardsResource.name);
+    private readonly log = WinstonLogFactory.get(TicketBoardsResource.name);
 
   constructor (private service: TicketBoardsService){}
 

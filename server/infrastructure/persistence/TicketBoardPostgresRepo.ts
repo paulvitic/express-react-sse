@@ -1,6 +1,6 @@
 import TicketBoard from "../../domain/product/TicketBoard";
 import {TicketBoardRepository} from "../../domain/product/TicketBoardRepository";
-import LogFactory from "../context/LogFactory";
+import WinstonLogFactory from "../context/WinstonLogFactory";
 import PostgresClient from "../clients/PostgresClient";
 import {translateToOptionalTicketBoard, translateToTicketBoard, assertDelete } from "./QueryResultTranslator";
 import * as TE from 'fp-ts/lib/TaskEither'
@@ -21,7 +21,7 @@ class TicketBoardDeleteError extends Error {
 }
 
 export default class TicketBoardPostgresRepo implements TicketBoardRepository {
-    private readonly log = LogFactory.get(TicketBoardPostgresRepo.name);
+    private readonly log = WinstonLogFactory.get(TicketBoardPostgresRepo.name);
 
     constructor(private readonly client: PostgresClient) {}
 

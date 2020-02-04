@@ -6,14 +6,11 @@ import {DOMAIN_EVENT_FIXTURE} from "../../domain/domainFixtures";
 import config from "../../../server/infrastructure/config/config";
 import PostgresClient from "../../../server/infrastructure/clients/PostgresClient";
 import EventBus from "../../../server/domain/EventBus";
-//jest.mock("../../../server/infrastructure/clients/RabbitClient");
-//jest.mock( "../../../server/infrastructure/persistence/PostgresEventStore");
-
-//let mockClient: RabbitClient;
-//let mockEventStore : PostgresEventStore;
-let eventBus;
+import LogFactory from "../../../server/domain/LogFactory";
+import WinstonLogFactory from "../../../server/infrastructure/context/winstonLogFactory";
 
 const initializeEventBus = async (): Promise<EventBus> => {
+    LogFactory.init(new WinstonLogFactory());
     let env = await config();
     let rabbitClient = await RabbitClient.init(
         env.RABBIT_HOST,

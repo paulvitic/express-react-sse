@@ -1,9 +1,9 @@
-import LogFactory from "../../server/infrastructure/context/LogFactory";
+import WinstonLogFactory from "../../server/infrastructure/context/WinstonLogFactory";
 import winston, {createLogger, format, transports} from 'winston';
 
 describe('LoggerFactory', () => {
   it('should get all examples', () => {
-      const log = LogFactory.get("Test");
+      const log = WinstonLogFactory.get("Test");
       log.info("test")
   });
 
