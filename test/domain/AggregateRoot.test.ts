@@ -24,7 +24,7 @@ class MockAggregate extends AggregateRoot{
 
 let mockAggregate = MockAggregate.create();
 
-test('should not assert ticket board', () => {
+test('should not assert ticket board', async () => {
     let counter = 0;
     let mockEventPublisher = jest.fn().mockImplementation(() => {
         return TE.tryCatch(() => {
@@ -36,7 +36,6 @@ test('should not assert ticket board', () => {
     });
 
     let eventPublishTask = mockAggregate.publishEventsUsing(mockEventPublisher);
-    eventPublishTask.run().then((res) => {
-        expect(res.isRight()).toBe(true)
-    })
+    let published = await eventPublishTask.run();
+    expect(published.isRight()).toBe(true)
 });

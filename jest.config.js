@@ -1,6 +1,11 @@
 // For a detailed explanation regarding each configuration property, visit:
 // https://jestjs.io/docs/en/configuration.html
 module.exports = {
+  globals: {
+    'ts-jest': {
+      tsConfig: 'tsconfig.json'
+    }
+  },
   // A list of reporter names that Jest uses when writing coverage reports
   coverageReporters: [
     "json",
@@ -26,4 +31,5 @@ module.exports = {
   transform: {
     '^.+\\.ts?$': 'ts-jest',
   }
+  //automock: true
 };

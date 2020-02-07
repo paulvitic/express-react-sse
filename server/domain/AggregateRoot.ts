@@ -4,26 +4,18 @@ import {array} from "fp-ts/lib/Array";
 import {pipe} from "fp-ts/lib/pipeable";
 import * as E from "fp-ts/lib/Either";
 import * as M from 'fp-ts/lib/Monoid'
+import DomainEntity from "./DomainEntity";
 
-
-
-export default abstract class AggregateRoot {
-    private readonly aggregateId: string;
-
+export default abstract class AggregateRoot extends DomainEntity {
     private readonly domainEvents: DomainEvent[] = new Array<DomainEvent>();
-    private exists: boolean = true; // switch to false when soft deleted
     private lastEventSequence: number = 0;
 
-    protected constructor(id: string) {
-        this.aggregateId = id;
+    protected constructor(id: string, exists?: boolean) {
+        super(id, exists)
     }
 
     static fromEvents(id: string, events: DomainEvent[]): AggregateRoot {
         throw Error;
-    }
-
-    get id() {
-        return this.aggregateId;
     }
 
     get type() {
@@ -55,13 +47,11 @@ export default abstract class AggregateRoot {
     }
 
     private assertAllDelivered = (deliveries: boolean[]): E.Either<Error, void> => {
+        // TODO you can remove the events here
         let allDelivered = M.fold(M.monoidAll)(deliveries);
-        // let allDelivered = deliveries.every(delivered => delivered===true);
         return E.tryCatch(
             () => {if (!allDelivered) throw new Error("Not all events are delivered")},
             e => (e instanceof Error ? e : new Error('Unknown error'))
         )
-        // TODO you can remove the events here
-        //return allDelivered ? E.right() : E.left(new Error('Not all events are delivered'))
     }
 }

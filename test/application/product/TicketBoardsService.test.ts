@@ -75,54 +75,8 @@ test('should not find ticket board', async () => {
 
     let addTicketBoardTask = service.addTicketBoard(new AddTicketBoard("TEST"));
 
-    addTicketBoardTask.run()
-        .then(ticketBoardId => {
-            expect(ticketBoardId.value).not.toBeNull()
-        }).catch(reason =>
-            expect(reason).toBeNull()
-        );
+    let ticketBoardId = await addTicketBoardTask.run();
+    expect(ticketBoardId.value).not.toBeNull()
 });
 
-test("test for fold", () => {
-    function onLeft(errors: Array<string>): string {
-        return `Errors: ${errors.join(', ')}`
-    }
 
-    function onRight(value: number): string {
-        return `Ok: ${value}`
-    }
-
-    let res = pipe(
-        E.right(1),
-        E.fold(onLeft, onRight)
-    );
-    expect(res).toEqual('Ok: 1');
-
-    let res2 = pipe(
-        E.left(['error 1', 'error 2']),
-        E.fold(onLeft, onRight)
-    );
-    expect(res2).toEqual('Errors: error 1, error 2')
-});
-
-test("chain log", () => {
-    const log = (m: string): IO.IO<void> => {
-        return new IO.IO<void>(()=> {
-            console.log(m);
-        });
-    };
-    const a = (n: number): IO.IO<number> => {
-        return new IO.IO<number>(() => n);
-    };
-    const add = (n: number): IO.IO<number> => {
-        return new IO.IO<number>(() => n +3);
-    };
-
-    let res = pipe(
-        a(2),
-        IO.chainFirst((a) => log(`Got ${a}`)),
-        IO.chain(add)
-    );
-
-    expect(res.run()).toEqual(5)
-});

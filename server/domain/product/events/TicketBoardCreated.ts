@@ -6,6 +6,8 @@ export class TicketBoardCreated extends AbstractDomainEvent {
         aggregateId: string,
         sequence: number,
         readonly externalId: number,
-        readonly externalKey: string){
+        readonly externalKey: string,
+        readonly projectCategory: {id: number, name: string, description: string }){
         super(aggregate, aggregateId, sequence);}
 }
+

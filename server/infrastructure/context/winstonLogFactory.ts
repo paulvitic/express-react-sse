@@ -45,15 +45,15 @@ export default class WinstonLogFactory {
     }
 
     return {
-        error: m => winstonLogger.error(m),
-        warn: winstonLogger.warn,
-        info:  m => winstonLogger.info(m),
-        debug: winstonLogger.debug,
+        error: (message: string, ...meta: any[]) => winstonLogger.error(message, meta),
+        warn: (message: string, ...meta: any[]) => winstonLogger.warn(message, meta),
+        info:  (message: string, ...meta: any[]) => winstonLogger.info(message, meta),
+        debug: (message: string, ...meta: any[]) => winstonLogger.debug(message, meta),
         io: {
-            error:  m => new IO.IO<void>(()=> winstonLogger.error(m)),
-            warn:  m => new IO.IO<void>(()=> winstonLogger.warn(m)),
-            info: m => new IO.IO<void>(()=> winstonLogger.info(m)),
-            debug:  m => new IO.IO<void>(()=> winstonLogger.debug(m)),
+            error:  (message: string, ...meta: any[]) => new IO.IO<void>(()=> winstonLogger.error(message, meta)),
+            warn:  (message: string, ...meta: any[]) => new IO.IO<void>(()=> winstonLogger.warn(message, meta)),
+            info: (message: string, ...meta: any[]) => new IO.IO<void>(()=> winstonLogger.info(message, meta)),
+            debug:  (message: string, ...meta: any[]) => new IO.IO<void>(()=> winstonLogger.debug(message, meta)),
         }
     }
   }

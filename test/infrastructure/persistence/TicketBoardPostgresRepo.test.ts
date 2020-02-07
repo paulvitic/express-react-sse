@@ -6,6 +6,8 @@ import TicketBoardIntegration from "../../../server/domain/product/TicketBoardIn
 import * as E from "fp-ts/lib/Either";
 import * as TE from "fp-ts/lib/TaskEither";
 import {EXTERNAL_KEY_FIXTURE, PROJECT_INFO_FIXTURE} from "../../domain/product/productFixtures";
+import LogFactory from "../../../server/domain/LogFactory";
+import WinstonLogFactory from "../../../server/infrastructure/context/winstonLogFactory";
 
 let repo: TicketBoardPostgresRepo;
 let ticketBoardFixture: TicketBoard;
@@ -16,6 +18,7 @@ let mockIntegration: TicketBoardIntegration = {
 };
 
 beforeAll(async () => {
+    LogFactory.init(new WinstonLogFactory());
     let env = await config();
 
     client = await new PostgresClient(
@@ -31,7 +34,7 @@ beforeAll(async () => {
     mockIntegration.assertProject = jest.fn().mockImplementationOnce(() => {
         return TE.fromEither(E.right(PROJECT_INFO_FIXTURE));
     });
-    let created = await TicketBoard.create(EXTERNAL_KEY_FIXTURE, mockIntegration).run();
+    let created = await TicketBoard.create(EXTERNAL_KEY_FIXTURE, repo, mockIntegration).run();
 
     if (created.isRight()) {
         let saved = await repo.save(created.value).run();

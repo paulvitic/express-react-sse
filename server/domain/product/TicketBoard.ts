@@ -3,17 +3,19 @@ import {TicketBoardCreated} from "./events/TicketBoardCreated";
 import DomainEvent from "../DomainEvent";
 import TicketBoardIntegration, {TicketBoardInfo} from "./TicketBoardIntegration";
 import Identity from "../Identity";
-import { pipe } from 'fp-ts/lib/pipeable'
+import {pipe} from 'fp-ts/lib/pipeable'
 import * as TE from 'fp-ts/lib/TaskEither'
 import * as E from 'fp-ts/lib/Either'
 import * as O from "fp-ts/lib/Option";
 import {TicketBoardRepository} from "./TicketBoardRepository";
+import LogFactory from "../LogFactory";
 
 export class TicketBoardCreationFailure extends Error {}
 
 export default class TicketBoard extends AggregateRoot {
-    private _externalId: number;
-    private _externalKey: string;
+    private readonly log = LogFactory.get(TicketBoard.name);
+    private readonly _externalId: number;
+    private readonly _externalKey: string;
     constructor(id: string,
                 externalId: number,
                 externalKey: string) {
@@ -62,18 +64,17 @@ export default class TicketBoard extends AggregateRoot {
     private static fromExternalProjectInfo(info: TicketBoardInfo):
         E.Either<TicketBoardCreationFailure,TicketBoard> {
         return E.tryCatch(() => {
-            let ticketBoard = new TicketBoard(
-                Identity.generate(),
-                info.id,
-                info.key);
+            let ticketBoard = new TicketBoard(Identity.generate(), info.id, info.key);
 
             // TODO add transient data from ticketBoard info to create a Development Project and assign this board to it
+            const {projectCategory} = info;
             let event = new TicketBoardCreated(
                 TicketBoard.name,
                 ticketBoard.id,
                 ticketBoard.nextEventSequence(),
                 info.id,
-                info.key);
+                info.key,
+                projectCategory);
 
             ticketBoard.onTicketBoardCreated(event);
             ticketBoard.recordEvent(event);

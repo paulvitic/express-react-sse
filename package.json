@@ -10,8 +10,8 @@
     "dev:debug": "nodemon --exec 'node -r ts-node/register --inspect-brk' server/index.ts",
     "lint": "tsc --noEmit && eslint -c .eslintrc.js '{server, test}/*.{js,ts,tsx}' --quiet",
     "lint:fix": "tsc --noEmit && eslint -c .eslintrc.js '{server, test}/*.{js,ts,tsx}' --quiet --fix",
-    "test": "mocha test/**/*.ts --exit",
-    "test:debug": "mocha --inspect-brk test/**/*.ts --exit"
+    "test": "jest",
+    "test:debug": "jest --inspect-brk --exit"
   },
   "dependencies": {
     "amqplib": "^0.5.5",

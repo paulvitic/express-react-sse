@@ -5,6 +5,8 @@ import * as O from 'fp-ts/lib/Option'
 import {EXTERNAL_KEY_FIXTURE, PROJECT_INFO_FIXTURE} from "./productFixtures";
 import TicketBoard from "../../../server/domain/product/TicketBoard";
 import {TicketBoardRepository} from "../../../server/domain/product/TicketBoardRepository";
+import LogFactory from "../../../server/domain/LogFactory";
+import WinstonLogFactory from "../../../server/infrastructure/context/winstonLogFactory";
 
 let mockIntegration: TicketBoardIntegration = {
     assertProject: jest.fn()
@@ -19,6 +21,10 @@ let mockRepo: TicketBoardRepository = {
     update: jest.fn(),
 };
 
+beforeAll(() => {
+    LogFactory.init(new WinstonLogFactory())
+});
+
 test('should create ticket board', async () => {
     mockRepo.findOneByExternalKey = jest.fn().mockImplementationOnce(() => {
         return TE.taskEither.of<Error, O.Option<string>>(O.none)
@@ -28,15 +34,12 @@ test('should create ticket board', async () => {
         return TE.fromEither(E.right(PROJECT_INFO_FIXTURE));
     });
 
-    TicketBoard.create(EXTERNAL_KEY_FIXTURE, mockRepo, mockIntegration)
-        .run()
-        .then(created => {
-            expect(created.isRight()).toBe(true);
-            if (created.isRight()){
-                let ticketBoard = created.value;
-                expect(ticketBoard.externalKey).toEqual(EXTERNAL_KEY_FIXTURE)
-            }
-        });
+    let created = await TicketBoard.create(EXTERNAL_KEY_FIXTURE, mockRepo, mockIntegration).run();
+    expect(created.isRight()).toBe(true);
+    if (created.isRight()){
+        let ticketBoard = created.value;
+        expect(ticketBoard.externalKey).toEqual(EXTERNAL_KEY_FIXTURE)
+    }
 });
 
 test('should not create project when on integration failure', async () => {
@@ -50,15 +53,12 @@ test('should not create project when on integration failure', async () => {
         return TE.fromEither(E.left(new Error("fixture error message")));
     });
 
-    TicketBoard.create(EXTERNAL_KEY_FIXTURE, mockRepo, mockIntegration)
-        .run()
-        .then(created => {
-            expect(created.isRight()).toBe(false);
-            if (created.isLeft()){
-                let ticketBoard = created.value;
-                expect(ticketBoard.message).toEqual("fixture error message")
-            }
-        });
+    let created = await TicketBoard.create(EXTERNAL_KEY_FIXTURE, mockRepo, mockIntegration).run();
+    expect(created.isRight()).toBe(false);
+    if (created.isLeft()){
+        let error = created.value;
+        expect(error.message).toEqual("fixture error message")
+    }
 });
 
 test('should not create project when key exists', async () => {
@@ -72,15 +72,10 @@ test('should not create project when key exists', async () => {
         return TE.fromEither(E.left(new Error("fixture error message")));
     });
 
-    TicketBoard.create(EXTERNAL_KEY_FIXTURE, mockRepo, mockIntegration)
-        .run()
-        .then(created => {
-            expect(created.isRight()).toBe(false);
-            if (created.isLeft()){
-                let ticketBoard = created.value;
-                expect(ticketBoard.message).toEqual("External key already exists.")
-            }
-        }).catch(err => {
-            expect(err).toBeNull()
-    })
+    let created = await TicketBoard.create(EXTERNAL_KEY_FIXTURE, mockRepo, mockIntegration).run();
+    expect(created.isRight()).toBe(false);
+    if (created.isLeft()) {
+        let error = created.value;
+        expect(error.message).toEqual("External key already exists.")
+    }
 });

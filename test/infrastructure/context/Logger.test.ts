@@ -1,9 +1,11 @@
-import WinstonLogFactory from "../../server/infrastructure/context/WinstonLogFactory";
-import winston, {createLogger, format, transports} from 'winston';
+import WinstonLogFactory from "../../../server/infrastructure/context/winstonLogFactory";
+import * as winston from 'winston';
+import LogFactory from "../../../server/domain/LogFactory";
 
 describe('LoggerFactory', () => {
   it('should get all examples', () => {
-      const log = WinstonLogFactory.get("Test");
+      LogFactory.init(new WinstonLogFactory());
+      const log = LogFactory.get("Test");
       log.info("test")
   });
 
@@ -36,22 +38,22 @@ describe('LoggerFactory', () => {
   });
 
     it('test sophisticated', () => {
-        const logger = createLogger({
+        const logger = winston.createLogger({
             level: 'info',
-            format: format.combine(
-                format.timestamp({
+            format: winston.format.combine(
+                winston.format.timestamp({
                     format: 'YYYY-MM-DD HH:mm:ss'
                 }),
-                format.errors({ stack: true }),
-                format.splat(),
-                format.json(),
-                format.colorize(),
-                format.splat(),
-                format.simple()
+                winston.format.errors({ stack: true }),
+                winston.format.splat(),
+                winston.format.json(),
+                winston.format.colorize(),
+                winston.format.splat(),
+                winston.format.simple()
             ),
             defaultMeta: { service: 'your-service-name' },
             transports: [
-                new transports.Console()
+                new winston.transports.Console()
             ]
         });
 

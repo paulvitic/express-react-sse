@@ -3,13 +3,13 @@ import TicketBoardIntegration, {
     TicketBoardIntegrationFailure
 } from "../../domain/product/TicketBoardIntegration";
 import axios, {AxiosResponse, AxiosError} from "axios";
-import WinstonLogFactory from "../context/WinstonLogFactory";
 import { pipe } from 'fp-ts/lib/pipeable'
 import * as TE from 'fp-ts/lib/TaskEither'
 import {toTicketInfoAssertionFailure, toProjectInfo} from "./JiraIntegrationTranslator";
+import LogFactory from "../../domain/LogFactory";
 
 export default class JiraIntegration implements TicketBoardIntegration {
-    private readonly log = WinstonLogFactory.get(JiraIntegration.name);
+    private readonly log = LogFactory.get(JiraIntegration.name);
     private readonly and ="AND ";
     private readonly openTickets = "status not in (Closed, Done) ";
     private readonly projects = "project in (Contact) ";

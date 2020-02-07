@@ -18,7 +18,6 @@ export default abstract class ApplicationService<A extends AggregateRoot> {
     }
 
     publishEvents = (aggregate: A): TE.TaskEither<Error, void> => {
-        // @ts-ignore
         return aggregate.publishEventsUsing(this.eventBus.publishEvent);
     };
 }

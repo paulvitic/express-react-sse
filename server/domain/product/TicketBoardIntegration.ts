@@ -1,4 +1,3 @@
-import {Either} from "fp-ts/lib/Either";
 import {TaskEither} from "fp-ts/lib/TaskEither";
 
 export type TicketBoardInfo = {
@@ -6,7 +5,7 @@ export type TicketBoardInfo = {
     key: string,
     name: string,
     description: string,
-    category: {
+    projectCategory: {
         id: number
         name: string,
         description: string
