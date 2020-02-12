@@ -37,11 +37,7 @@ export default class TicketBoardPostgresRepo implements TicketBoardRepository {
         )
     }
 
-    find(item: TicketBoard): TE.TaskEither<Error, TicketBoard[]> {
-        return undefined;
-    }
-
-    findOne(id: string): TE.TaskEither<Error, O.Option<TicketBoard>> {
+    findById(id: string): TE.TaskEither<Error, O.Option<TicketBoard>> {
         return undefined;
     }
 
@@ -60,7 +56,7 @@ export default class TicketBoardPostgresRepo implements TicketBoardRepository {
     save = (item: TicketBoard): TE.TaskEither<TicketBoardSaveError, TicketBoard> => {
         const query = {
             text: 'INSERT INTO jira.ticket_board(id, external_id, external_key) VALUES($1, $2, $3) RETURNING *',
-            values: [item.id, item.externalId, item.externalKey],
+            values: [item.id, item.externalRef, item.key],
         };
         return pipe(
             this.client.executeQuery(query),

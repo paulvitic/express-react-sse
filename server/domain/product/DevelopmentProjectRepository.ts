@@ -1,5 +1,4 @@
 import {Repository} from "../Repository";
-import TicketBoard from "./TicketBoard";
 import * as TE from "fp-ts/lib/TaskEither";
 import * as O from "fp-ts/lib/Option";
 import DevelopmentProject from "./DevelopmentProject";

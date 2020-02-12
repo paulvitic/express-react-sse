@@ -16,6 +16,7 @@ beforeAll(async () => {
 test('should not assert ticket board', async () => {
     let assert = jiraIntegration.assertProject("NONE");
     let res = await assert.run();
-    expect(res.isLeft()).toBe(true);
-    expect(res.inspect()).toEqual('left(Error: Project is not found or the user does not have permission to view it)');
+    expect(res.isLeft()).toBeTruthy();
+    let error = res.value as Error;
+    expect(error.message).toEqual('Project is not found or the user does not have permission to view it');
 });

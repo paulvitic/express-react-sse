@@ -1,4 +1,4 @@
-import WinstonLogFactory from "../../context/WinstonLogFactory";
+import LogFactory from "../../../domain/LogFactory";
 import {Request, Response} from "express";
 import axios from 'axios'
 
@@ -23,7 +23,7 @@ export const UsersEndpoints = {
 };
 
 export class UsersResource {
-    private readonly log = WinstonLogFactory.get(UsersResource.name);
+    private readonly log = LogFactory.get(UsersResource.name);
 
     constructor(private readonly googleAppClientId: string,
                 private readonly googleAppClientSecret: string){}
@@ -50,7 +50,6 @@ export class UsersResource {
             })
     };
 
-
     // Query
     byId = (req: Request, res: Response): void => {
 
@@ -66,7 +65,6 @@ export class UsersResource {
             res.json({});
         }
     };
-
 
     private accessToken = async (code:string): Promise<AccessToken> => {
         return new Promise<AccessToken>((resolve, reject) => {

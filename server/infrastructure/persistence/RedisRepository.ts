@@ -19,7 +19,7 @@ export abstract class RedisRepository<T extends AggregateRoot> implements Reposi
         throw new Error('not implemented');
     }
 
-    findOne = async (id: string): Promise<T> => {
+    findById = async (id: string): Promise<T> => {
         return new Promise<T>((resolve, reject) => {
             let result: T;
             this.redisClient.get(`${this.hash}:${id}`)

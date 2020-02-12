@@ -6,7 +6,7 @@ import RabbitClient from "../clients/RabbitClient";
 import PostgresClient from "../clients/PostgresClient";
 import {RequestHandler} from "express";
 import {TicketBoardsResource, TicketBoardsEndpoints} from "../rest";
-import TicketBoardsService from "../../application/product/TicketBoardsService";
+import DevelopmentProjectService from "../../application/product/TicketBoardsService";
 import {UsersEndpoints, UsersResource} from "../rest/team/UsersResource";
 import PostgresEventStore from "../persistence/PostgresEventStore";
 import EventStore from "../../domain/EventStore";
@@ -15,7 +15,7 @@ import EventBus from "../../domain/EventBus";
 import {Repository} from "../../domain/Repository";
 import TicketBoard from "../../domain/product/TicketBoard";
 import {registerDomainEvent} from "../JsonEventTranslator";
-import {TicketBoardCreated} from "../../domain/product/events/TicketBoardCreated";
+import {TicketBoardLinked} from "../../domain/product/events/TicketBoardLinked";
 import JiraIntegration from "../integration/JiraIntegration";
 import TicketBoardPostgresRepo from "../persistence/TicketBoardPostgresRepo";
 import LogFactory from "../../domain/LogFactory";
@@ -41,7 +41,7 @@ type Context = {
 }
 
 const registerEvents = function(){
-    registerDomainEvent(TicketBoardCreated.name, TicketBoardCreated)
+    registerDomainEvent(TicketBoardLinked.name, TicketBoardLinked)
 };
 
 export default class App {
@@ -135,7 +135,7 @@ export default class App {
         let {resources} = this.context.infrastructure.rest;
 
         let ticketBoardsResource = new TicketBoardsResource(
-            new TicketBoardsService(
+            new DevelopmentProjectService(
                 this.context.eventBus,
                 new TicketBoardPostgresRepo(this.context.clients.get("postgresClient")),
                 new JiraIntegration(this.env.JIRA_URL,

@@ -14,8 +14,9 @@ const options = (category: string): LoggerOptions => {
           label: category
         }),
         format.timestamp(),
+        format.colorize(),
         format.printf((info) => {
-          return `${info.timestamp} - ${info.label}:[${info.level}]: ${info.message}`;
+          return `${info.timestamp} - ${info.label}[${info.level}]: ${info.message}`;
         })
     )
   };

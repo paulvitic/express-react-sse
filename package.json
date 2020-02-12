@@ -10,8 +10,9 @@
     "dev:debug": "nodemon --exec 'node -r ts-node/register --inspect-brk' server/index.ts",
     "lint": "tsc --noEmit && eslint -c .eslintrc.js '{server, test}/*.{js,ts,tsx}' --quiet",
     "lint:fix": "tsc --noEmit && eslint -c .eslintrc.js '{server, test}/*.{js,ts,tsx}' --quiet --fix",
-    "test": "jest",
-    "test:debug": "jest --inspect-brk --exit"
+    "test": "jest --testPathPattern=test\\.ts$ --passWithNoTests",
+    "test:debug": "jest --inspect-brk --exit",
+    "test:integration": "docker-compose -f .docker/docker-compose.yml up -d && jest --testPathPattern=intg\\.ts$ --passWithNoTests"
   },
   "dependencies": {
     "amqplib": "^0.5.5",

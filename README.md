@@ -101,3 +101,4 @@ npm run test:debug
 * [RabbitMQ Topic](https://www.rabbitmq.com/tutorials/tutorial-five-javascript.html)
 * [amqplib API reference](http://www.squaremobius.net/amqp.node/channel_api.html)
 * [Jira API](https://developer.atlassian.com/cloud/jira/platform/rest/v2/#api-rest-api-2-project-projectIdOrKey-get)
+* [Jest run tests selectively](https://medium.com/coding-stones/separating-unit-and-integration-tests-in-jest-f6dd301f399c)

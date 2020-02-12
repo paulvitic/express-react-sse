@@ -10,19 +10,18 @@ import LogFactory from "../../domain/LogFactory";
 
 export default class PostgresEventStore implements EventStore {
     private readonly log = LogFactory.get(PostgresEventStore.name);
+    private readonly insert = 'INSERT INTO jira.event_log(aggregate_id, aggregate, event_type, generated_on, sequence, event) VALUES($1, $2, $3, $4, $5, $6) returning event_type, aggregate, aggregate_id'
+    private readonly allEvents = 'SELECT event FROM jira.event_log WHERE aggregate=$1 AND aggregate_id=$2 ORDER BY (sequence ,generated_on)';
+    private readonly eventsSince = 'SELECT event FROM jira.event_log WHERE aggregate=$1 AND aggregate_id=$2 AND sequence > $3 ORDER BY (sequence ,generated_on)';
 
     constructor(private readonly client: PostgresClient) {}
 
     logEvent = (event: DomainEvent, published: boolean):
         TE.TaskEither<Error, boolean> => {
         // TODO add published flag
-        const query = {
-            text: 'INSERT INTO jira.event_log(aggregate_id, aggregate, event_type, generated_on, sequence, event) VALUES($1, $2, $3, $4, $5, $6) returning event_type, aggregate, aggregate_id',
-            values: [event.aggregateId, event.aggregate, event.eventType, event.generatedOn, event.sequence, JSON.stringify(event)],
-        };
-
         return pipe(
-            this.client.executeQuery(query),
+            this.client.query(this.insert,
+                [event.aggregateId, event.aggregate, event.eventType, event.generatedOn, event.sequence, JSON.stringify(event)]),
             TE.map(this.assertLogAppended),
             TE.chain(TE.fromEither)
         );
@@ -30,26 +29,18 @@ export default class PostgresEventStore implements EventStore {
 
 
     eventsOfAggregate = async (aggregate: string, aggregateId: string): Promise<DomainEvent[]> => {
-        const query = {
-            text: 'SELECT event FROM jira.event_log WHERE aggregate=$1 AND aggregate_id=$2 ORDER BY (sequence ,generated_on)',
-            values: [aggregate, aggregateId],
-        };
-        return await this.queryEvents(query);
+        return await this.queryEvents(this.allEvents, [aggregate, aggregateId]);
     };
 
 
     eventsOfAggregateSince = async (aggregate: string, aggregateId: string, since: number): Promise<DomainEvent[]> => {
-        const query = {
-            text: 'SELECT event FROM jira.event_log WHERE aggregate=$1 AND aggregate_id=$2 AND sequence > $3 ORDER BY (sequence ,generated_on)',
-            values: [aggregate, aggregateId, since],
-        };
-        return this.queryEvents(query);
+        return this.queryEvents(this.eventsSince, [aggregate, aggregateId, since]);
     };
 
 
-    private queryEvents = async (query: QueryConfig): Promise<DomainEvent[]> => {
+    private queryEvents = async (query: string, args: any[]): Promise<DomainEvent[]> => {
         try {
-            let result = await this.client.execute(query);
+            let result = await this.client.query(query, args);
             let events = await translateToDomainEvents(result);
             return new Promise( (resolve) => {
                 resolve(events);

@@ -1,4 +1,5 @@
 import * as TE from "fp-ts/lib/TaskEither";
+import * as T from "fp-ts/lib/Task";
 import * as O from "fp-ts/lib/Option";
 import {
     EXTERNAL_KEY_FIXTURE,
@@ -6,6 +7,10 @@ import {
 } from "./productFixtures";
 import DevelopmentProject, {DevelopmentProjectError} from "../../../server/domain/product/DevelopmentProject";
 import * as E from "fp-ts/lib/Either";
+import LogFactory from "../../../server/domain/LogFactory";
+import WinstonLogFactory from "../../../server/infrastructure/context/winstonLogFactory";
+import {DevelopmentProjectCreated} from "../../../server/domain/product/events/DevelopmentProjectCreated";
+import {TicketBoardLinked} from "../../../server/domain/product/events/TicketBoardLinked";
 
 //jest.disableAutomock();// this is by default disabled.
 
@@ -15,54 +20,102 @@ const mockRepo = require('../../../server/domain/product/DevelopmentProjectRepos
 jest.mock('../../../server/domain/product/TicketBoardIntegration');
 const mockIntegration = require('../../../server/domain/product/TicketBoardIntegration');
 
-test("should not create project from ticket board key if the key already exists",
-    async () => {
-            let mockDevProject: DevelopmentProject = jest.genMockFromModule('../../../server/domain/product/DevelopmentProject');
-
-            mockRepo.findOneByTicketBoardKey = jest.fn().mockImplementationOnce(
-                (arg): TE.TaskEither<Error, O.Option<DevelopmentProject>> => {
-                    return TE.tryCatch(
-                    () => new Promise<O.Option<DevelopmentProject>>(resolve => resolve(O.some(mockDevProject))),
-                    reason => new Error(String(reason)))
-            });
-
-            mockIntegration.assertProject = jest.fn().mockImplementationOnce((arg) => {
-                return TE.fromEither(E.right(PROJECT_INFO_FIXTURE));
-            });
-
-            let res = await DevelopmentProject.createFromTicketBoard(EXTERNAL_KEY_FIXTURE, mockRepo, mockIntegration).run();
-            expect(res.isLeft()).toBe(true);
-            if (res.isLeft()) {
-                let error = res.value as DevelopmentProjectError;
-                expect(error.message).toBe("Ticket board key already exists")
-        }
+beforeAll(() => {
+    LogFactory.init(new WinstonLogFactory())
 });
 
+describe('create project from ticket board key', () => {
 
-test("should not create project from ticket board key if the key does not exists in remote ticket board app",
-    async () => {
-            let mockDevProject: DevelopmentProject = jest.genMockFromModule('../../../server/domain/product/DevelopmentProject');
-
-            mockRepo.findOneByTicketBoardKey = jest.fn().mockImplementationOnce(
-                (arg): TE.TaskEither<Error, O.Option<DevelopmentProject>> => {
-                    return TE.tryCatch(
-                        (): Promise<O.Option<DevelopmentProject>> => new Promise(resolve => resolve(O.none)),
-                        reason => new Error(String(reason)))
-                });
-
-            let expectedErrorMessage = "Assert Error";
-            mockIntegration.assertProject = jest.fn().mockImplementationOnce((arg) => {
-                return TE.fromEither(E.left(new Error(expectedErrorMessage)));
+    test("should fail if the key already exists", async () => {
+        let mockDevProject: DevelopmentProject = jest.genMockFromModule('../../../server/domain/product/DevelopmentProject');
+        mockRepo.findOneByTicketBoardKey = jest.fn().mockImplementationOnce((arg) => {
+                return TE.taskEither.of(O.some(mockDevProject))
             });
 
-            let res = await DevelopmentProject.createFromTicketBoard(EXTERNAL_KEY_FIXTURE, mockRepo, mockIntegration).run();
-            expect(res.isLeft()).toBe(true);
-            if (res.isLeft()) {
-                let error = res.value as DevelopmentProjectError;
-                expect(error.message).toBe(expectedErrorMessage)
-        }
-});
+        mockIntegration.assertProject = jest.fn().mockImplementationOnce((arg) => {
+            return TE.fromEither(E.right(PROJECT_INFO_FIXTURE));
+        });
 
-test("should not create project from ticket board key if the key does not exists in remote ticket board app", () => {
+        let res = await DevelopmentProject.createFromTicketBoard(EXTERNAL_KEY_FIXTURE, mockRepo, mockIntegration).run();
+        expect(res.isLeft()).toBeTruthy();
+        let error = res.value as DevelopmentProjectError;
+        expect(error.message).toBe("Ticket board key already exists")
+    });
 
+    test("should fail if the key does not exists in remote ticket board app", async () => {
+        mockRepo.findOneByTicketBoardKey = jest.fn().mockImplementationOnce((arg) => {
+                return TE.taskEither.of(O.none)
+            });
+
+        let expectedErrorMessage = "Assert Error";
+        mockIntegration.assertProject = jest.fn().mockImplementationOnce((arg) => {
+            return TE.left(T.task.of(new Error(expectedErrorMessage)))
+        });
+
+        let res = await DevelopmentProject.createFromTicketBoard(EXTERNAL_KEY_FIXTURE, mockRepo, mockIntegration).run();
+        expect(res.isLeft()).toBeTruthy();
+        let error = res.value as DevelopmentProjectError;
+        expect(error.message).toBe(expectedErrorMessage)
+    });
+
+    test("should fail if ticket board category is not development project", async () => {
+        mockRepo.findOneByTicketBoardKey = jest.fn().mockImplementationOnce(
+            (arg): TE.TaskEither<Error, O.Option<DevelopmentProject>> => {
+                return TE.taskEither.of(O.none)
+            });
+
+        let mockProjectInfo = {
+            ...PROJECT_INFO_FIXTURE,
+            projectCategory: {
+                id: 1001,
+                name: "Wrong Category",
+                description: "",
+            }
+        };
+        mockIntegration.assertProject = jest.fn().mockImplementationOnce((arg) => {
+            return TE.fromEither(E.right(mockProjectInfo));
+        });
+
+        let res = await DevelopmentProject.createFromTicketBoard(EXTERNAL_KEY_FIXTURE, mockRepo, mockIntegration).run();
+        expect(res.isLeft()).toBeTruthy();
+        let error = res.value as DevelopmentProjectError;
+        expect(error.message).toBe("Ticket board is not for a development project")
+    });
+
+    test("should fail if project name is undefined", async () => {
+        mockRepo.findOneByTicketBoardKey = jest.fn().mockImplementationOnce((arg) => {
+                return TE.taskEither.of(O.none)
+        });
+
+        let mockProjectInfo = {
+            ...PROJECT_INFO_FIXTURE,
+            name: undefined
+        };
+        mockIntegration.assertProject = jest.fn().mockImplementationOnce((arg) => {
+            return TE.taskEither.of(mockProjectInfo);
+        });
+
+        let res = await DevelopmentProject.createFromTicketBoard(EXTERNAL_KEY_FIXTURE, mockRepo, mockIntegration).run();
+        expect(res.isLeft()).toBeTruthy();
+        let error = res.value as DevelopmentProjectError;
+        expect(error.message).toBe("Can not create a project without a project name")
+    });
+
+    test("should succeed with relevant domain events created", async () => {
+        mockRepo.findOneByTicketBoardKey = jest.fn().mockImplementationOnce(
+            (arg): TE.TaskEither<Error, O.Option<DevelopmentProject>> => {
+                return TE.taskEither.of(O.none)});
+
+        mockIntegration.assertProject = jest.fn().mockImplementationOnce((arg) => {
+            return TE.taskEither.of(PROJECT_INFO_FIXTURE);
+        });
+
+        let res = await DevelopmentProject.createFromTicketBoard(EXTERNAL_KEY_FIXTURE, mockRepo, mockIntegration).run();
+        expect(res.isRight()).toBeTruthy();
+        let devProject = res.value as DevelopmentProject;
+        let generatedEvents = devProject.domainEvents;
+        expect(generatedEvents.length).toBe(2);
+        expect(generatedEvents[0].constructor.name).toEqual(DevelopmentProjectCreated.name);
+        expect(generatedEvents[1].constructor.name).toEqual(TicketBoardLinked.name)
+    });
 });

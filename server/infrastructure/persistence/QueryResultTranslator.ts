@@ -4,6 +4,11 @@ import {translateJsonObject} from "../JsonEventTranslator";
 import TicketBoard from "../../domain/product/TicketBoard";
 import * as O from "fp-ts/lib/Option";
 import * as E from 'fp-ts/lib/Either'
+import DevelopmentProject from "../../domain/product/DevelopmentProject";
+
+export function developmentProjectFields():string{
+    return "dp.id as dp_id, dp.active, dp.name, dp.ticket_board_id, tb.id as tb_id, tb.key, tb.external_ref"
+}
 
 class TicketBoardValidationError extends Error {
     constructor(message) {
@@ -33,8 +38,8 @@ export function translateToTicketBoard(result: QueryResultRow):
             let [row] = rows;
             return new TicketBoard(
                 row.id,
-                row.external_id,
-                row.external_key
+                row.key,
+                row.external_ref
             )},
             reason => reason as Error)
 }
@@ -61,4 +66,40 @@ export function assertDelete(result: QueryResultRow):
         return rows.length === 1;
     },
         reason => reason as Error)
+}
+
+export function translateToOptionalDevProject(result: QueryResultRow):
+    E.Either<TicketBoardValidationError, O.Option<DevelopmentProject>> {
+    return E.tryCatch(() => {
+            let {rows} = result;
+            if (rows.length === 0) return O.none;
+            if (rows.length > 7) throw new Error("too many results");
+            let [row] = rows;
+            return O.some(new DevelopmentProject(
+                row.dp_id,
+                row.active,
+                row.name,
+                row.ticket_board_id ?
+                    new TicketBoard(
+                        row.ticket_board_id,
+                        row.key,
+                        row.external_ref) :
+                    undefined
+            ))},
+        reason => reason as Error)
+}
+
+export function translateToDevProject(result: QueryResultRow):
+    E.Either<TicketBoardValidationError, DevelopmentProject> {
+    return E.tryCatch(() => {
+        let {rows} = result;
+        if (rows.length === 0 || rows.length > 1) throw new Error("none or too many results");
+        let [row] = rows;
+        return new DevelopmentProject(
+            row.id,
+            row.active,
+            row.external_id,
+            row.external_key
+        )},
+    reason => reason as Error)
 }

@@ -33,5 +33,5 @@ const initializeEventBus = async (): Promise<EventBus> => {
 test("should publish",  async () => {
     let eventBus = await initializeEventBus();
     let res = await eventBus.publishEvent(DOMAIN_EVENT_FIXTURE).run();
-    expect(res.isRight()).toBe(true)
+    expect(res.isRight()).toBeTruthy()
 });
