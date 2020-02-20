@@ -7,7 +7,7 @@ import * as E from 'fp-ts/lib/Either'
 import DevelopmentProject from "../../domain/product/DevelopmentProject";
 
 export function developmentProjectFields():string{
-    return "dp.id as dp_id, dp.active, dp.name, dp.ticket_board_id, tb.id as tb_id, tb.key, tb.external_ref"
+    return "dp.id as dp_id, dp.active, dp.name, dp.started_on, dp.ticket_board_id, tb.id as tb_id, tb.key, tb.external_ref"
 }
 
 class TicketBoardValidationError extends Error {
@@ -79,6 +79,7 @@ export function translateToOptionalDevProject(result: QueryResultRow):
                 row.dp_id,
                 row.active,
                 row.name,
+                row.started_on,
                 row.ticket_board_id ?
                     new TicketBoard(
                         row.ticket_board_id,
@@ -87,19 +88,4 @@ export function translateToOptionalDevProject(result: QueryResultRow):
                     undefined
             ))},
         reason => reason as Error)
-}
-
-export function translateToDevProject(result: QueryResultRow):
-    E.Either<TicketBoardValidationError, DevelopmentProject> {
-    return E.tryCatch(() => {
-        let {rows} = result;
-        if (rows.length === 0 || rows.length > 1) throw new Error("none or too many results");
-        let [row] = rows;
-        return new DevelopmentProject(
-            row.id,
-            row.active,
-            row.external_id,
-            row.external_key
-        )},
-    reason => reason as Error)
 }

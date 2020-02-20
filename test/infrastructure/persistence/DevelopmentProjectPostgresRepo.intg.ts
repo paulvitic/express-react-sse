@@ -2,13 +2,11 @@ import LogFactory from "../../../server/domain/LogFactory";
 import WinstonLogFactory from "../../../server/infrastructure/context/winstonLogFactory";
 import config from "../../../server/infrastructure/config/config";
 import PostgresClient from "../../../server/infrastructure/clients/PostgresClient";
-import TicketBoardPostgresRepo from "../../../server/infrastructure/persistence/TicketBoardPostgresRepo";
-import * as TE from "fp-ts/lib/TaskEither";
-import * as E from "fp-ts/lib/Either";
 import {
-    DEVELOPMENT_PROJECT_ID_FIXTURE,
-    EXTERNAL_KEY_FIXTURE, PROJECT_DESCRIPTION_FIXTURE,
-    TICKET_BOARD_ID_FIXTURE
+    DEV_PROJECT_STARTED_ON_FIXTURE,
+    DEV_PROJECT_ID_FIXTURE,
+    TICKET_BOARD_KEY_FIXTURE,
+    TICKET_BOARD_ID_FIXTURE, DEV_PROJECT_NAME_FIXTURE
 } from "../../domain/product/productFixtures";
 import TicketBoard from "../../../server/domain/product/TicketBoard";
 import DevelopmentProject from "../../../server/domain/product/DevelopmentProject";
@@ -47,27 +45,32 @@ afterEach( async () => {
 describe("save",  () => {
     test("should insert both dev project and records when ticked board is available", async () => {
         let mockDevProject = new DevelopmentProject(
-            DEVELOPMENT_PROJECT_ID_FIXTURE,
+            DEV_PROJECT_ID_FIXTURE,
             true,
-            PROJECT_DESCRIPTION_FIXTURE,
+            DEV_PROJECT_NAME_FIXTURE,
+            DEV_PROJECT_STARTED_ON_FIXTURE,
             new TicketBoard(
                 TICKET_BOARD_ID_FIXTURE,
-                EXTERNAL_KEY_FIXTURE,
+                TICKET_BOARD_KEY_FIXTURE,
                 1000));
         let saved = await repo.save(mockDevProject).run();
         expect(saved.isRight()).toBeTruthy();
         let result = saved.value as DevelopmentProject;
-        expect(result.id).toEqual(DEVELOPMENT_PROJECT_ID_FIXTURE)
+        expect(result.id).toEqual(DEV_PROJECT_ID_FIXTURE);
+        expect(result.name).toEqual(DEV_PROJECT_NAME_FIXTURE);
+        expect(result.startedOn).toEqual(DEV_PROJECT_STARTED_ON_FIXTURE)
+
     });
 
     test("should insert only dev project when ticked board is not available", async () => {
         let mockDevProject = new DevelopmentProject(
-            DEVELOPMENT_PROJECT_ID_FIXTURE,
+            DEV_PROJECT_ID_FIXTURE,
             true,
-            PROJECT_DESCRIPTION_FIXTURE);
+            DEV_PROJECT_NAME_FIXTURE,
+            DEV_PROJECT_STARTED_ON_FIXTURE);
         let saved = await repo.save(mockDevProject).run();
         expect(saved.isRight()).toBeTruthy();
         let result = saved.value as DevelopmentProject;
-        expect(result.id).toEqual(DEVELOPMENT_PROJECT_ID_FIXTURE)
+        expect(result.id).toEqual(DEV_PROJECT_ID_FIXTURE)
     })
 });

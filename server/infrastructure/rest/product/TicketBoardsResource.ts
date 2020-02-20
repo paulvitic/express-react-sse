@@ -1,8 +1,8 @@
-import DevelopmentProjectService from '../../../application/product/TicketBoardsService';
+import DevelopmentProjectService from '../../../application/product/DevelopmentProjectService';
 import {Request, Response} from 'express';
 import translateTicketBoardRequest from "./TicketBoardReqTranslator";
 import CreateProjectFromTicketBoard from "../../../application/product/commands/CreateProjectFromTicketBoard";
-import WinstonLogFactory from "../../context/WinstonLogFactory";
+import LogFactory from "../../../domain/LogFactory";
 
 export const TicketBoardsEndpoints = {
     byId : "TicketBoardsById",
@@ -10,7 +10,7 @@ export const TicketBoardsEndpoints = {
 };
 
 export class TicketBoardsResource {
-    private readonly log = WinstonLogFactory.get(TicketBoardsResource.name);
+    private readonly log = LogFactory.get(TicketBoardsResource.name);
 
   constructor (private service: DevelopmentProjectService){}
 
@@ -25,12 +25,12 @@ export class TicketBoardsResource {
           .then(command => {
               switch (command.type) {
                   case CreateProjectFromTicketBoard.name:
-                      this.service.addTicketBoard(command)
+                      this.service.createFromTicketBoard(command).run()
                           .then(id => res.status(201)
                               .location(`/api/v1/ticketBoards/${id}`)
                               .json(id))
                           .catch((err) => {
-                              res.status(400)
+                              res.status(400);
                               next(err);
                           });
                       return;

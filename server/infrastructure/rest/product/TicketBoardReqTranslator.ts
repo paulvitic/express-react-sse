@@ -3,7 +3,6 @@ import CreateProjectFromTicketBoard from "../../../application/product/commands/
 import DeleteTicketBoardCommand from "../../../application/product/commands/DeleteTicketBoard";
 
 // TODO also validation
-
 type TicketBoardCommand = CreateProjectFromTicketBoard & DeleteTicketBoardCommand
 
 export default function translateTicketBoardRequest(req: Request): Promise<TicketBoardCommand> {

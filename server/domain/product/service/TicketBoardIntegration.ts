@@ -5,11 +5,19 @@ export type TicketBoardInfo = {
     key: string,
     name: string,
     description: string,
+    created: Date,
     projectCategory: {
         id: number
         name: string,
         description: string
     }
+}
+
+export type UpdatedTicket = {
+    id: number,
+    key: string,
+    updated: Date,
+    created: Date
 }
 
 export class TicketBoardIntegrationFailure extends Error {}

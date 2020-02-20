@@ -80,7 +80,7 @@ export class UsersResource {
             }).then(resp => {
                 resolve(resp.data);
             }).catch(err => {
-                this.log.error(`err`, err)
+                this.log.error(`err`, err);
                 reject(err);
             })
         })

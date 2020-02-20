@@ -3,9 +3,9 @@ import EventBus from "../../../server/domain/EventBus";
 import * as O from "fp-ts/lib/Option";
 import * as TE from "fp-ts/lib/TaskEither";
 import {PROJECT_INFO_FIXTURE} from "../../domain/product/productFixtures";
-import CreateProjectFromTicketBoard from "../../../server/application/product/commands/CreateProjectFromTicketBoard";
 import LogFactory from "../../../server/domain/LogFactory";
 import WinstonLogFactory from "../../../server/infrastructure/context/winstonLogFactory";
+import {CreateProjectFromTicketBoard} from "../../../server/application/product/commands";
 
 LogFactory.init(new WinstonLogFactory());
 
@@ -13,10 +13,10 @@ jest.mock('../../../server/domain/EventBus');
 let mockEventBus: EventBus = require('../../../server/domain/EventBus');
 
 jest.mock('../../../server/domain/product/DevelopmentProjectRepository');
-const mockRepository = require('../../../server/domain/product/DevelopmentProjectRepository');
+const mockRepository = require('../../../server/domain/product/repository/DevelopmentProjectRepository');
 
 jest.mock('../../../server/domain/product/TicketBoardIntegration');
-const mockIntegration = require('../../../server/domain/product/TicketBoardIntegration');
+const mockIntegration = require('../../../server/domain/product/service/TicketBoardIntegration');
 
 let service: DevelopmentProjectService = new DevelopmentProjectService(mockEventBus, mockRepository, mockIntegration);
 

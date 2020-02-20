@@ -2,12 +2,12 @@ import AggregateRoot from "../AggregateRoot";
 import * as TE from "fp-ts/lib/TaskEither";
 import * as E from "fp-ts/lib/Either";
 import TicketBoard from "./TicketBoard";
-import DevelopmentProjectRepository from "./DevelopmentProjectRepository";
+import DevelopmentProjectRepository from "./repository/DevelopmentProjectRepository";
 import {pipe} from "fp-ts/lib/pipeable";
-import TicketBoardIntegration, {TicketBoardInfo} from "./TicketBoardIntegration";
+import TicketBoardIntegration, {TicketBoardInfo} from "./service/TicketBoardIntegration";
 import Identity from "../Identity";
-import {DevelopmentProjectCreated} from "./events/DevelopmentProjectCreated";
-import {TicketBoardLinked} from "./events/TicketBoardLinked";
+import {DevelopmentProjectCreated} from "./event/DevelopmentProjectCreated";
+import {TicketBoardLinked} from "./event/TicketBoardLinked";
 import LogFactory from "../LogFactory";
 
 export class DevelopmentProjectError extends Error {}
@@ -15,24 +15,35 @@ export class DevelopmentProjectError extends Error {}
 export default class DevelopmentProject extends AggregateRoot {
     private readonly log = LogFactory.get(DevelopmentProject.name);
     private _name: string;
-    private _ticketBoard: TicketBoard | undefined;
+    private _startedOn: Date;
+    private _ticketBoard: TicketBoard | null;
 
     constructor(id: string,
                 active: boolean,
                 name: string,
+                startedOn: Date,
                 ticketBoard?: TicketBoard) {
         super(id, active);
         if (!name) throw new DevelopmentProjectError("Can not create a project without a project name");
         this._name = name;
-        this._ticketBoard = ticketBoard;
+        this._startedOn = startedOn;
+        this._ticketBoard = ticketBoard ? ticketBoard : null;
     }
 
     get name(){
         return this._name;
     }
 
+    get startedOn() {
+        return this._startedOn
+    }
+
     get ticketBoard(){
         return this._ticketBoard
+    }
+
+    hasLinkedTicketBoard(): boolean {
+        return this._ticketBoard !== null;
     }
 
     static createFromTicketBoard(key:string, repo:DevelopmentProjectRepository, integration: TicketBoardIntegration):
@@ -47,7 +58,7 @@ export default class DevelopmentProject extends AggregateRoot {
         )
     }
 
-    linkTicketBoard(key:string, externalRef: number): E.Either<DevelopmentProjectError, void> {
+    linkTicketBoard(key:string, externalRef: number): E.Either<DevelopmentProjectError, number> {
         return pipe(
             E.either.of(new TicketBoard(Identity.generate(), key, externalRef)),
             E.filterOrElse(() => this.ticketBoard===undefined,
@@ -80,7 +91,7 @@ export default class DevelopmentProject extends AggregateRoot {
     private static createFromProjectInfo(info: TicketBoardInfo):
         E.Either<DevelopmentProjectError,DevelopmentProject> {
         let created = pipe(
-            E.tryCatch(() => new DevelopmentProject(Identity.generate(), true, info.name),
+            E.tryCatch(() => new DevelopmentProject(Identity.generate(), true, info.name, info.created),
                     error => error as DevelopmentProjectError),
             E.filterOrElse(() => info.projectCategory.name===TicketBoard.DEV_PROJECT_CATEGORY,
                 () => new DevelopmentProjectError("Ticket board is not for a development project"))
@@ -111,10 +122,8 @@ export default class DevelopmentProject extends AggregateRoot {
         E.Either<DevelopmentProjectError, TicketBoardLinked> => {
         return pipe(
             this.assertEventSequence(event.sequence),
-            E.map(() => {
-                this._ticketBoard = event.ticketBoard;
-                return event;
-            })
+            E.map(() => this._ticketBoard = event.ticketBoard),
+            E.map(() => event)
         );
-    }
+    };
 }

@@ -1,13 +1,15 @@
 import {pipe} from "fp-ts/lib/pipeable";
 import * as TE from "fp-ts/lib/TaskEither";
-import CreateProjectFromTicketBoard from "./commands/CreateProjectFromTicketBoard";
+import * as T from "fp-ts/lib/Task";
+import * as O from "fp-ts/lib/Option";
 import ApplicationService from "../ApplicationService";
 import LogFactory from "../../domain/LogFactory";
 import EventBus from "../../domain/EventBus";
 import TicketBoard from "../../domain/product/TicketBoard";
-import TicketBoardIntegration from "../../domain/product/TicketBoardIntegration";
+import TicketBoardIntegration from "../../domain/product/service/TicketBoardIntegration";
 import DevelopmentProject from "../../domain/product/DevelopmentProject";
-import DevelopmentProjectRepository from "../../domain/product/DevelopmentProjectRepository";
+import DevelopmentProjectRepository from "../../domain/product/repository/DevelopmentProjectRepository";
+import {CollectTicketUpdates, CreateProjectFromTicketBoard} from "./commands";
 
 export default class DevelopmentProjectService extends ApplicationService<DevelopmentProject> {
   private readonly log = LogFactory.get(DevelopmentProjectService.name);
@@ -18,7 +20,7 @@ export default class DevelopmentProjectService extends ApplicationService<Develo
     super(eventBus);
   }
 
-  byId(id: number): Promise<TicketBoard> {
+  getById(id: number): Promise<TicketBoard> {
     throw new Error('not implemented');
   }
 
@@ -30,5 +32,12 @@ export default class DevelopmentProjectService extends ApplicationService<Develo
           TE.chainFirst(this.repository.save),
           TE.map((ticketBoard => ticketBoard.id))
       )
+  }
+
+  collectTicketUpdates(command: CollectTicketUpdates): TE.TaskEither<Error, boolean> {
+    return pipe(
+        this.repository.findById(command.devProjectId),
+        TE.chain(devProject => TE.taskEither.of(devProject.isSome()))
+    )
   }
 }

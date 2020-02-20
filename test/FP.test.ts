@@ -4,8 +4,6 @@ import * as E from "fp-ts/lib/Either";
 import * as IO from "fp-ts/lib/IO";
 import * as S from "fp-ts/lib/Semigroup";
 import {pipe} from "fp-ts/lib/pipeable";
-import {readFile} from "fs";
-import {resolve as pathResolve} from "path";
 
 // Folding: https://dev.to/gcanti/getting-started-with-fp-ts-semigroup-2mf7
 // By definition concat works with only two elements of A, what if we want to concat more elements?
@@ -62,7 +60,7 @@ test("chain log", () => {
 
 // https://dev.to/ksaaskil/using-fp-ts-for-http-requests-and-validation-131c
 // https://dev.to/gcanti/interoperability-with-non-functional-code-using-fp-ts-432e
-
+// https://github.com/anotherhale/fp-ts_sync-example/blob/master/src/sync-example.ts
 test("from Promise to Task", async () => {
     interface AppConfig {
         service: {
@@ -100,40 +98,7 @@ test("from Promise to TaskEither", async () => {
     expect(res.isRight()).toEqual(true)
 });
 
-// https://github.com/anotherhale/fp-ts_sync-example/blob/master/src/sync-example.ts
-test("chain Task Either", async () => {
-    interface FileLines {
-        totalLines: number
-    }
 
-    const readLines = (data: Buffer): Promise<FileLines> => {
-        return new Promise<FileLines>(resolve => {
-            const lines = data.toString().split(/\r?\n/);
-            let lineNo = 0;
-            // print all lines
-            lines.forEach((line) => {
-                if (line!==""){
-                    lineNo++;
-                    console.log(line);
-                }
-            });
-            resolve({totalLines: lineNo})
-        })
-    };
-
-    const readFileTask = TE.taskify(readFile);
-    const readLinesTask = (buffer: Buffer) => TE.tryCatch(() => readLines(buffer), e => new Error(String(e)));
-
-    function getLines(filePath: string): TE.TaskEither<Error, FileLines> {
-        return pipe(
-            readFileTask(pathResolve(filePath)),
-            TE.chain(readLinesTask)
-        );
-    }
-
-    let res = await getLines("test/test.txt").run();
-    expect(res).toEqual(2)
-});
 
 
 

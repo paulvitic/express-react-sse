@@ -2,7 +2,7 @@ import * as TE from 'fp-ts/lib/TaskEither'
 import * as T from 'fp-ts/lib/Task'
 import * as O from 'fp-ts/lib/Option'
 import DevelopmentProject from "../../domain/product/DevelopmentProject";
-import DevelopmentProjectRepository from "../../domain/product/DevelopmentProjectRepository";
+import DevelopmentProjectRepository from "../../domain/product/repository/DevelopmentProjectRepository";
 import LogFactory from "../../domain/LogFactory";
 import PostgresClient from "../clients/PostgresClient";
 import {pipe} from "fp-ts/lib/pipeable";
@@ -10,21 +10,20 @@ import {developmentProjectFields, translateToOptionalDevProject} from "./QueryRe
 import {QueryResultRow} from "pg";
 import TicketBoard from "../../domain/product/TicketBoard";
 
-export default class DevelopmentProjectPostgresRepo implements DevelopmentProjectRepository {
+export default class DevelopmentProjectPostgresRepo extends DevelopmentProjectRepository {
     private readonly log = LogFactory.get(DevelopmentProjectPostgresRepo.name);
-    private readonly begin = 'BEGIN';
-    private readonly commit = 'COMMIT';
-    private readonly rollback = 'ROLLBACK';
     private readonly insertBoard = 'INSERT INTO ticket_board(id, external_ref, key) VALUES($1, $2, $3)';
-    private readonly insert = 'INSERT INTO development_project(id, active, name) VALUES($1, $2, $3) RETURNING id';
+    private readonly insert = 'INSERT INTO development_project(id, active, name, started_on) VALUES($1, $2, $3, $4) RETURNING id';
     private readonly insertWithBoard =
-        'INSERT INTO development_project(id, active, name, ticket_board_id) VALUES($1, $2, $3, $4) RETURNING id';
-    private readonly queryByTicketBoardKey = 'SELECT ' + developmentProjectFields() +
+        'INSERT INTO development_project(id, active, name, started_on, ticket_board_id) VALUES($1, $2, $3, $4, $5) RETURNING id';
+    private readonly byTicketBoardKey = 'SELECT ' + developmentProjectFields() +
         ' FROM development_project AS dp LEFT JOIN ticket_board as tb ON dp.ticket_board_id = tb.id WHERE tb.key=$1';
-    private readonly queryById = 'SELECT '+ developmentProjectFields() +
+    private readonly byId = 'SELECT '+ developmentProjectFields() +
         ' FROM development_project AS dp LEFT JOIN ticket_board as tb ON dp.ticket_board_id = tb.id  WHERE dp.id=$1';
 
-    constructor(private readonly client: PostgresClient) {}
+    constructor(private readonly client: PostgresClient) {
+        super()
+    }
 
     delete(id: string): TE.TaskEither<Error, boolean> {
         return undefined;
@@ -32,7 +31,7 @@ export default class DevelopmentProjectPostgresRepo implements DevelopmentProjec
 
     findById(id: string): TE.TaskEither<Error, O.Option<DevelopmentProject>> {
         return pipe(
-            this.client.query(this.queryById, [id]),
+            this.client.query(this.byId, [id]),
             TE.map(translateToOptionalDevProject),
             TE.chain(TE.fromEither)
         )
@@ -40,7 +39,7 @@ export default class DevelopmentProjectPostgresRepo implements DevelopmentProjec
 
     findOneByTicketBoardKey(key: string): TE.TaskEither<Error, O.Option<DevelopmentProject>> {
         return pipe(
-            this.client.query(this.queryByTicketBoardKey, [key]),
+            this.client.query(this.byTicketBoardKey, [key]),
             TE.map(translateToOptionalDevProject),
             TE.chain(TE.fromEither)
         )
@@ -71,8 +70,8 @@ export default class DevelopmentProjectPostgresRepo implements DevelopmentProjec
     private saveDevelopmentProject(devProject: DevelopmentProject): TE.TaskEither<Error, QueryResultRow>{
         let {ticketBoard} = devProject;
         return ticketBoard === undefined || null ?
-            this.client.query(this.insert, [devProject.id, devProject.isActive, devProject.name]) :
-            this.client.query(this.insertWithBoard,[devProject.id, devProject.isActive, devProject.name, ticketBoard.id])
+            this.client.query(this.insert, [devProject.id, devProject.isActive, devProject.name, devProject.startedOn]) :
+            this.client.query(this.insertWithBoard,[devProject.id, devProject.isActive, devProject.name, devProject.startedOn, ticketBoard.id])
     }
 
     private commitSavedEntity(id: string, result: QueryResultRow): TE.TaskEither<Error, QueryResultRow>{

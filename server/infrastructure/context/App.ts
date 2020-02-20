@@ -15,9 +15,8 @@ import EventBus from "../../domain/EventBus";
 import {Repository} from "../../domain/Repository";
 import TicketBoard from "../../domain/product/TicketBoard";
 import {registerDomainEvent} from "../JsonEventTranslator";
-import {TicketBoardLinked} from "../../domain/product/events/TicketBoardLinked";
+import {TicketBoardLinked} from "../../domain/product/event/TicketBoardLinked";
 import JiraIntegration from "../integration/JiraIntegration";
-import TicketBoardPostgresRepo from "../persistence/TicketBoardPostgresRepo";
 import LogFactory from "../../domain/LogFactory";
 
 const exit = process.exit;
@@ -137,7 +136,6 @@ export default class App {
         let ticketBoardsResource = new TicketBoardsResource(
             new DevelopmentProjectService(
                 this.context.eventBus,
-                new TicketBoardPostgresRepo(this.context.clients.get("postgresClient")),
                 new JiraIntegration(this.env.JIRA_URL,
                     this.env.JIRA_USER,
                     this.env.JIRA_API_TOKEN)));

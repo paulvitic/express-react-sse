@@ -39,23 +39,20 @@ export default abstract class AggregateRoot extends DomainEntity {
         )
     }
 
-    protected recordEvent = (event: DomainEvent): E.Either<Error, void> => {
-        return E.tryCatch(() => {
-                this.domainEvents.push(event);
-            }, reason => new Error(String(reason))
-        )
-    };
-
-    protected nextEventSequence(): number {
+    nextEventSequence(): number {
         return this.lastEventSequence + 1;
     }
 
-    protected assertEventSequence(eventSequence: number): E.Either<Error, void> {
+    protected recordEvent = (event: DomainEvent): E.Either<Error, number> => {
+        return E.tryCatch(() => this.domainEvents.push(event), error => error as Error)
+    };
+
+    protected assertEventSequence(eventSequence: number): E.Either<Error, number> {
         return pipe(
             E.either.of(eventSequence),
             E.filterOrElse((eventSequence) => eventSequence === this.lastEventSequence + 1,
                 () => new Error(`Expected event sequence was ${this.lastEventSequence + 1} but got ${eventSequence}`)),
-            E.map((eventSequence) => {this.lastEventSequence = eventSequence;})
+            E.map((eventSequence) => this.lastEventSequence = eventSequence)
         )
     }
 }
