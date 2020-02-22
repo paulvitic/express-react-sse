@@ -1,7 +1,7 @@
 import DomainEvent from "./DomainEvent";
 import * as TE from "fp-ts/lib/TaskEither";
 
-export type EventHandler = <T extends DomainEvent = DomainEvent, S extends DomainEvent = DomainEvent>(event: T) => S | void;
+export type EventHandler = <T extends DomainEvent = DomainEvent, S extends DomainEvent = DomainEvent>(event: T) => Promise<S> | Promise<void>;
 
 /**
  *

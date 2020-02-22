@@ -37,7 +37,7 @@ export default class JiraIntegration implements TicketBoardIntegration {
         )
     }
 
-    updatedTickets(key: string, fromDay:Date, toDay:Date): TE.TaskEither<TicketBoardIntegrationFailure, UpdatedTicket[]> {
+    getUpdatedTickets(key: string, fromDay:Date, toDay:Date): TE.TaskEither<TicketBoardIntegrationFailure, UpdatedTicket[]> {
         const url =  `${this.jiraUrl}/rest/api/3/search?jql=project%3D${key}+and+updated%3E%3D%22${toQueryDateFormat(fromDay)}%22+and+updated%3C%22${toQueryDateFormat(toDay)}%22&fields=created%2Cupdated`;
         return pipe(
             this.executeGetRequest(url),

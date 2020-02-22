@@ -12,6 +12,11 @@ export enum TicketUpdateCollectionStatus {
     FAILED
 }
 
+type TicketUpdateCollectionPeriod = {
+    from: Date,
+    to: Date
+}
+
 export default class TicketUpdateCollection extends AggregateRoot {
     private _status: TicketUpdateCollectionStatus;
     private _to: Date;
@@ -35,17 +40,15 @@ export default class TicketUpdateCollection extends AggregateRoot {
         return pipe (
             O.fromNullable(nextPeriod.ticketBoardKey),
             E.fromOption(new Error("Development Project is not linked to a ticket board")),
-            E.chain(_ => E.right(
-                nextPeriod.lastTicketUpdateCollectionPeriodEnd ?
+            E.chain(_ => E.right(nextPeriod.lastTicketUpdateCollectionPeriodEnd ?
                     nextPeriod.lastTicketUpdateCollectionPeriodEnd :
                     nextPeriod.devProjectStartedOn)),
-            E.map(fromDay =>
-                new TicketUpdateCollection(
+            E.map(from => new TicketUpdateCollection(
                 Identity.generate(),
                 true,
                 nextPeriod.devProjectId,
                 TicketUpdateCollectionStatus.RUNNING,
-                fromDay))
+                from))
         )
     }
 

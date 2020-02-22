@@ -24,4 +24,5 @@ export class TicketBoardIntegrationFailure extends Error {}
 
 export default interface TicketBoardIntegration {
     assertProject(key:string): TaskEither<TicketBoardIntegrationFailure, TicketBoardInfo>
+    getUpdatedTickets(key: string, from: Date, to: Date): TaskEither<TicketBoardIntegrationFailure, UpdatedTicket[]>;
 }

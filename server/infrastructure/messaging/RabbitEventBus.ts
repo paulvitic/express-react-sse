@@ -125,7 +125,7 @@ export default class RabbitEventBus implements EventBus {
             .then((event) => {
                 let handlers = this.subscribers.get(event.eventType);
                 if (handlers && handlers.length>0){
-                    handlers.forEach((handle) => { handle(event)})
+                    handlers.forEach(handle => { handle(event)}) // TODO handler returns Promise, can we use yield as in https://www.promisejs.org/generators/
                 }
                 ack(true)
             })

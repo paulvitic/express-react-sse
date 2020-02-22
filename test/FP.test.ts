@@ -97,14 +97,3 @@ test("from Promise to TaskEither", async () => {
     let res = await resolvedRes().run();
     expect(res.isRight()).toEqual(true)
 });
-
-
-
-
-
-
-
-
-
-
-

@@ -39,7 +39,7 @@ describe('ticket board', () => {
 
 describe('ticket updates', () => {
     test('should fail to get for non existing ticket board key', async () => {
-        let assert = jiraIntegration.updatedTickets(TICKET_BOARD_KEY_FIXTURE, TICKET_UPDATE_COLL_FROM_FIXTURE, TICKET_UPDATE_COLL_TO_FIXTURE);
+        let assert = jiraIntegration.getUpdatedTickets(TICKET_BOARD_KEY_FIXTURE, TICKET_UPDATE_COLL_FROM_FIXTURE, TICKET_UPDATE_COLL_TO_FIXTURE);
         let res = await assert.run();
         expect(res.isLeft()).toBeTruthy();
         let error = res.value as Error;
@@ -47,7 +47,7 @@ describe('ticket updates', () => {
     });
 
     test.skip('should get', async () => {
-        let assert = jiraIntegration.updatedTickets("CONTACT",
+        let assert = jiraIntegration.getUpdatedTickets("CONTACT",
             new Date('2019-11-27T00:00:00.000'), new Date('2019-11-28T00:00:00.000'));
         let res = await assert.run();
         expect(res.isRight()).toBeTruthy();
