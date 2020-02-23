@@ -15,8 +15,8 @@ import {TicketRemainedUnchanged} from "../../event/TicketRemainedUnchanged";
 type TicketChangeLogEvent = TicketChanged | TicketRemainedUnchanged;
 type UpdatedTicketChangeLogReaderEvent = TicketUpdateCollectionFailed | TicketChangeLogEvent;
 
-export default class UpdatedTicketChangeLogReader implements EventListener<UpdatedTicketsListFetched, null>{
-    private readonly log = LogFactory.get(UpdatedTicketChangeLogReader.name);
+export default class TicketChangeLogReader implements EventListener<UpdatedTicketsListFetched, null>{
+    private readonly log = LogFactory.get(TicketChangeLogReader.name);
 
     constructor(private readonly eventBus: EventBus,
                 private readonly integration: TicketBoardIntegration) {}
@@ -27,11 +27,11 @@ export default class UpdatedTicketChangeLogReader implements EventListener<Updat
 
     private readUpdatedTicketsChangeLogs(sourceEvent: UpdatedTicketsListFetched): T.Task<boolean> {
         let res = array.map(sourceEvent.updatedTickets,
-                updatedTicket => this.readUpdatedTicketChangeLog(sourceEvent, updatedTicket));
+                updatedTicket => this.readTicketChangeLog(sourceEvent, updatedTicket));
         return T.of(false)
     }
 
-    private readUpdatedTicketChangeLog(sourceEvent: UpdatedTicketsListFetched, updatedTicket: UpdatedTicket) {
+    private readTicketChangeLog(sourceEvent: UpdatedTicketsListFetched, updatedTicket: UpdatedTicket) {
         return pipe(
             this.integration.readTicketChangeLog(updatedTicket.key, sourceEvent.period),
             TE.fold<Error, Option<TicketChangeLog>, UpdatedTicketChangeLogReaderEvent>(
@@ -49,7 +49,7 @@ export default class UpdatedTicketChangeLogReader implements EventListener<Updat
             sourceEvent.sequence + 1,
             sourceEvent.devProjectId,
             sourceEvent.ticketBoardKey,
-            UpdatedTicketChangeLogReader.name,
+            TicketChangeLogReader.name,
             error.message)
         )
     }

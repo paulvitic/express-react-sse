@@ -1,5 +1,8 @@
 import * as TE from "fp-ts/lib/TaskEither";
-import TicketUpdateCollection, {TicketUpdateCollectionStatus} from "../../TicketUpdateCollection";
+import TicketUpdateCollection, {
+    TicketUpdateCollectionPeriod,
+    TicketUpdateCollectionStatus
+} from "../../TicketUpdateCollection";
 import TicketUpdateCollectionRepository from "../../repository/TicketUpdateCollectionRepository";
 import {pipe} from "fp-ts/lib/pipeable";
 import EventBus from "../../../EventBus";
@@ -33,9 +36,8 @@ export class TicketUpdateCollectionExecutive
                     collection.nextEventSequence(),
                     collection.devProjectId,
                     nextCollectionPeriod.ticketBoardKey,
-                    collection.from,
-                    collection.to
-            )))
+                    collection.period)
+            ))
         )
     }
 

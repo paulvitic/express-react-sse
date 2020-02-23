@@ -61,7 +61,7 @@ export default class DevelopmentProject extends AggregateRoot {
     linkTicketBoard(key:string, externalRef: number): E.Either<DevelopmentProjectError, number> {
         return pipe(
             E.either.of(new TicketBoard(Identity.generate(), key, externalRef)),
-            E.filterOrElse(() => this.ticketBoard===undefined,
+            E.filterOrElse(() => this.ticketBoard===null,
                 () => new DevelopmentProjectError('Ticket board already exists')),
             E.map(ticketBoard => new TicketBoardLinked(DevelopmentProject.name,
                 this.id,
