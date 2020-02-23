@@ -1,6 +1,6 @@
 import TicketBoardIntegration, {
     TicketBoardInfo,
-    TicketBoardIntegrationFailure, TicketChangelog, UpdatedTicket
+    TicketBoardIntegrationFailure, TicketChangeLog, UpdatedTicket
 } from "../../domain/product/service/TicketBoardIntegration";
 import axios, {AxiosResponse, AxiosError} from "axios";
 import { pipe } from 'fp-ts/lib/pipeable'
@@ -11,7 +11,7 @@ import {
     toTicketInfoAssertionFailure,
     toProjectInfo,
     toUpdatedTickets,
-    toQueryDateFormat, toChangelog
+    toQueryDateFormat, toChangeLog
 } from "./JiraIntegrationTranslator";
 import LogFactory from "../../domain/LogFactory";
 import {TicketUpdateCollectionPeriod} from "../../domain/product/TicketUpdateCollection";
@@ -60,12 +60,12 @@ export default class JiraIntegration implements TicketBoardIntegration {
         )
     }
 
-    readTicketChangelog(key: string, period: TicketUpdateCollectionPeriod):
-        TE.TaskEither<TicketBoardIntegrationFailure, O.Option<TicketChangelog>> {
+    readTicketChangeLog(key: string, period: TicketUpdateCollectionPeriod):
+        TE.TaskEither<TicketBoardIntegrationFailure, O.Option<TicketChangeLog>> {
         const url =  `${this.jiraUrl}/rest/api/3/issue/${key}?expand=changelog&fields=${this.ticketFields}`;
         return pipe(
             this.executeGetRequest(url),
-            TE.chain(response => TE.right(T.task.of(toChangelog(response, period))))
+            TE.chain(response => TE.right(T.task.of(toChangeLog(response, period))))
         )
     }
 

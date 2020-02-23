@@ -1,5 +1,6 @@
 import {AbstractDomainEvent} from "../../DomainEvent";
 import {UpdatedTicket} from "../service/TicketBoardIntegration";
+import {TicketUpdateCollectionPeriod} from "../TicketUpdateCollection";
 
 export class UpdatedTicketsListFetched extends AbstractDomainEvent {
     constructor(
@@ -8,6 +9,7 @@ export class UpdatedTicketsListFetched extends AbstractDomainEvent {
         sequence: number,
         readonly devProjectId: string,
         readonly ticketBoardKey: string,
+        readonly period: TicketUpdateCollectionPeriod,
         readonly updatedTickets: UpdatedTicket[]){
         super(aggregate, aggregateId, sequence);}
 }

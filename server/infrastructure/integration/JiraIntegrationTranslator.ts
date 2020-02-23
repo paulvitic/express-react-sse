@@ -1,7 +1,7 @@
 import {
     ChangeLog,
     TicketBoardInfo,
-    TicketBoardIntegrationFailure, TicketChangelog,
+    TicketBoardIntegrationFailure, TicketChangeLog,
     UpdatedTicket
 } from "../../domain/product/service/TicketBoardIntegration";
 import * as E from 'fp-ts/lib/Either'
@@ -128,8 +128,8 @@ export function toTicketInfoAssertionFailure({response}: AxiosError): TicketBoar
     }
 }
 
-export function toChangelog({ data }: AxiosResponse<any>, period: TicketUpdateCollectionPeriod):
-    O.Option<TicketChangelog>{
+export function toChangeLog({ data }: AxiosResponse<any>, period: TicketUpdateCollectionPeriod):
+    O.Option<TicketChangeLog>{
     let {id, key, changelog: { histories } } = data;
     return pipe(
         O.option.of(array
@@ -144,14 +144,14 @@ function fromHistory(history:any, period:TicketUpdateCollectionPeriod): O.Option
     return pipe(
         O.option.of(history),
         O.filter(history => period.isDuring(new Date(history.created))), // if history is not created during update collection period than passes Option.none
-        O.map(history => fromHistoryItems(history.items, history.created))
+        O.map(history => fromHistoryEntries(history.items, history.created))
     )
 }
 
-function fromHistoryItems(historyItems: any[], timestamp: Date): ChangeLog[] {
+function fromHistoryEntries(entries: any[], timeStamp: Date): ChangeLog[] {
     const log = LogFactory.get("JiraIntegrationTranslator");
-    return array.filterMap(historyItems, item => {
-        let {field, fieldId, from, fromString, to, toString} = item;
+    return array.filterMap(entries, entry => {
+        let {field, fieldId, from, fromString, to, toString} = entry;
         return pipe(
             O.fromNullable(changelogFilter[field] || changelogFilter[fieldId]),
             O.fold(() => {
@@ -159,7 +159,7 @@ function fromHistoryItems(historyItems: any[], timestamp: Date): ChangeLog[] {
                 return O.none;
             }, filter => O.some(filter)),
             O.filter(filter => filter.use),
-            O.map(() => {return {field, timestamp, fieldId, from, fromString, to, toString}})
+            O.map(() => {return {field, timeStamp, fieldId, from, fromString, to, toString}})
         )
     })
 }

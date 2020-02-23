@@ -10,7 +10,7 @@ import {
 } from "../../domain/product/productFixtures";
 import {
     TicketBoardInfo,
-    TicketChangelog,
+    TicketChangeLog,
     UpdatedTicket
 } from "../../../server/domain/product/service/TicketBoardIntegration";
 import {TicketUpdateCollectionPeriod} from "../../../server/domain/product/TicketUpdateCollection";
@@ -65,11 +65,11 @@ describe('ticket updates', () => {
 
 describe('ticket changelog', () => {
     test.skip('should get', async () => {
-        let changelog = jiraIntegration.readTicketChangelog("CONTACT-84",
+        let changelog = jiraIntegration.readTicketChangeLog("CONTACT-84",
             new TicketUpdateCollectionPeriod(new Date('2020-01-03T00:00:00.000'), new Date('2020-01-04T00:00:00.000')));
         let res = await changelog.run();
         expect(res.isRight()).toBeTruthy();
-        let updates = res.value as O.Option<TicketChangelog>;
+        let updates = res.value as O.Option<TicketChangeLog>;
         expect(updates.isSome() && updates.value.changeLog).toHaveLength(2);
     });
 });

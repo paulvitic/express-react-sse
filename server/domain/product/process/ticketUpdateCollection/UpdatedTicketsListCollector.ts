@@ -19,48 +19,44 @@ export default class UpdatedTicketsListCollector implements EventListener<Ticket
     }
 
     onEvent(event: TicketUpdateCollectionStarted): Promise<boolean> {
+        this.log.info(`Processing ${TicketUpdateCollectionStarted.name} event`);
         return this.fetchUpdatedTicketsList(event).run();
     }
 
-    fetchUpdatedTicketsList(event: TicketUpdateCollectionStarted): T.Task<boolean> {
+    fetchUpdatedTicketsList(sourceEvent: TicketUpdateCollectionStarted): T.Task<boolean> {
         return pipe(
-            this.integration.getUpdatedTickets(event.ticketBoardKey, event.period),
+            this.integration.getUpdatedTickets(sourceEvent.ticketBoardKey, sourceEvent.period),
             TE.fold<Error, UpdatedTicket[], UpdatedTicketsListCollectorEvent>(
-                error => this.onFetchError(event, error),
-                updatedTickets => this.onFetchSuccess(event, updatedTickets)
+                error => this.onFetchError(sourceEvent, error),
+                updatedTickets => this.onFetchSuccess(sourceEvent, updatedTickets)
                 ),
             T.chain(e => this.eventBus.publishEvent(e).getOrElse(false)) // this is an issue, if event is not published the process will hang
         )
     }
 
-    onFetchError(event: TicketUpdateCollectionStarted, error: Error ):
+    onFetchError(sourceEvent: TicketUpdateCollectionStarted, error: Error ):
         T.Task<TicketUpdateCollectionFailed> {
-        // TODO log
         return T.task.of(new TicketUpdateCollectionFailed(
-            event.aggregate,
-            event.aggregateId,
-            event.sequence + 1, // FIXME this is not right. You may get same sequence when 2 processors react on same event type. Aggregate should generate events
-            event.devProjectId,
-            event.ticketBoardKey,
+            sourceEvent.aggregate,
+            sourceEvent.aggregateId,
+            sourceEvent.sequence + 1,
+            sourceEvent.devProjectId,
+            sourceEvent.ticketBoardKey,
             UpdatedTicketsListCollector.name,
             error.message)
         )
     }
 
-    onFetchSuccess(event: TicketUpdateCollectionStarted, updatedTickets: UpdatedTicket[]):
+    onFetchSuccess(sourceEvent: TicketUpdateCollectionStarted, updatedTickets: UpdatedTicket[]):
         T.Task<UpdatedTicketsListFetched> {
-        // TODO log
         return T.task.of(new UpdatedTicketsListFetched(
-            event.aggregate,
-            event.aggregateId,
-            event.sequence + 1,
-            event.devProjectId,
-            event.ticketBoardKey,
+            sourceEvent.aggregate,
+            sourceEvent.aggregateId,
+            sourceEvent.sequence + 1,
+            sourceEvent.devProjectId,
+            sourceEvent.ticketBoardKey,
+            sourceEvent.period,
             updatedTickets
         ))
     }
-
-    // next processor:
-    // for each updated ticket parse history and update tickets
-    // after each is done check if collection completed
 }
