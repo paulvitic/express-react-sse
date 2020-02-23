@@ -1,17 +1,20 @@
 import TicketBoardIntegration, {
     TicketBoardInfo,
-    TicketBoardIntegrationFailure, UpdatedTicket
+    TicketBoardIntegrationFailure, TicketChangelog, UpdatedTicket
 } from "../../domain/product/service/TicketBoardIntegration";
 import axios, {AxiosResponse, AxiosError} from "axios";
 import { pipe } from 'fp-ts/lib/pipeable'
 import * as TE from 'fp-ts/lib/TaskEither'
+import * as T from 'fp-ts/lib/Task'
+import * as O from 'fp-ts/lib/Option';
 import {
     toTicketInfoAssertionFailure,
     toProjectInfo,
     toUpdatedTickets,
-    toQueryDateFormat
+    toQueryDateFormat, toChangelog
 } from "./JiraIntegrationTranslator";
 import LogFactory from "../../domain/LogFactory";
+import {TicketUpdateCollectionPeriod} from "../../domain/product/TicketUpdateCollection";
 
 export default class JiraIntegration implements TicketBoardIntegration {
     private readonly log = LogFactory.get(JiraIntegration.name);
@@ -19,6 +22,17 @@ export default class JiraIntegration implements TicketBoardIntegration {
     private readonly openTickets = "status not in (Closed, Done) ";
     private readonly projects = "project in (Contact) ";
     private readonly createdAfter = "createdDate >= ";
+    private readonly ticketFields = [
+        'created',
+        'updated',
+        'statuscategorychangedate',
+        'project',
+        'issuetype',
+        'labels',
+        'assignee',
+        'status',
+        'customfield_10010'
+    ];
 
     private readonly basicAuthorization: string;
 
@@ -37,12 +51,21 @@ export default class JiraIntegration implements TicketBoardIntegration {
         )
     }
 
-    getUpdatedTickets(key: string, fromDay:Date, toDay:Date): TE.TaskEither<TicketBoardIntegrationFailure, UpdatedTicket[]> {
-        const url =  `${this.jiraUrl}/rest/api/3/search?jql=project%3D${key}+and+updated%3E%3D%22${toQueryDateFormat(fromDay)}%22+and+updated%3C%22${toQueryDateFormat(toDay)}%22&fields=created%2Cupdated`;
+    getUpdatedTickets(key: string, period: TicketUpdateCollectionPeriod): TE.TaskEither<TicketBoardIntegrationFailure, UpdatedTicket[]> {
+        const url =  `${this.jiraUrl}/rest/api/3/search?jql=project%3D${key}+and+updated%3E%3D%22${toQueryDateFormat(period.from)}%22+and+updated%3C%22${toQueryDateFormat(period.to)}%22&fields=created%2Cupdated`;
         return pipe(
             this.executeGetRequest(url),
             TE.map(toUpdatedTickets),
             TE.chain(TE.fromEither)
+        )
+    }
+
+    readTicketChangelog(key: string, period: TicketUpdateCollectionPeriod):
+        TE.TaskEither<TicketBoardIntegrationFailure, O.Option<TicketChangelog>> {
+        const url =  `${this.jiraUrl}/rest/api/3/issue/${key}?expand=changelog&fields=${this.ticketFields}`;
+        return pipe(
+            this.executeGetRequest(url),
+            TE.chain(response => TE.right(T.task.of(toChangelog(response, period))))
         )
     }
 

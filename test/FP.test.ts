@@ -4,6 +4,9 @@ import * as E from "fp-ts/lib/Either";
 import * as IO from "fp-ts/lib/IO";
 import * as S from "fp-ts/lib/Semigroup";
 import {pipe} from "fp-ts/lib/pipeable";
+import * as O from "fp-ts/lib/Option";
+import {array} from "fp-ts/lib/Array";
+import {console} from "fp-ts";
 
 // Folding: https://dev.to/gcanti/getting-started-with-fp-ts-semigroup-2mf7
 // By definition concat works with only two elements of A, what if we want to concat more elements?
@@ -97,3 +100,84 @@ test("from Promise to TaskEither", async () => {
     let res = await resolvedRes().run();
     expect(res.isRight()).toEqual(true)
 });
+
+test("optional fold to either", async () => {
+    let map = {
+        some: {
+            name : "name",
+            ignore: true
+        },
+        someOther: {
+            name : "name",
+            ignore: false
+        }
+    };
+
+    let toEither = (prop:string): E.Either<Error, O.Option<string>> => {
+        return  pipe(
+            O.fromNullable(map[prop]),
+            O.fold<{name: string, ignore: boolean}, E.Either<Error, {name: string, ignore: boolean}>>(
+                () => E.left(new Error("field not recognized")),
+                filter => E.right(filter)),
+            E.chain(filter => filter.ignore ? E.right(O.none) : E.right(O.some(filter.name)))
+        );
+    };
+
+    let props = ["none", "some", "someOther"];
+
+    let res = array.reduce(props, [], (resEither, prop) => {
+        toEither(prop).fold(
+            e => resEither.push(E.left(e)),
+            s => resEither.push(E.right(s)));
+        return resEither;
+    });
+
+    expect(res).toHaveLength(3)
+    expect(res[0].isLeft()).toBeTruthy();
+
+    expect(res[1].isRight()).toBeTruthy();
+    let option = res[1].value as O.Option<string>;
+    expect(option.isNone()).toBeTruthy();
+
+    expect(res[2].isRight()).toBeTruthy();
+    option = res[2].value as O.Option<string>;
+    expect(option.isSome() && option.value==="name").toBeTruthy()
+});
+
+test("optional filter", () => {
+    let map = {
+        some: {
+            name : "usedName",
+            use: true
+        },
+        someOther: {
+            name : "unUsedName",
+            use: false
+        }
+    };
+
+    let toOption = (prop:string): O.Option<string> => {
+        return  pipe(
+            O.fromNullable(map[prop]),
+            O.filter(filter => filter.use),
+            O.map(filter => filter.name)
+        );
+    };
+
+    let props = ["none", "some", "someOther"];
+
+    let res1 = array.reduce(props, [], (resEither, prop) => {
+        toOption(prop).map(name => resEither.push(name));
+        return resEither;
+    });
+    // does the same thing as reduce above
+    let res2 = array.filterMap(props, (prop) =>
+        toOption(prop)
+    );
+
+    expect(res1).toHaveLength(1)
+    expect(res2).toHaveLength(1)
+});
+
+
+

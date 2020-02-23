@@ -12,26 +12,28 @@ export enum TicketUpdateCollectionStatus {
     FAILED
 }
 
-type TicketUpdateCollectionPeriod = {
-    from: Date,
-    to: Date
+export class TicketUpdateCollectionPeriod {
+    constructor(readonly from: Date, readonly to:Date){}
+    isDuring(timeStamp: Date): boolean {
+        return timeStamp > this.from && timeStamp < this.to
+    }
 }
 
 export default class TicketUpdateCollection extends AggregateRoot {
     private _status: TicketUpdateCollectionStatus;
-    private _to: Date;
-    private _startedAt: Date;
-    private endedAt: Date;
+    private readonly _period: TicketUpdateCollectionPeriod;
+    private readonly _startedAt: Date;
+    private _endedAt: Date;
     private numberOfTickets: number;
 
     constructor(id: string,
                 active: boolean,
                 private readonly _devProjectId: string,
                 status: TicketUpdateCollectionStatus,
-                private readonly _from: Date) {
+                from: Date) {
         super(id, active);
         this._status = status;
-        this._to = new Date(_from.getDay()+1);
+        this._period = new TicketUpdateCollectionPeriod(from, new Date(from.getDay()+1));
         this._startedAt = new Date();
     }
 
@@ -56,11 +58,7 @@ export default class TicketUpdateCollection extends AggregateRoot {
         return this._devProjectId
     }
 
-    get from(){
-        return this._from
-    }
-
-    get to(): Date {
-        return  this._to
+    get period(){
+        return this._period
     }
 }

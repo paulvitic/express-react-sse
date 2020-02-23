@@ -24,7 +24,7 @@ export default class UpdatedTicketsListCollector implements EventListener<Ticket
 
     fetchUpdatedTicketsList(event: TicketUpdateCollectionStarted): T.Task<boolean> {
         return pipe(
-            this.integration.getUpdatedTickets(event.ticketBoardKey, event.from, event.to),
+            this.integration.getUpdatedTickets(event.ticketBoardKey, event.period),
             TE.fold<Error, UpdatedTicket[], UpdatedTicketsListCollectorEvent>(
                 error => this.onFetchError(event, error),
                 updatedTickets => this.onFetchSuccess(event, updatedTickets)

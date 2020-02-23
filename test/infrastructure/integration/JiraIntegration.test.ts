@@ -1,3 +1,4 @@
+import * as O from 'fp-ts/lib/Option';
 import config from "../../../server/infrastructure/config/config";
 import JiraIntegration from "../../../server/infrastructure/integration/JiraIntegration";
 import LogFactory from "../../../server/domain/LogFactory";
@@ -7,7 +8,12 @@ import {
     TICKET_UPDATE_COLL_FROM_FIXTURE,
     TICKET_UPDATE_COLL_TO_FIXTURE
 } from "../../domain/product/productFixtures";
-import {TicketBoardInfo, UpdatedTicket} from "../../../server/domain/product/service/TicketBoardIntegration";
+import {
+    TicketBoardInfo,
+    TicketChangelog,
+    UpdatedTicket
+} from "../../../server/domain/product/service/TicketBoardIntegration";
+import {TicketUpdateCollectionPeriod} from "../../../server/domain/product/TicketUpdateCollection";
 
 let jiraIntegration: JiraIntegration;
 
@@ -39,7 +45,8 @@ describe('ticket board', () => {
 
 describe('ticket updates', () => {
     test('should fail to get for non existing ticket board key', async () => {
-        let assert = jiraIntegration.getUpdatedTickets(TICKET_BOARD_KEY_FIXTURE, TICKET_UPDATE_COLL_FROM_FIXTURE, TICKET_UPDATE_COLL_TO_FIXTURE);
+        let assert = jiraIntegration.getUpdatedTickets(TICKET_BOARD_KEY_FIXTURE,
+            new TicketUpdateCollectionPeriod(TICKET_UPDATE_COLL_FROM_FIXTURE, TICKET_UPDATE_COLL_TO_FIXTURE));
         let res = await assert.run();
         expect(res.isLeft()).toBeTruthy();
         let error = res.value as Error;
@@ -48,11 +55,22 @@ describe('ticket updates', () => {
 
     test.skip('should get', async () => {
         let assert = jiraIntegration.getUpdatedTickets("CONTACT",
-            new Date('2019-11-27T00:00:00.000'), new Date('2019-11-28T00:00:00.000'));
+            new TicketUpdateCollectionPeriod(new Date('2019-11-27T00:00:00.000'), new Date('2019-11-28T00:00:00.000')));
         let res = await assert.run();
         expect(res.isRight()).toBeTruthy();
         let updates = res.value as UpdatedTicket[];
         expect(updates.length).toBeGreaterThan(0)
+    });
+});
+
+describe('ticket changelog', () => {
+    test.skip('should get', async () => {
+        let changelog = jiraIntegration.readTicketChangelog("CONTACT-84",
+            new TicketUpdateCollectionPeriod(new Date('2020-01-03T00:00:00.000'), new Date('2020-01-04T00:00:00.000')));
+        let res = await changelog.run();
+        expect(res.isRight()).toBeTruthy();
+        let updates = res.value as O.Option<TicketChangelog>;
+        expect(updates.isSome() && updates.value.changeLog).toHaveLength(2);
     });
 });
 

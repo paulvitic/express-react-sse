@@ -1,10 +1,85 @@
 import {
+    ChangeLog,
     TicketBoardInfo,
-    TicketBoardIntegrationFailure,
+    TicketBoardIntegrationFailure, TicketChangelog,
     UpdatedTicket
 } from "../../domain/product/service/TicketBoardIntegration";
 import * as E from 'fp-ts/lib/Either'
 import { AxiosResponse, AxiosError} from "axios";
+import {TicketUpdateCollectionPeriod} from "../../domain/product/TicketUpdateCollection";
+import {array} from "fp-ts/lib/Array";
+import * as O from "fp-ts/lib/Option";
+import {pipe} from "fp-ts/lib/pipeable";
+import LogFactory from "../../domain/LogFactory";
+
+
+const changelogFilter = {
+    customfield_10011: {
+        field: "Rank",
+        fieldId: "customfield_10011",
+        use: false
+    },
+    customfield_10010: {
+        field: "Sprint",
+        fieldId: "customfield_10010",
+        use: true
+    },
+    status : {
+        field: "status",
+        fieldId: "status",
+        use: true
+    },
+    issuetype: {
+        field: "issuetype",
+        fieldId: "issuetype",
+        use: true
+    },
+    Workflow: {
+        field: "Workflow",
+        fieldId: undefined,
+        use: false
+    },
+    customfield_10031: {
+        field: "Story point estimate",
+        fieldId: "customfield_10031",
+        use: false
+    },
+    labels: {
+        field: "labels",
+        fieldId: "labels",
+        use: true
+    },
+    assignee: {
+        field: "assignee",
+        fieldId: "assignee",
+        use: true
+    },
+    description: {
+        field: "description",
+        fieldId: "description",
+        use: false
+    },
+    customfield_10017: {
+        field: "Complexity Points",
+        fieldId: "customfield_10017",
+        use: false
+    },
+    project: {
+        field: "project",
+        fieldId: undefined,
+        use: true
+    },
+    Key: {
+        field: "Key",
+        fieldId: undefined,
+        use: true
+    },
+    customfield_10008: {
+        field: "Epic Link",
+        fieldId: "customfield_10008", // check if this can really be used as epic link and therefore product feature
+        use: true
+    }
+};
 
 export function toProjectInfo({ data }: AxiosResponse<any>):
     E.Either<TicketBoardIntegrationFailure, TicketBoardInfo> {
@@ -51,6 +126,42 @@ export function toTicketInfoAssertionFailure({response}: AxiosError): TicketBoar
         return new TicketBoardIntegrationFailure(
             `Project assert response is not available`);
     }
+}
+
+export function toChangelog({ data }: AxiosResponse<any>, period: TicketUpdateCollectionPeriod):
+    O.Option<TicketChangelog>{
+    let {id, key, changelog: { histories } } = data;
+    return pipe(
+        O.option.of(array
+            .filterMap(histories, history => fromHistory(history, period)) // filters Option.none's
+            .reduceRight((previous, current) => {return previous.concat(current)})), // flattens change log arrays from multiple history entries
+        O.filter(logs => logs.length !== 0), // if there are any change logs than passes Option.some of change logs array
+        O.map(changeLog => {return {id, key, changeLog}})
+    )
+}
+
+function fromHistory(history:any, period:TicketUpdateCollectionPeriod): O.Option<ChangeLog[]>  {
+    return pipe(
+        O.option.of(history),
+        O.filter(history => period.isDuring(new Date(history.created))), // if history is not created during update collection period than passes Option.none
+        O.map(history => fromHistoryItems(history.items, history.created))
+    )
+}
+
+function fromHistoryItems(historyItems: any[], timestamp: Date): ChangeLog[] {
+    const log = LogFactory.get("JiraIntegrationTranslator");
+    return array.filterMap(historyItems, item => {
+        let {field, fieldId, from, fromString, to, toString} = item;
+        return pipe(
+            O.fromNullable(changelogFilter[field] || changelogFilter[fieldId]),
+            O.fold(() => {
+                log.warn(`History item field ${field} or field id ${fieldId} can not be mapped to change log filter`);
+                return O.none;
+            }, filter => O.some(filter)),
+            O.filter(filter => filter.use),
+            O.map(() => {return {field, timestamp, fieldId, from, fromString, to, toString}})
+        )
+    })
 }
 
 function toBeginningOfDay(dateString: string): Date{
