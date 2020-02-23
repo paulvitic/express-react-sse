@@ -63,13 +63,14 @@ export default class DevelopmentProjectPostgresRepo extends DevelopmentProjectRe
     }
 
     private saveTicketBoard(ticketBoard: TicketBoard, result: QueryResultRow): TE.TaskEither<Error, QueryResultRow>{
-        return ticketBoard === undefined || null ? TE.taskEither.of(result) :
+        return ticketBoard === null ?
+            TE.taskEither.of(result) :
             this.client.query(this.insertBoard, [ticketBoard.id, ticketBoard.externalRef, ticketBoard.key])
     }
 
     private saveDevelopmentProject(devProject: DevelopmentProject): TE.TaskEither<Error, QueryResultRow>{
         let {ticketBoard} = devProject;
-        return ticketBoard === undefined || null ?
+        return ticketBoard === null ?
             this.client.query(this.insert, [devProject.id, devProject.isActive, devProject.name, devProject.startedOn]) :
             this.client.query(this.insertWithBoard,[devProject.id, devProject.isActive, devProject.name, devProject.startedOn, ticketBoard.id])
     }
