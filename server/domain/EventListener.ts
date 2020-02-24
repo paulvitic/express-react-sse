@@ -1,5 +1,6 @@
 import DomainEvent from "./DomainEvent";
+import {default as E, Either} from "fp-ts/lib/Either";
 
-export default interface EventListener<EVENT extends DomainEvent, RETURN_EVENT extends DomainEvent> {
-    onEvent(event: EVENT): Promise<RETURN_EVENT> | Promise<boolean>;
+export default interface EventListener<EVENT extends DomainEvent> {
+    onEvent(event: EVENT): Promise<E.Either<Error, void>>;
 }

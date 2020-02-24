@@ -90,14 +90,11 @@ export default class RabbitEventBus implements EventBus {
         )
     };
 
-    subscribe = (eventType: string, handler: EventHandler): Promise<boolean> => {
-        return new Promise<boolean>((resolve => {
-            if (!this.subscribers.get(eventType)) {
-                this.subscribers.set(eventType, new Array<EventHandler>())
-            }
-            this.subscribers.get(eventType).push(handler);
-            resolve(true);
-        }))
+    subscribe = (eventType: string, handler: EventHandler): void => {
+        if (!this.subscribers.get(eventType)) {
+            this.subscribers.set(eventType, new Array<EventHandler>())
+        }
+        this.subscribers.get(eventType).push(handler);
     };
 
     onMessage = (msg: Message) => {

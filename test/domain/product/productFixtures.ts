@@ -1,6 +1,12 @@
-import {TicketBoardInfo, UpdatedTicket} from "../../../server/domain/product/service/TicketBoardIntegration";
+import {
+    ChangeLog,
+    TicketBoardInfo,
+    TicketChangeLog,
+    UpdatedTicket
+} from "../../../server/domain/product/service/TicketBoardIntegration";
 import TicketBoard from "../../../server/domain/product/TicketBoard";
 import {NextTicketUpdateCollectionPeriod} from "../../../server/domain/product/view/NextTicketUpdateCollectionPeriod";
+import {TicketUpdateCollectionPeriod} from "../../../server/domain/product/TicketUpdateCollection";
 
 export const DEV_PROJECT_ID_FIXTURE = "dev-project-1";
 export const DEV_PROJECT_STARTED_ON_FIXTURE = new Date("2018-11-27T00:00:00.000");
@@ -12,7 +18,9 @@ export const TICKET_UPDATE_COLL_ID_FIXTURE = "ticket-update-coll-1";
 export const TICKET_UPDATE_COLL_FROM_FIXTURE = new Date("2018-11-27T00:00:00.000");
 export const TICKET_UPDATE_COLL_TO_FIXTURE = new Date("2018-11-28T00:00:00.000");
 export const TICKET_UPDATE_COLLECTION_ID_FIXTURE = "ticket-update-collection-1";
-export const TICKET_KEY_FIXTURE = "TEST-TICKET";
+export const TICKET_KEY_FIXTURE_0 = "TEST-TICKET-0";
+export const TICKET_KEY_FIXTURE_1 = "TEST-TICKET-1";
+
 
 export const PROJECT_INFO_FIXTURE: TicketBoardInfo = {
     id: 1000,
@@ -34,11 +42,62 @@ export const NEXT_COLLECTION_PERIOD_FIXTURE: NextTicketUpdateCollectionPeriod = 
     lastTicketUpdateCollectionPeriodEnd: null
 };
 
-export const UPDATED_TICKET_FIXTURE: UpdatedTicket = {
+export const UPDATED_TICKET_FIXTURE_0: UpdatedTicket = {
     id:1001,
-    key:TICKET_KEY_FIXTURE,
+    key:TICKET_KEY_FIXTURE_0,
     updated: TICKET_UPDATE_COLL_FROM_FIXTURE,
     created: TICKET_UPDATE_COLL_FROM_FIXTURE
+};
+
+export const UPDATED_TICKET_FIXTURE_1: UpdatedTicket = {
+    id:1002,
+    key:TICKET_KEY_FIXTURE_1,
+    updated: TICKET_UPDATE_COLL_FROM_FIXTURE,
+    created: TICKET_UPDATE_COLL_FROM_FIXTURE
+};
+
+export const TICKET_UPDATE_COLLECTION_PERIOD_FIXTURE = new TicketUpdateCollectionPeriod(
+    DEV_PROJECT_STARTED_ON_FIXTURE, new Date(DEV_PROJECT_STARTED_ON_FIXTURE.getDay()+1)
+);
+
+export const TICKET_CHANGELOG_0: TicketChangeLog ={
+    id: 1001,
+    key: TICKET_KEY_FIXTURE_0,
+    changeLog:[{
+        field: "",
+        timeStamp: DEV_PROJECT_STARTED_ON_FIXTURE,
+        from: "",
+        fromString: "",
+        to: "",
+        toString: "",
+    },{
+        field: "",
+        timeStamp: DEV_PROJECT_STARTED_ON_FIXTURE,
+        from: "",
+        fromString: "",
+        to: "",
+        toString: "",
+    }]
+};
+
+export const TICKET_CHANGELOG_1: TicketChangeLog ={
+    id: 1002,
+    key: TICKET_KEY_FIXTURE_1,
+    changeLog:[{
+        field: "",
+        timeStamp: DEV_PROJECT_STARTED_ON_FIXTURE,
+        from: "",
+        fromString: "",
+        to: "",
+        toString: "",
+    },{
+        field: "",
+        timeStamp: DEV_PROJECT_STARTED_ON_FIXTURE,
+        from: "",
+        fromString: "",
+        to: "",
+        toString: "",
+    }]
 };
 
 

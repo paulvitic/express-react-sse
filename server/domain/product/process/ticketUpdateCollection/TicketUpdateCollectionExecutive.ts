@@ -1,4 +1,5 @@
 import * as TE from "fp-ts/lib/TaskEither";
+import * as E from "fp-ts/lib/Either";
 import TicketUpdateCollection, {
     TicketUpdateCollectionPeriod,
     TicketUpdateCollectionStatus
@@ -16,8 +17,7 @@ type TicketUpdateCollectionExecutiveEvent =
     TicketUpdateCollectionFailed |
     UpdatedTicketsListFetched;
 
-export class TicketUpdateCollectionExecutive
-    implements EventListener<TicketUpdateCollectionExecutiveEvent, null> {
+export class TicketUpdateCollectionExecutive implements EventListener<TicketUpdateCollectionExecutiveEvent> {
 
     constructor(private readonly collectionRepo: TicketUpdateCollectionRepository,
                 private readonly eventBus: EventBus) {
@@ -41,8 +41,7 @@ export class TicketUpdateCollectionExecutive
         )
     }
 
-    onEvent(event: TicketUpdateCollectionExecutiveEvent): Promise<boolean> {
+    onEvent(event: TicketUpdateCollectionExecutiveEvent): E.Either<Error, void> {
         throw new Error("Method not implemented.");
     }
-
 }

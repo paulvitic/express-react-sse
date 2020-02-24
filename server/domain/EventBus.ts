@@ -8,5 +8,5 @@ export type EventHandler = <T extends DomainEvent = DomainEvent, S extends Domai
  */
 export default interface EventBus {
     publishEvent<T extends DomainEvent = DomainEvent>(event: T): TE.TaskEither<Error, boolean>
-    subscribe(eventType: string, handler: EventHandler): Promise<boolean>
+    subscribe(eventType: string, handler: EventHandler): void
 }

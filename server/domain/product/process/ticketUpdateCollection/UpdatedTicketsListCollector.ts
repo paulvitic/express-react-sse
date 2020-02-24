@@ -4,6 +4,7 @@ import EventBus from "../../../EventBus";
 import TicketBoardIntegration, {UpdatedTicket} from "../../service/TicketBoardIntegration";
 import {pipe} from "fp-ts/lib/pipeable";
 import * as TE from "fp-ts/lib/TaskEither";
+import * as E from "fp-ts/lib/Either";
 import * as T from "fp-ts/lib/Task";
 import {TicketUpdateCollectionFailed} from "../../event/TicketUpdateCollectionFailed";
 import LogFactory from "../../../LogFactory";
@@ -11,26 +12,27 @@ import {UpdatedTicketsListFetched} from "../../event/UpdatedTicketsListFetched";
 
 type UpdatedTicketsListCollectorEvent = TicketUpdateCollectionFailed | UpdatedTicketsListFetched;
 
-export default class UpdatedTicketsListCollector implements EventListener<TicketUpdateCollectionStarted, null>{
+export default class UpdatedTicketsListCollector implements EventListener<TicketUpdateCollectionStarted>{
     private readonly log = LogFactory.get(UpdatedTicketsListCollector.name);
 
     constructor(private readonly eventBus: EventBus,
                 private readonly integration: TicketBoardIntegration) {
     }
 
-    onEvent(event: TicketUpdateCollectionStarted): Promise<boolean> {
+    async onEvent(sourceEvent: TicketUpdateCollectionStarted): Promise<E.Either<Error, void>> {
         this.log.info(`Processing ${TicketUpdateCollectionStarted.name} event`);
-        return this.fetchUpdatedTicketsList(event).run();
+        let event = await this.fetchUpdatedTicketsList(sourceEvent).run();
+        let published = await this.eventBus.publishEvent(event).run();
+        return published.isRight() && published.value ? E.right(null) : E.left(new Error("event not published"));
     }
 
-    fetchUpdatedTicketsList(sourceEvent: TicketUpdateCollectionStarted): T.Task<boolean> {
+    fetchUpdatedTicketsList(sourceEvent: TicketUpdateCollectionStarted): T.Task<UpdatedTicketsListCollectorEvent> {
         return pipe(
             this.integration.getUpdatedTickets(sourceEvent.ticketBoardKey, sourceEvent.period),
             TE.fold<Error, UpdatedTicket[], UpdatedTicketsListCollectorEvent>(
                 error => this.onFetchError(sourceEvent, error),
                 updatedTickets => this.onFetchSuccess(sourceEvent, updatedTickets)
-                ),
-            T.chain(e => this.eventBus.publishEvent(e).getOrElse(false)) // this is an issue, if event is not published the process will hang
+            )
         )
     }
 
