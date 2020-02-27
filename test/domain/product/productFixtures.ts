@@ -6,7 +6,8 @@ import {
 } from "../../../server/domain/product/service/TicketBoardIntegration";
 import TicketBoard from "../../../server/domain/product/TicketBoard";
 import {NextTicketUpdateCollectionPeriod} from "../../../server/domain/product/view/NextTicketUpdateCollectionPeriod";
-import {TicketUpdateCollectionPeriod} from "../../../server/domain/product/TicketUpdateCollection";
+import TicketUpdateCollection, {TicketUpdateCollectionPeriod} from "../../../server/domain/product/TicketUpdateCollection";
+import {UpdatedTicketsListFetched} from "../../../server/domain/product/event";
 
 export const DEV_PROJECT_ID_FIXTURE = "dev-project-1";
 export const DEV_PROJECT_STARTED_ON_FIXTURE = new Date("2018-11-27T00:00:00.000");
@@ -44,16 +45,12 @@ export const NEXT_COLLECTION_PERIOD_FIXTURE: NextTicketUpdateCollectionPeriod = 
 
 export const UPDATED_TICKET_FIXTURE_0: UpdatedTicket = {
     id:1001,
-    key:TICKET_KEY_FIXTURE_0,
-    updated: TICKET_UPDATE_COLL_FROM_FIXTURE,
-    created: TICKET_UPDATE_COLL_FROM_FIXTURE
+    key:TICKET_KEY_FIXTURE_0
 };
 
 export const UPDATED_TICKET_FIXTURE_1: UpdatedTicket = {
     id:1002,
-    key:TICKET_KEY_FIXTURE_1,
-    updated: TICKET_UPDATE_COLL_FROM_FIXTURE,
-    created: TICKET_UPDATE_COLL_FROM_FIXTURE
+    key:TICKET_KEY_FIXTURE_1
 };
 
 export const TICKET_UPDATE_COLLECTION_PERIOD_FIXTURE = new TicketUpdateCollectionPeriod(
@@ -80,7 +77,7 @@ export const TICKET_CHANGELOG_0: TicketChangeLog ={
     }]
 };
 
-export const TICKET_CHANGELOG_1: TicketChangeLog ={
+export const TICKET_CHANGELOG_1: TicketChangeLog = {
     id: 1002,
     key: TICKET_KEY_FIXTURE_1,
     changeLog:[{
@@ -100,4 +97,13 @@ export const TICKET_CHANGELOG_1: TicketChangeLog ={
     }]
 };
 
+export const UPDATED_TICKETS_LIST_FETCHED_FIXTURE = new UpdatedTicketsListFetched(
+    TicketUpdateCollection.name,
+    TICKET_UPDATE_COLLECTION_ID_FIXTURE,
+    2,
+    DEV_PROJECT_ID_FIXTURE,
+    TICKET_KEY_FIXTURE_0,
+    TICKET_UPDATE_COLLECTION_PERIOD_FIXTURE,
+    [UPDATED_TICKET_FIXTURE_0, UPDATED_TICKET_FIXTURE_1]
+);
 

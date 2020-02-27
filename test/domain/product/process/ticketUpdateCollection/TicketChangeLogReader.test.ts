@@ -22,8 +22,7 @@ import TicketChangeLogReader
     from "../../../../../server/domain/product/process/ticketUpdateCollection/TicketChangeLogReader";
 import {TaskEither} from "fp-ts/lib/TaskEither";
 import * as O from "fp-ts/lib/Option";
-import {TicketChanged} from "../../../../../server/domain/product/event/TicketChanged";
-import {TicketRemainedUnchanged} from "../../../../../server/domain/product/event/TicketRemainedUnchanged";
+import {TicketChanged, TicketRemainedUnchanged} from "../../../../../server/domain/product/event";
 
 jest.mock('../../../../../server/domain/EventBus');
 jest.mock('../../../../../server/domain/product/service/TicketBoardIntegration');

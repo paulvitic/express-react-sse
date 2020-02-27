@@ -14,7 +14,7 @@ import * as E from "fp-ts/lib/Either";
 import {array} from "fp-ts/lib/Array";
 import * as O from "fp-ts/lib/Option";
 
-type TicketChangeLogEvent = TicketChanged | TicketRemainedUnchanged;
+export type TicketChangeLogEvent = TicketChanged | TicketRemainedUnchanged;
 type UpdatedTicketChangeLogReaderEvent = TicketUpdateCollectionFailed | TicketChangeLogEvent;
 
 export default class TicketChangeLogReader implements EventListener<UpdatedTicketsListFetched>{
@@ -76,12 +76,14 @@ export default class TicketChangeLogReader implements EventListener<UpdatedTicke
                 sourceEvent.aggregate,
                 sourceEvent.aggregateId,
                 sourceEvent.sequence + index,
+                sourceEvent.devProjectId,
                 updatedTicketId,
                 updatedTicketKey),
             ticket => new TicketChanged(
                 sourceEvent.aggregate,
                 sourceEvent.aggregateId,
                 sourceEvent.sequence + index,
+                sourceEvent.devProjectId,
                 ticket.id,
                 ticket.key,
                 ticket.changeLog)

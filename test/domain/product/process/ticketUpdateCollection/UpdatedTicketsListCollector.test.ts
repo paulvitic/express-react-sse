@@ -1,7 +1,5 @@
 import * as TE from "fp-ts/lib/TaskEither";
 import * as T from "fp-ts/lib/Task";
-
-import {TicketUpdateCollectionStarted} from "../../../../../server/domain/product/event/TicketUpdateCollectionStarted";
 import UpdatedTicketsListCollector
     from "../../../../../server/domain/product/process/ticketUpdateCollection/UpdatedTicketsListCollector";
 import EventBus from "../../../../../server/domain/EventBus";
@@ -14,8 +12,7 @@ import {
 import TicketBoardIntegration from "../../../../../server/domain/product/service/TicketBoardIntegration";
 import LogFactory from "../../../../../server/domain/LogFactory";
 import WinstonLogFactory from "../../../../../server/infrastructure/context/winstonLogFactory";
-import {UpdatedTicketsListFetched} from "../../../../../server/domain/product/event/UpdatedTicketsListFetched";
-import {TicketUpdateCollectionFailed} from "../../../../../server/domain/product/event/TicketUpdateCollectionFailed";
+import {TicketUpdateCollectionFailed, UpdatedTicketsListFetched, TicketUpdateCollectionStarted} from "../../../../../server/domain/product/event";
 
 jest.mock('../../../../../server/domain/EventBus');
 jest.mock('../../../../../server/domain/product/service/TicketBoardIntegration');

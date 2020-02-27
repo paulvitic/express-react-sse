@@ -9,8 +9,7 @@ import DevelopmentProject, {DevelopmentProjectError} from "../../../server/domai
 import * as E from "fp-ts/lib/Either";
 import LogFactory from "../../../server/domain/LogFactory";
 import WinstonLogFactory from "../../../server/infrastructure/context/winstonLogFactory";
-import {DevelopmentProjectCreated} from "../../../server/domain/product/event/DevelopmentProjectCreated";
-import {TicketBoardLinked} from "../../../server/domain/product/event/TicketBoardLinked";
+import {DevelopmentProjectCreated, TicketBoardLinked} from "../../../server/domain/product/event";
 import DevelopmentProjectRepository from "../../../server/domain/product/repository/DevelopmentProjectRepository";
 import TicketBoardIntegration from "../../../server/domain/product/service/TicketBoardIntegration";
 
@@ -30,11 +29,11 @@ describe('create project from ticket board key', () => {
 
     test("should fail if the key already exists", async () => {
         let mockDevProject: DevelopmentProject = jest.genMockFromModule('../../../server/domain/product/DevelopmentProject');
-        mockRepo.findOneByTicketBoardKey = jest.fn().mockImplementationOnce(arg => {
+        mockRepo.findOneByTicketBoardKey = jest.fn().mockImplementationOnce(() => {
                 return TE.taskEither.of(O.some(mockDevProject))
             });
 
-        mockIntegration.assertProject = jest.fn().mockImplementationOnce(arg => {
+        mockIntegration.assertProject = jest.fn().mockImplementationOnce(() => {
             return TE.fromEither(E.right(PROJECT_INFO_FIXTURE));
         });
 
@@ -45,13 +44,13 @@ describe('create project from ticket board key', () => {
     });
 
     test("should fail if the key does not exists in remote ticket board app", async () => {
-        mockRepo.findOneByTicketBoardKey = jest.fn().mockImplementationOnce(arg => {
+        mockRepo.findOneByTicketBoardKey = jest.fn().mockImplementationOnce(() => {
                 return TE.taskEither.of(O.none)
             });
 
         let expectedErrorMessage = "Assert Error";
-        mockIntegration.assertProject = jest.fn().mockImplementationOnce(arg => {
-            return TE.left(T.task.of(new Error(expectedErrorMessage)))
+        mockIntegration.assertProject = jest.fn().mockImplementationOnce(() => {
+            return TE.leftTask(T.task.of(new Error(expectedErrorMessage)))
         });
 
         let res = await DevelopmentProject.createFromTicketBoard(TICKET_BOARD_KEY_FIXTURE, mockRepo, mockIntegration).run();
@@ -62,7 +61,7 @@ describe('create project from ticket board key', () => {
 
     test("should fail if ticket board category is not development project", async () => {
         mockRepo.findOneByTicketBoardKey = jest.fn().mockImplementationOnce(
-            (arg): TE.TaskEither<Error, O.Option<DevelopmentProject>> => {
+            (): TE.TaskEither<Error, O.Option<DevelopmentProject>> => {
                 return TE.taskEither.of(O.none)
             });
 
@@ -74,7 +73,7 @@ describe('create project from ticket board key', () => {
                 description: "",
             }
         };
-        mockIntegration.assertProject = jest.fn().mockImplementationOnce(arg => {
+        mockIntegration.assertProject = jest.fn().mockImplementationOnce(() => {
             return TE.fromEither(E.right(mockProjectInfo));
         });
 
@@ -85,7 +84,7 @@ describe('create project from ticket board key', () => {
     });
 
     test("should fail if project name is undefined", async () => {
-        mockRepo.findOneByTicketBoardKey = jest.fn().mockImplementationOnce(arg => {
+        mockRepo.findOneByTicketBoardKey = jest.fn().mockImplementationOnce(() => {
                 return TE.taskEither.of(O.none)
         });
 
@@ -93,7 +92,7 @@ describe('create project from ticket board key', () => {
             ...PROJECT_INFO_FIXTURE,
             name: undefined
         };
-        mockIntegration.assertProject = jest.fn().mockImplementationOnce(arg => {
+        mockIntegration.assertProject = jest.fn().mockImplementationOnce(() => {
             return TE.taskEither.of(mockProjectInfo);
         });
 
@@ -105,10 +104,10 @@ describe('create project from ticket board key', () => {
 
     test("should succeed with relevant domain events created", async () => {
         mockRepo.findOneByTicketBoardKey = jest.fn().mockImplementationOnce(
-            (arg): TE.TaskEither<Error, O.Option<DevelopmentProject>> => {
+            (): TE.TaskEither<Error, O.Option<DevelopmentProject>> => {
                 return TE.taskEither.of(O.none)});
 
-        mockIntegration.assertProject = jest.fn().mockImplementationOnce(arg => {
+        mockIntegration.assertProject = jest.fn().mockImplementationOnce(() => {
             return TE.taskEither.of(PROJECT_INFO_FIXTURE);
         });
 

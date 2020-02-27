@@ -17,9 +17,7 @@ export type TicketBoardInfo = {
 
 export type UpdatedTicket = {
     id: number,
-    key: string,
-    updated: Date,
-    created: Date
+    key: string
 }
 
 export type ChangeLog = {

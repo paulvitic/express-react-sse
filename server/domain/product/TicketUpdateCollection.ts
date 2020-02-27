@@ -1,10 +1,10 @@
 import AggregateRoot from "../AggregateRoot";
 import Identity from "../Identity";
-import * as TE from "fp-ts/lib/TaskEither";
 import * as E from "fp-ts/lib/Either";
 import * as O from "fp-ts/lib/Option";
 import {NextTicketUpdateCollectionPeriod} from "./view/NextTicketUpdateCollectionPeriod";
 import {pipe} from "fp-ts/lib/pipeable";
+import {UpdatedTicket} from "./service/TicketBoardIntegration";
 
 export enum TicketUpdateCollectionStatus {
     RUNNING,
@@ -25,6 +25,7 @@ export default class TicketUpdateCollection extends AggregateRoot {
     private readonly _startedAt: Date;
     private _endedAt: Date;
     private numberOfTickets: number;
+    private _completed: boolean;
 
     constructor(id: string,
                 active: boolean,
@@ -60,5 +61,29 @@ export default class TicketUpdateCollection extends AggregateRoot {
 
     get period(){
         return this._period
+    }
+
+    get completed(){
+        return this._completed
+    }
+
+    willRunForTickets(updatedTickets: UpdatedTicket[]): E.Either<Error, void> {
+        return E.tryCatch( () => {
+
+            },
+        err => err as Error
+        )
+    }
+
+    completedForTicket(ticketExternalRef: number, ticketKey: string):E.Either<Error, void> {
+        return E.tryCatch( () => {},
+            err => err as Error
+        )
+    }
+
+    failed(atProcessor: string, forReason: string):E.Either<Error, void> {
+        return E.tryCatch( () => {},
+            err => err as Error
+        )
     }
 }

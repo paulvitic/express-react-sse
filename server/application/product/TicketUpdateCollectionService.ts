@@ -1,13 +1,13 @@
 import * as TE from "fp-ts/lib/TaskEither";
 
 import {TicketUpdateCollectionQueryService} from "./TicketUpdateCollectionQueryService";
-import {TicketUpdateCollectionExecutive} from "../../domain/product/process/ticketUpdateCollection/TicketUpdateCollectionExecutive";
+import {TicketUpdateCollectionTracker} from "../../domain/product/process/ticketUpdateCollection/TicketUpdateCollectionExecutive";
 import {pipe} from "fp-ts/lib/pipeable";
 
 export class TicketUpdateCollectionService {
 
     constructor(private readonly queryService: TicketUpdateCollectionQueryService,
-                private readonly executive: TicketUpdateCollectionExecutive) {}
+                private readonly executive: TicketUpdateCollectionTracker) {}
 
     collectTicketUpdates(devProjectId: string):TE.TaskEither<Error, boolean>{
         return pipe(

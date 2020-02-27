@@ -1,7 +1,5 @@
 import {pipe} from "fp-ts/lib/pipeable";
 import * as TE from "fp-ts/lib/TaskEither";
-import * as T from "fp-ts/lib/Task";
-import * as O from "fp-ts/lib/Option";
 import ApplicationService from "../ApplicationService";
 import LogFactory from "../../domain/LogFactory";
 import EventBus from "../../domain/EventBus";
@@ -27,7 +25,7 @@ export default class DevelopmentProjectService extends ApplicationService<Develo
   createFromTicketBoard(command: CreateProjectFromTicketBoard): TE.TaskEither<Error,string> {
       return pipe(
           DevelopmentProject.createFromTicketBoard(command.ticketBoardKey, this.repository, this.integration),
-          TE.chainFirst((a) => TE.fromIO(this.log.io.info(`Ticket board ${a.id} created.`))),
+          TE.chainFirst((a) => TE.rightIO(this.log.io.info(`Ticket board ${a.id} created.`))),
           TE.chainFirst(this.publishEventsOf),
           TE.chainFirst(this.repository.save),
           TE.map((ticketBoard => ticketBoard.id))

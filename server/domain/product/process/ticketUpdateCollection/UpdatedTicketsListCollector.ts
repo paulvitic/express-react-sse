@@ -1,14 +1,15 @@
 import EventListener from "../../../EventListener";
-import {TicketUpdateCollectionStarted} from "../../event/TicketUpdateCollectionStarted";
 import EventBus from "../../../EventBus";
 import TicketBoardIntegration, {UpdatedTicket} from "../../service/TicketBoardIntegration";
 import {pipe} from "fp-ts/lib/pipeable";
 import * as TE from "fp-ts/lib/TaskEither";
 import * as E from "fp-ts/lib/Either";
 import * as T from "fp-ts/lib/Task";
-import {TicketUpdateCollectionFailed} from "../../event/TicketUpdateCollectionFailed";
+import {
+    TicketUpdateCollectionFailed,
+    UpdatedTicketsListFetched,
+    TicketUpdateCollectionStarted} from "../../event";
 import LogFactory from "../../../LogFactory";
-import {UpdatedTicketsListFetched} from "../../event/UpdatedTicketsListFetched";
 
 type UpdatedTicketsListCollectorEvent = TicketUpdateCollectionFailed | UpdatedTicketsListFetched;
 

@@ -16,6 +16,14 @@ export default class TicketUpdateCollectionPostgresRepo extends TicketUpdateColl
         return undefined;
     }
 
+    findByProject(devProjectId: string, limit: number): TE.TaskEither<Error, TicketUpdateCollection[]> {
+        return undefined;
+    }
+
+    findLatestByProject(devProjectId: string): TE.TaskEither<Error, O.Option<TicketUpdateCollection>> {
+        return undefined;
+    }
+
     findByStatus(status: TicketUpdateCollectionStatus): TE.TaskEither<Error, TicketUpdateCollection[]> {
         return undefined;
     }

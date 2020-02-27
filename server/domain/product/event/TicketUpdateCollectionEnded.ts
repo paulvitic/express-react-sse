@@ -1,12 +1,10 @@
 import {AbstractDomainEvent} from "../../DomainEvent";
 
-export class TicketRemainedUnchanged extends AbstractDomainEvent {
+export class TicketUpdateCollectionEnded extends AbstractDomainEvent {
     constructor(
         aggregate: string,
         aggregateId: string,
         sequence: number,
-        readonly devProjectId: string,
-        readonly ticketExternalRef: number,
-        readonly ticketKey: string){
+        readonly devProjectId: string){
         super(aggregate, aggregateId, sequence);}
 }

@@ -2,7 +2,6 @@ import {translateToTicketBoard} from "../../../server/infrastructure/persistence
 import LogFactory from "../../../server/domain/LogFactory";
 import WinstonLogFactory from "../../../server/infrastructure/context/winstonLogFactory";
 import TicketBoard from "../../../server/domain/product/TicketBoard";
-import {removeErrorMarkup} from "ts-lint/lib/test/parse";
 
 beforeAll(() => {
     LogFactory.init(new WinstonLogFactory())
