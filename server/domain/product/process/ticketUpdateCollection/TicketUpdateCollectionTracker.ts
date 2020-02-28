@@ -1,17 +1,18 @@
 import * as TE from "fp-ts/lib/TaskEither";
 import * as E from "fp-ts/lib/Either";
 import * as T from "fp-ts/lib/Task";
-import TicketUpdateCollection, {
-    TicketUpdateCollectionStatus
-} from "../../TicketUpdateCollection";
+import TicketUpdateCollection, {TicketUpdateCollectionStatus} from "../../TicketUpdateCollection";
 import TicketUpdateCollectionRepository from "../../repository/TicketUpdateCollectionRepository";
 import {pipe} from "fp-ts/lib/pipeable";
 import EventBus from "../../../EventBus";
 import {NextTicketUpdateCollectionPeriod} from "../../view/NextTicketUpdateCollectionPeriod";
 import {
-    TicketUpdateCollectionStarted,
+    TicketChanged,
+    TicketRemainedUnchanged,
+    TicketUpdateCollectionEnded,
     TicketUpdateCollectionFailed,
-    UpdatedTicketsListFetched, TicketChanged, TicketRemainedUnchanged, TicketUpdateCollectionEnded
+    TicketUpdateCollectionStarted,
+    UpdatedTicketsListFetched
 } from "../../event";
 import EventListener from "../../../EventListener";
 import {TicketChangeLogEvent} from "./TicketChangeLogReader";
@@ -53,7 +54,7 @@ export class TicketUpdateCollectionTracker implements EventListener<TicketUpdate
                 TE.fromEither(this.handleEvent(sourceEvent, collection.value)) : 
                 TE.leftTask(T.task.of(new Error('collection does not exists')))),
             TE.chain( collection => this.repo.save(collection)),
-            TE.chain(collection => collection.completed ?
+            TE.chain(collection => collection.status!==TicketUpdateCollectionStatus.RUNNING ?
                 this.eventBus.publishEvent(new TicketUpdateCollectionEnded(
                     TicketUpdateCollection.name,
                     collection.id,
@@ -76,7 +77,8 @@ export class TicketUpdateCollectionTracker implements EventListener<TicketUpdate
             case TicketRemainedUnchanged.name:
                 return pipe(
                     E.either.of(<TicketChangeLogEvent>sourceEvent),
-                    E.chain(event => collection.completedForTicket(event.ticketExternalRef, event.ticketKey)),
+                    E.chain(event => collection.completedForTicket(
+                        event.ticketExternalRef, event.ticketKey, sourceEvent.eventType ===TicketChanged.name)),
                     E.chain(() => E.either.of(collection))
                 );
             case TicketUpdateCollectionFailed.name:

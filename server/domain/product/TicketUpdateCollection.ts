@@ -19,13 +19,37 @@ export class TicketUpdateCollectionPeriod {
     }
 }
 
+class TicketUpdate {
+    private _changeLogRead: boolean;
+    private _changed: boolean;
+    constructor(readonly externalRef,
+                readonly ticketKey) {
+        this._changeLogRead = false
+    }
+
+    get isChanged() {
+        return this._changed
+    }
+
+    get isChangeLogRead() {
+        return this._changeLogRead
+    }
+
+    changed(changed: boolean){
+        this._changeLogRead = true;
+        this._changed = changed
+    }
+}
+
+
 export default class TicketUpdateCollection extends AggregateRoot {
     private _status: TicketUpdateCollectionStatus;
     private readonly _period: TicketUpdateCollectionPeriod;
     private readonly _startedAt: Date;
     private _endedAt: Date;
-    private numberOfTickets: number;
-    private _completed: boolean;
+    private _ticketUpdates: Map<string, TicketUpdate>;
+    private _failedAt: string;
+    private _failReason: string;
 
     constructor(id: string,
                 active: boolean,
@@ -36,6 +60,7 @@ export default class TicketUpdateCollection extends AggregateRoot {
         this._status = status;
         this._period = new TicketUpdateCollectionPeriod(from, new Date(from.getDay()+1));
         this._startedAt = new Date();
+        this._ticketUpdates = new Map<string, TicketUpdate>()
     }
 
     static create(nextPeriod: NextTicketUpdateCollectionPeriod):
@@ -63,27 +88,47 @@ export default class TicketUpdateCollection extends AggregateRoot {
         return this._period
     }
 
-    get completed(){
-        return this._completed
+    get status(){
+        return this._status
     }
 
     willRunForTickets(updatedTickets: UpdatedTicket[]): E.Either<Error, void> {
         return E.tryCatch( () => {
-
-            },
+            updatedTickets.map(ticket => {
+                this._ticketUpdates.set(ticket.key, new TicketUpdate(ticket.id, ticket.key))
+            })},
         err => err as Error
         )
     }
 
-    completedForTicket(ticketExternalRef: number, ticketKey: string):E.Either<Error, void> {
-        return E.tryCatch( () => {},
+    completedForTicket(ticketExternalRef: number, ticketKey: string, changed:boolean):E.Either<Error, void> {
+        return E.tryCatch( () => {
+                this._ticketUpdates.get(ticketKey).changed(changed);
+                return this.complete()
+            },
             err => err as Error
         )
     }
 
     failed(atProcessor: string, forReason: string):E.Either<Error, void> {
-        return E.tryCatch( () => {},
+        return E.tryCatch( () => {
+                this._status = TicketUpdateCollectionStatus.FAILED;
+                this._failedAt = atProcessor;
+                this._failReason = forReason;
+                this._endedAt = new Date();
+            },
             err => err as Error
         )
+    }
+
+    private complete(): void {
+        let allRead = true;
+        for (let value of this._ticketUpdates.values()){
+            allRead = allRead && value.isChangeLogRead;
+        }
+        if (allRead) {
+            this._status = TicketUpdateCollectionStatus.COMPLETED;
+            this._endedAt = new Date();
+        }
     }
 }
