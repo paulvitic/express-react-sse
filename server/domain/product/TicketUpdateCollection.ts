@@ -14,32 +14,50 @@ export enum TicketUpdateCollectionStatus {
 }
 
 export class TicketUpdateCollectionPeriod {
-    constructor(readonly from: Date, readonly to:Date){}
+    constructor(private readonly _from: Date, private _to?:Date){
+        this.setPeriodLength()
+    }
+
     isDuring(timeStamp: Date): boolean {
         return timeStamp > this.from && timeStamp < this.to
+    }
+
+    get from(){
+        return  this._from
+    }
+
+    get to(){
+        return  this._to
+    }
+
+    private setPeriodLength(){
+        if (!this.to){
+            this._to = new Date(this.from.getTime() + (1000 * 60 * 60 * 24))
+        }
     }
 }
 
 
 export default class TicketUpdateCollection extends AggregateRoot {
-    private _status: TicketUpdateCollectionStatus;
     private readonly _period: TicketUpdateCollectionPeriod;
     private readonly _startedAt: Date;
-    private _endedAt: Date;
-    private _ticketUpdates: Map<string, TicketUpdate>;
-    private _failedAt: string;
-    private _failReason: string;
+    private readonly _ticketUpdates: Map<string, TicketUpdate>;
 
     constructor(id: string,
                 active: boolean,
                 private readonly _devProjectId: string,
-                status: TicketUpdateCollectionStatus,
-                from: Date) {
+                private _status: TicketUpdateCollectionStatus,
+                from: Date,
+                to?: Date,
+                startedAt?: Date,
+                private _endedAt? : Date,
+                ticketUpdates?: Map<string, TicketUpdate>,
+                private _failedAt?: string,
+                private _failReason?: string) {
         super(id, active);
-        this._status = status;
-        this._period = new TicketUpdateCollectionPeriod(from, new Date(from.getDay()+1));
-        this._startedAt = new Date();
-        this._ticketUpdates = new Map<string, TicketUpdate>()
+        this._period = new TicketUpdateCollectionPeriod(from, to);
+        this._startedAt = startedAt ? startedAt : new Date();
+        this._ticketUpdates = ticketUpdates ? ticketUpdates : new Map<string, TicketUpdate>()
     }
 
     static create(nextPeriod: NextTicketUpdateCollectionPeriod):
@@ -123,6 +141,4 @@ export default class TicketUpdateCollection extends AggregateRoot {
             this._endedAt = new Date();
         }
     }
-
-
 }

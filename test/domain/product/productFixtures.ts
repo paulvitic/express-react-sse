@@ -53,9 +53,7 @@ export const UPDATED_TICKET_FIXTURE_1: UpdatedTicket = {
     key:TICKET_KEY_FIXTURE_1
 };
 
-export const TICKET_UPDATE_COLLECTION_PERIOD_FIXTURE = new TicketUpdateCollectionPeriod(
-    DEV_PROJECT_STARTED_ON_FIXTURE, new Date(DEV_PROJECT_STARTED_ON_FIXTURE.getDay()+1)
-);
+export const TICKET_UPDATE_COLLECTION_PERIOD_FIXTURE = new TicketUpdateCollectionPeriod(DEV_PROJECT_STARTED_ON_FIXTURE);
 
 export const TICKET_CHANGELOG_0: TicketChangeLog ={
     id: 1001,
@@ -100,7 +98,6 @@ export const TICKET_CHANGELOG_1: TicketChangeLog = {
 export const UPDATED_TICKETS_LIST_FETCHED_FIXTURE = new UpdatedTicketsListFetched(
     TicketUpdateCollection.name,
     TICKET_UPDATE_COLLECTION_ID_FIXTURE,
-    2,
     DEV_PROJECT_ID_FIXTURE,
     TICKET_KEY_FIXTURE_0,
     TICKET_UPDATE_COLLECTION_PERIOD_FIXTURE,

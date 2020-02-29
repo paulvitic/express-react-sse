@@ -1,4 +1,3 @@
-import DevelopmentProjectPostgresRepo from "../../../server/infrastructure/persistence/DevelopmentProjectPostgresRepo";
 import PostgresClient from "../../../server/infrastructure/clients/PostgresClient";
 import LogFactory from "../../../server/domain/LogFactory";
 import WinstonLogFactory from "../../../server/infrastructure/context/winstonLogFactory";
@@ -8,13 +7,12 @@ import TicketUpdateCollectionRepository
     from "../../../server/domain/product/repository/TicketUpdateCollectionRepository";
 import TicketUpdateCollectionPostgresRepo
     from "../../../server/infrastructure/persistence/TicketUpdateCollectionPostgresRepo";
-import DevelopmentProject from "../../../server/domain/product/DevelopmentProject";
 import {
     DEV_PROJECT_ID_FIXTURE,
-    DEV_PROJECT_NAME_FIXTURE,
-    DEV_PROJECT_STARTED_ON_FIXTURE, TICKET_BOARD_ID_FIXTURE, TICKET_BOARD_KEY_FIXTURE, TICKET_UPDATE_COLL_ID_FIXTURE
+    TICKET_UPDATE_COLL_ID_FIXTURE
 } from "../../domain/product/productFixtures";
 import TicketBoard from "../../../server/domain/product/TicketBoard";
+import TicketUpdate from "../../../server/domain/product/TicketUpdate";
 
 let repo: TicketUpdateCollectionRepository;
 let client: PostgresClient;
@@ -46,12 +44,18 @@ afterEach( async () => {
 });
 
 describe("save", () => {
+    let ticketUpdates = new Map<string, TicketUpdate>();
+    ticketUpdates.set("dd", new TicketUpdate("dd", 2000, "ff"))
     let ticketUpdateCollectionFixture = new TicketUpdateCollection(
         TICKET_UPDATE_COLL_ID_FIXTURE,
         true,
         DEV_PROJECT_ID_FIXTURE,
         TicketUpdateCollectionStatus.RUNNING,
-        new Date());
+        new Date(),
+        undefined,
+        undefined,
+        undefined,
+        ticketUpdates);
 
     test("should save", async () => {
         let saved = await repo.save(ticketUpdateCollectionFixture).run();

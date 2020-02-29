@@ -1,4 +1,4 @@
-import {QueryResult, QueryResultRow} from "pg";
+import {QueryResultRow} from "pg";
 import DomainEvent from "../../domain/DomainEvent";
 import {translateJsonObject} from "../JsonEventTranslator";
 import TicketBoard from "../../domain/product/TicketBoard";
@@ -90,7 +90,13 @@ export function translateToTicketUpdateCollection(result: QueryResultRow):
                 row.active,
                 row.dev_project_id,
                 row.status,
-                row.from_day
+                row.from_day,
+                row.to_day,
+                row.started_at,
+                row.ended_at,
+                undefined,
+                row.failed_at,
+                row.fail_reason
             ))},
         reason => reason as Error)
 }

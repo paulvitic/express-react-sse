@@ -13,13 +13,18 @@ import {
     translateToOptionalDevProject,
     translateToTicketUpdateCollection
 } from "./QueryResultTranslator";
+import {array} from "fp-ts/lib/Array";
 
 export default class TicketUpdateCollectionPostgresRepo extends PostgresRepository<TicketUpdateCollection>
 implements TicketUpdateCollectionRepository {
 
     private readonly byId = 'SELECT '+ ticketUpdateCollectionFields +
         ' FROM ticket_update_collection AS c LEFT JOIN ticket_update as u ON u.ticket_update_collection_id = c.id  WHERE c.id=$1';
-    private readonly insert = 'INSERT INTO ticket_update_collection(id, active, status, dev_project_id, from_day, to_day, started_at) VALUES($1, $2, $3, $4, $5, $6, $7) RETURNING id';
+    private readonly insert =
+        'INSERT INTO ticket_update_collection(id, active, status, dev_project_id, from_day, to_day, started_at) VALUES($1, $2, $3, $4, $5, $6, $7) RETURNING id';
+    private readonly insertTicketUpdate =
+        'INSERT INTO ticket_update(id, external_ref, key, change_log_read, changed, ticket_update_collection_id) VALUES($1, $2, $3, $4, $5, $6) RETURNING id';
+
     private readonly byStatus = 'SELECT * FROM ticket_update_collection WHERE status=$1';
 
     constructor(client: PostgresClient) {
@@ -73,7 +78,17 @@ implements TicketUpdateCollectionRepository {
         TE.TaskEither<Error, QueryResultRow> {
         return ticketUpdates.length === 0 ?
             TE.taskEither.of(result) :
-            TE.taskEither.of(result);
-            //this.client.query(this.insertBoard, [ticketBoard.id, ticketBoard.externalRef, ticketBoard.key])
+            array.reduce(ticketUpdates, TE.taskEither.of(result), (previous, current) => {
+                return pipe(
+                    previous,
+                    TE.chain(result => this.saveTicketUpdate(current, collectionId, result))
+                )
+            });
+    }
+
+    private saveTicketUpdate(ticketUpdate: TicketUpdate, collectionId: string, result: QueryResultRow):
+        TE.TaskEither<Error, QueryResultRow> {
+        return this.client.query(this.insertTicketUpdate, [ticketUpdate.id, ticketUpdate.externalRef,
+            ticketUpdate.ticketKey, ticketUpdate.isChangeLogRead, ticketUpdate.isChanged, collectionId])
     }
 }

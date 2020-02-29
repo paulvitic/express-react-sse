@@ -5,8 +5,8 @@ export default class TicketUpdate extends DomainEntity {
     private _changed: boolean;
 
     constructor(id: string,
-                readonly externalRef,
-                readonly ticketKey) {
+                readonly externalRef: number,
+                readonly ticketKey: string) {
         super(id);
         this._changeLogRead = false
     }
