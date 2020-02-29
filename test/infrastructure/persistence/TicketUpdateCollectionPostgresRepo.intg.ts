@@ -34,6 +34,17 @@ beforeAll(async () => {
     repo = new TicketUpdateCollectionPostgresRepo(client);
 });
 
+afterEach( async () => {
+    try {
+        // noinspection SqlWithoutWhere
+        await client.query('DELETE FROM jira.ticket_update').run();
+        // noinspection SqlWithoutWhere
+        await client.query('DELETE FROM jira.ticket_update_collection').run();
+    } catch(err) {
+        throw Error(`Error while deleting ticket board fixture: ${err.message}`)
+    }
+});
+
 describe("save", () => {
     let ticketUpdateCollectionFixture = new TicketUpdateCollection(
         TICKET_UPDATE_COLL_ID_FIXTURE,

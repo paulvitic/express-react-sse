@@ -9,20 +9,25 @@ import {pipe} from "fp-ts/lib/pipeable";
 import {developmentProjectFields, translateToOptionalDevProject} from "./QueryResultTranslator";
 import {QueryResultRow} from "pg";
 import TicketBoard from "../../domain/product/TicketBoard";
+import PostgresRepository from "./PostgresRepository";
 
-export default class DevelopmentProjectPostgresRepo extends DevelopmentProjectRepository {
+export default class DevelopmentProjectPostgresRepo
+    extends PostgresRepository<DevelopmentProject>
+    implements DevelopmentProjectRepository {
+
     private readonly log = LogFactory.get(DevelopmentProjectPostgresRepo.name);
+
     private readonly insertBoard = 'INSERT INTO ticket_board(id, external_ref, key) VALUES($1, $2, $3)';
     private readonly insert = 'INSERT INTO development_project(id, active, name, started_on) VALUES($1, $2, $3, $4) RETURNING id';
     private readonly insertWithBoard =
         'INSERT INTO development_project(id, active, name, started_on, ticket_board_id) VALUES($1, $2, $3, $4, $5) RETURNING id';
-    private readonly byTicketBoardKey = 'SELECT ' + developmentProjectFields() +
+    private readonly byTicketBoardKey = 'SELECT ' + developmentProjectFields +
         ' FROM development_project AS dp LEFT JOIN ticket_board as tb ON dp.ticket_board_id = tb.id WHERE tb.key=$1';
-    private readonly byId = 'SELECT '+ developmentProjectFields() +
+    private readonly byId = 'SELECT '+ developmentProjectFields +
         ' FROM development_project AS dp LEFT JOIN ticket_board as tb ON dp.ticket_board_id = tb.id  WHERE dp.id=$1';
 
-    constructor(private readonly client: PostgresClient) {
-        super()
+    constructor(client: PostgresClient) {
+        super(client)
     }
 
     delete(id: string): TE.TaskEither<Error, boolean> {
@@ -73,10 +78,5 @@ export default class DevelopmentProjectPostgresRepo extends DevelopmentProjectRe
         return ticketBoard === null ?
             this.client.query(this.insert, [devProject.id, devProject.isActive, devProject.name, devProject.startedOn]) :
             this.client.query(this.insertWithBoard,[devProject.id, devProject.isActive, devProject.name, devProject.startedOn, ticketBoard.id])
-    }
-
-    private commitSavedEntity(id: string, result: QueryResultRow): TE.TaskEither<Error, QueryResultRow>{
-        return result.rowCount === 1 && result.rows[0].id === id ?
-            this.client.query(this.commit) : this.client.query(this.rollback)
     }
 }

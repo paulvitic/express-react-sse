@@ -5,6 +5,7 @@ import * as O from "fp-ts/lib/Option";
 import {NextTicketUpdateCollectionPeriod} from "./view/NextTicketUpdateCollectionPeriod";
 import {pipe} from "fp-ts/lib/pipeable";
 import {UpdatedTicket} from "./service/TicketBoardIntegration";
+import TicketUpdate from "./TicketUpdate";
 
 export enum TicketUpdateCollectionStatus {
     RUNNING,
@@ -16,28 +17,6 @@ export class TicketUpdateCollectionPeriod {
     constructor(readonly from: Date, readonly to:Date){}
     isDuring(timeStamp: Date): boolean {
         return timeStamp > this.from && timeStamp < this.to
-    }
-}
-
-class TicketUpdate {
-    private _changeLogRead: boolean;
-    private _changed: boolean;
-    constructor(readonly externalRef,
-                readonly ticketKey) {
-        this._changeLogRead = false
-    }
-
-    get isChanged() {
-        return this._changed
-    }
-
-    get isChangeLogRead() {
-        return this._changeLogRead
-    }
-
-    changed(changed: boolean){
-        this._changeLogRead = true;
-        this._changed = changed
     }
 }
 
@@ -92,10 +71,23 @@ export default class TicketUpdateCollection extends AggregateRoot {
         return this._status
     }
 
+    get startedAt() {
+        return this._startedAt
+    }
+
+    get ticketUpdates(): TicketUpdate[] {
+        let updates: TicketUpdate[] = [];
+        for (let update of this._ticketUpdates.values()){
+            updates.push(update)
+        }
+        return updates;
+    }
+
     willRunForTickets(updatedTickets: UpdatedTicket[]): E.Either<Error, void> {
         return E.tryCatch( () => {
             updatedTickets.map(ticket => {
-                this._ticketUpdates.set(ticket.key, new TicketUpdate(ticket.id, ticket.key))
+                this._ticketUpdates.set(ticket.key,
+                    new TicketUpdate(Identity.generate(), ticket.id, ticket.key))
             })},
         err => err as Error
         )
@@ -123,12 +115,14 @@ export default class TicketUpdateCollection extends AggregateRoot {
 
     private complete(): void {
         let allRead = true;
-        for (let value of this._ticketUpdates.values()){
-            allRead = allRead && value.isChangeLogRead;
+        for (let update of this._ticketUpdates.values()){
+            allRead = allRead && update.isChangeLogRead;
         }
         if (allRead) {
             this._status = TicketUpdateCollectionStatus.COMPLETED;
             this._endedAt = new Date();
         }
     }
+
+
 }

@@ -4,7 +4,7 @@ import * as O from "fp-ts/lib/Option";
 import TicketUpdateCollectionRepository from "../../domain/product/repository/TicketUpdateCollectionRepository";
 import TicketUpdateCollection, {TicketUpdateCollectionStatus} from "../../domain/product/TicketUpdateCollection";
 
-export class TicketUpdateCollectionRedisRepo extends TicketUpdateCollectionRepository {
+export class TicketUpdateCollectionRedisRepo implements TicketUpdateCollectionRepository {
 
     constructor(private readonly redisClient: RedisClient,
                 private readonly hash: string) {

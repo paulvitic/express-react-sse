@@ -1,10 +1,10 @@
 import AggregateRoot from "../AggregateRoot";
 import LogFactory from "../LogFactory";
-import TicketHistory from "./TicketHistory";
+import TicketUpdate from "./TicketHistory";
 
 export default class Ticket extends AggregateRoot {
     private readonly log = LogFactory.get(Ticket.name);
-    private readonly ticketHistory: TicketHistory[];
+    private readonly ticketHistory: TicketUpdate[];
 
     constructor(id: string,
                 private _key: string,

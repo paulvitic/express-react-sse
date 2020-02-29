@@ -5,10 +5,14 @@ import TicketBoard from "../../domain/product/TicketBoard";
 import * as O from "fp-ts/lib/Option";
 import * as E from 'fp-ts/lib/Either'
 import DevelopmentProject from "../../domain/product/DevelopmentProject";
+import TicketUpdateCollection from "../../domain/product/TicketUpdateCollection";
 
-export function developmentProjectFields():string{
-    return "dp.id as dp_id, dp.active, dp.name, dp.started_on, dp.ticket_board_id, tb.id as tb_id, tb.key, tb.external_ref"
-}
+export const developmentProjectFields: string =
+    "dp.id as dp_id, dp.active, dp.name, dp.started_on, dp.ticket_board_id, " +
+    "tb.id as tb_id, tb.key, tb.external_ref";
+export const ticketUpdateCollectionFields: string =
+    "c.id as c_id, c.active, c.status, c.dev_project_id, c.from_day, c.to_day, c.started_at, c.ended_at, c.failed_at, c.fail_reason, " +
+    "u.id as u_id, u.key, u.external_ref, u.change_log_read, u.changed";
 
 class TicketBoardValidationError extends Error {
     constructor(message) {
@@ -44,21 +48,6 @@ export function translateToTicketBoard(result: QueryResultRow):
             reason => reason as Error)
 }
 
-export function translateToOptionalTicketBoard(result: QueryResultRow):
-    E.Either<TicketBoardValidationError, O.Option<TicketBoard>> {
-    return E.tryCatch(() => {
-            let {rows} = result;
-            if (rows.length === 0) return O.none;
-            if (rows.length > 1) throw new Error("too many results");
-            let [row] = rows;
-            return O.some(new TicketBoard(
-                row.id,
-                row.external_id,
-                row.external_key
-            ))},
-        reason => reason as Error)
-}
-
 export function assertDelete(result: QueryResultRow):
     E.Either<TicketBoardValidationError, boolean> {
     return E.tryCatch(() => {
@@ -73,7 +62,7 @@ export function translateToOptionalDevProject(result: QueryResultRow):
     return E.tryCatch(() => {
             let {rows} = result;
             if (rows.length === 0) return O.none;
-            if (rows.length > 7) throw new Error("too many results");
+            if (rows.length > 1) throw new Error("too many results");
             let [row] = rows;
             return O.some(new DevelopmentProject(
                 row.dp_id,
@@ -86,6 +75,22 @@ export function translateToOptionalDevProject(result: QueryResultRow):
                         row.key,
                         row.external_ref) :
                     undefined
+            ))},
+        reason => reason as Error)
+}
+
+export function translateToTicketUpdateCollection(result: QueryResultRow):
+    E.Either<TicketBoardValidationError, O.Option<TicketUpdateCollection>>{
+    return E.tryCatch(() => {
+            let {rows} = result;
+            if (rows.length === 0) return O.none;
+            let [row] = rows;
+            return O.some(new TicketUpdateCollection(
+                row.c_id,
+                row.active,
+                row.dev_project_id,
+                row.status,
+                row.from_day
             ))},
         reason => reason as Error)
 }

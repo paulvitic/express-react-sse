@@ -16,7 +16,7 @@ CREATE TABLE jira.ticket_board
     id           VARCHAR(31) PRIMARY KEY,
     external_ref INT         NOT NULL,
     key          VARCHAR(31) NOT NULL,
-    constraint unique_external_ref unique (external_ref, key)
+    CONSTRAINT unique_external_ref unique (external_ref, key)
 );
 
 CREATE TABLE jira.development_project
@@ -32,13 +32,25 @@ CREATE TABLE jira.development_project
 CREATE TABLE jira.ticket_update_collection
 (
     id             VARCHAR(31) PRIMARY KEY,
+    active         BOOLEAN     NOT NULL,
+    status         VARCHAR(31) NOT NULL,
     dev_project_id VARCHAR(31) NOT NULL,
-    form_day       TIMESTAMP   NOT NULL,
+    from_day       TIMESTAMP   NOT NULL,
     to_day         TIMESTAMP   NOT NULL,
     started_at     TIMESTAMP   NOT NULL,
     ended_at       TIMESTAMP,
-    status         VARCHAR(31) NOT NULL,
-    no_of_tickets  INT
+    failed_at      VARCHAR(63),
+    fail_reason    VARCHAR(127)
 );
 
-
+CREATE TABLE jira.ticket_update
+(
+    id                          VARCHAR(31) PRIMARY KEY,
+    external_ref                INT         NOT NULL,
+    key                         VARCHAR(31) NOT NULL,
+    change_log_read             BOOLEAN     NOT NULL,
+    changed                     BOOLEAN     NOT NULL,
+    ticket_update_collection_id VARCHAR(31) NOT NULL,
+    FOREIGN KEY (ticket_update_collection_id) REFERENCES ticket_update_collection (id),
+    CONSTRAINT unique_ticket_update_external_ref UNIQUE (external_ref, key)
+);
