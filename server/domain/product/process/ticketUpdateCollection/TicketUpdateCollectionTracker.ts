@@ -39,7 +39,6 @@ export class TicketUpdateCollectionTracker implements EventListener<TicketUpdate
             TE.chain( collection => this.eventBus.publishEvent(new TicketUpdateCollectionStarted(
                     TicketUpdateCollection.name,
                     collection.id,
-                    collection.nextEventSequence(),
                     collection.devProjectId,
                     nextCollectionPeriod.ticketBoardKey,
                     collection.period)
@@ -58,7 +57,6 @@ export class TicketUpdateCollectionTracker implements EventListener<TicketUpdate
                 this.eventBus.publishEvent(new TicketUpdateCollectionEnded(
                     TicketUpdateCollection.name,
                     collection.id,
-                    collection.nextEventSequence(),
                     collection.devProjectId)) :
                 TE.taskEither.of(null))
         ).run();

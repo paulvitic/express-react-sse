@@ -8,7 +8,6 @@ import DomainEntity from "./DomainEntity";
 
 export default abstract class AggregateRoot extends DomainEntity {
     private readonly _domainEvents: DomainEvent[] = new Array<DomainEvent>();
-    private lastEventSequence: number = 0;
 
     protected constructor(id: string,
                           private _active?: boolean) {
@@ -38,21 +37,8 @@ export default abstract class AggregateRoot extends DomainEntity {
             }, error => error as Error
         )
     }
-
-    nextEventSequence(): number {
-        return this.lastEventSequence + 1;
-    }
-
+    
     protected recordEvent = (event: DomainEvent): E.Either<Error, number> => {
         return E.tryCatch(() => this.domainEvents.push(event), error => error as Error)
     };
-
-    protected assertEventSequence(eventSequence: number): E.Either<Error, number> {
-        return pipe(
-            E.either.of(eventSequence),
-            E.filterOrElse((eventSequence) => eventSequence === this.lastEventSequence + 1,
-                () => new Error(`Expected event sequence was ${this.lastEventSequence + 1} but got ${eventSequence}`)),
-            E.map((eventSequence) => this.lastEventSequence = eventSequence)
-        )
-    }
 }

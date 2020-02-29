@@ -31,7 +31,6 @@ describe("on collection started", () => {
     let collectionStartedEvent= new TicketUpdateCollectionStarted(
         TicketUpdateCollection.name,
         TICKET_UPDATE_COLLECTION_ID_FIXTURE,
-        1,
         DEV_PROJECT_ID_FIXTURE,
         TICKET_BOARD_ID_FIXTURE,
         TICKET_UPDATE_COLLECTION_PERIOD_FIXTURE

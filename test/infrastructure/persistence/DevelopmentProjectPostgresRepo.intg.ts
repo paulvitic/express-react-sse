@@ -44,7 +44,7 @@ afterEach( async () => {
 
 describe("save",  () => {
     test("should insert both dev project and records when ticked board is available", async () => {
-        let mockDevProject = new DevelopmentProject(
+        let devProjectFixture = new DevelopmentProject(
             DEV_PROJECT_ID_FIXTURE,
             true,
             DEV_PROJECT_NAME_FIXTURE,
@@ -53,7 +53,7 @@ describe("save",  () => {
                 TICKET_BOARD_ID_FIXTURE,
                 TICKET_BOARD_KEY_FIXTURE,
                 1000));
-        let saved = await repo.save(mockDevProject).run();
+        let saved = await repo.save(devProjectFixture).run();
         expect(saved.isRight()).toBeTruthy();
         let result = saved.value as DevelopmentProject;
         expect(result.id).toEqual(DEV_PROJECT_ID_FIXTURE);
@@ -63,12 +63,12 @@ describe("save",  () => {
     });
 
     test("should insert only dev project when ticked board is not available", async () => {
-        let mockDevProject = new DevelopmentProject(
+        let devProjectFicture = new DevelopmentProject(
             DEV_PROJECT_ID_FIXTURE,
             true,
             DEV_PROJECT_NAME_FIXTURE,
             DEV_PROJECT_STARTED_ON_FIXTURE);
-        let saved = await repo.save(mockDevProject).run();
+        let saved = await repo.save(devProjectFicture).run();
         expect(saved.isRight()).toBeTruthy();
         let result = saved.value as DevelopmentProject;
         expect(result.id).toEqual(DEV_PROJECT_ID_FIXTURE)

@@ -2,7 +2,7 @@ import EventBus, {EventHandler} from "../../domain/EventBus";
 import DomainEvent from "../../domain/DomainEvent";
 import EventStore from "../../domain/EventStore";
 import RabbitClient from "../clients/RabbitClient";
-import {Channel, ConfirmChannel, Message, Options, Replies} from 'amqplib';
+import {Channel, ConfirmChannel, Message } from 'amqplib';
 import {translateMessage, translateEvent} from "./MessageTranslator";
 import {pipe} from "fp-ts/lib/pipeable";
 import * as TE from 'fp-ts/lib/TaskEither'

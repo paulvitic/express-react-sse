@@ -42,7 +42,6 @@ export default class UpdatedTicketsListCollector implements EventListener<Ticket
         return T.task.of(new TicketUpdateCollectionFailed(
             sourceEvent.aggregate,
             sourceEvent.aggregateId,
-            sourceEvent.sequence + 1,
             sourceEvent.devProjectId,
             sourceEvent.ticketBoardKey,
             UpdatedTicketsListCollector.name,
@@ -55,7 +54,6 @@ export default class UpdatedTicketsListCollector implements EventListener<Ticket
         return T.task.of(new UpdatedTicketsListFetched(
             sourceEvent.aggregate,
             sourceEvent.aggregateId,
-            sourceEvent.sequence + 1,
             sourceEvent.devProjectId,
             sourceEvent.ticketBoardKey,
             sourceEvent.period,

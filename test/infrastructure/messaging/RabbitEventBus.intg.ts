@@ -9,7 +9,9 @@ import EventBus from "../../../server/domain/EventBus";
 import LogFactory from "../../../server/domain/LogFactory";
 import WinstonLogFactory from "../../../server/infrastructure/context/winstonLogFactory";
 
-const initializeEventBus = async (): Promise<EventBus> => {
+let eventBus :RabbitEventBus;
+
+beforeAll(async () => {
     LogFactory.init(new WinstonLogFactory());
     let env = await config();
     let rabbitClient = await RabbitClient.init(
@@ -27,11 +29,10 @@ const initializeEventBus = async (): Promise<EventBus> => {
         env.POSTGRES_PASS
     ).init();
 
-    return await RabbitEventBus.init(rabbitClient, new PostgresEventStore(postgresClient));
-};
+    eventBus = await RabbitEventBus.init(rabbitClient, new PostgresEventStore(postgresClient));
+});
 
 test("should publish",  async () => {
-    let eventBus = await initializeEventBus();
     let res = await eventBus.publishEvent(DOMAIN_EVENT_FIXTURE).run();
     expect(res.isRight()).toBeTruthy()
 });

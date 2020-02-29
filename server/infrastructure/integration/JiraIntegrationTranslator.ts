@@ -83,7 +83,7 @@ const changelogFilter = {
 
 export function toProjectInfo({ data }: AxiosResponse<any>):
     E.Either<TicketBoardIntegrationFailure, TicketBoardInfo> {
-    return E.tryCatch(
+    return E.tryCatch2v(
         () => {
             let {issues: [issue]} = data;
             let {fields: {project, created}} = issue;
@@ -95,14 +95,14 @@ export function toProjectInfo({ data }: AxiosResponse<any>):
 
 export function toUpdatedTickets({ data }: AxiosResponse<any>):
     E.Either<TicketBoardIntegrationFailure, UpdatedTicket[]> {
-    return E.tryCatch(
+    return E.tryCatch2v(
         () => {
             if (data.total === 0) return [];
             let updates = new Array<UpdatedTicket>();
             let {issues} = data;
             for (let issue of issues) {
-                let {id, key, fields: {updated, created}} = issue;
-                updates.push({id, key, updated: new Date(updated), created: new Date(created)})
+                let {id, key} = issue;
+                updates.push({id, key})
             }
             return updates;
         },

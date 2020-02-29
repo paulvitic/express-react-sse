@@ -5,9 +5,9 @@ export class TicketUpdateCollectionStarted extends AbstractDomainEvent {
     constructor(
         aggregate: string,
         aggregateId: string,
-        sequence: number,
         readonly devProjectId: string,
         readonly ticketBoardKey: string,
         readonly period: TicketUpdateCollectionPeriod){
-        super(aggregate, aggregateId, sequence);}
+        super(aggregate, aggregateId);
+    }
 }

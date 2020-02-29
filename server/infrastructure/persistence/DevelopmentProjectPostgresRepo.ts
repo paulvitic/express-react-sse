@@ -26,7 +26,7 @@ export default class DevelopmentProjectPostgresRepo extends DevelopmentProjectRe
     }
 
     delete(id: string): TE.TaskEither<Error, boolean> {
-        return undefined;
+        throw new Error("Method not implemented.");
     }
 
     findById(id: string): TE.TaskEither<Error, O.Option<DevelopmentProject>> {
@@ -59,7 +59,7 @@ export default class DevelopmentProjectPostgresRepo extends DevelopmentProjectRe
     }
 
     update(id: string, item: DevelopmentProject): TE.TaskEither<Error, DevelopmentProject> {
-        return undefined;
+        throw new Error("Method not implemented.");
     }
 
     private saveTicketBoard(ticketBoard: TicketBoard, result: QueryResultRow): TE.TaskEither<Error, QueryResultRow>{
@@ -79,5 +79,4 @@ export default class DevelopmentProjectPostgresRepo extends DevelopmentProjectRe
         return result.rowCount === 1 && result.rows[0].id === id ?
             this.client.query(this.commit) : this.client.query(this.rollback)
     }
-
 }

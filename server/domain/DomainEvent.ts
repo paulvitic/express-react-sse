@@ -2,7 +2,6 @@ export default interface DomainEvent {
     eventType: string
     aggregate: string
     aggregateId: string
-    sequence: number
     generatedOn: Date
 }
 
@@ -11,8 +10,7 @@ export abstract class AbstractDomainEvent implements DomainEvent {
     private readonly _generatedOn: Date;
 
     protected constructor(private readonly _aggregate: string,
-                          private readonly _aggregateId: string,
-                          private readonly _sequence: number
+                          private readonly _aggregateId: string
     ) {
             this._eventType = this.constructor.name;
             this._generatedOn= new Date();
@@ -28,10 +26,6 @@ export abstract class AbstractDomainEvent implements DomainEvent {
 
     get aggregateId(): string {
         return this._aggregateId;
-    };
-
-    get sequence(): number {
-        return this._sequence;
     };
 
     get generatedOn(): Date {

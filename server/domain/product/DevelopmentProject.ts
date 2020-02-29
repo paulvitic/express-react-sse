@@ -6,8 +6,7 @@ import DevelopmentProjectRepository from "./repository/DevelopmentProjectReposit
 import {pipe} from "fp-ts/lib/pipeable";
 import TicketBoardIntegration, {TicketBoardInfo} from "./service/TicketBoardIntegration";
 import Identity from "../Identity";
-import {DevelopmentProjectCreated} from "./event/DevelopmentProjectCreated";
-import {TicketBoardLinked} from "./event/TicketBoardLinked";
+import {DevelopmentProjectCreated, TicketBoardLinked} from "./event";
 import LogFactory from "../LogFactory";
 
 export class DevelopmentProjectError extends Error {}
@@ -65,9 +64,8 @@ export default class DevelopmentProject extends AggregateRoot {
                 () => new DevelopmentProjectError('Ticket board already exists')),
             E.map(ticketBoard => new TicketBoardLinked(DevelopmentProject.name,
                 this.id,
-                this.nextEventSequence(),
                 ticketBoard)),
-            E.chain(this.onTicketBoardLinked),
+            E.map(this.onTicketBoardLinked),
             E.chain(this.recordEvent)
         )
     }
@@ -101,29 +99,15 @@ export default class DevelopmentProject extends AggregateRoot {
             created.map(project => new DevelopmentProjectCreated(
                 DevelopmentProject.name,
                 project.id,
-                project.nextEventSequence(),
                 info.name)),
-            E.chain(event => created.chain(project => project.onTicketBoardCreated(event))),
             E.chain(event => created.chain(project => project.recordEvent(event))),
             E.chain(() => created.chain(project => project.linkTicketBoard(info.key, info.id))),
             E.chain(() => created)
         );
     };
 
-    private onTicketBoardCreated = (event: DevelopmentProjectCreated):
-        E.Either<DevelopmentProjectError, DevelopmentProjectCreated> => {
-        return pipe(
-            this.assertEventSequence(event.sequence),
-            E.map(() => event)
-        );
-    };
-
-    private onTicketBoardLinked = (event: TicketBoardLinked):
-        E.Either<DevelopmentProjectError, TicketBoardLinked> => {
-        return pipe(
-            this.assertEventSequence(event.sequence),
-            E.map(() => this._ticketBoard = event.ticketBoard),
-            E.map(() => event)
-        );
-    };
+    private onTicketBoardLinked = (event: TicketBoardLinked): TicketBoardLinked => {
+        this._ticketBoard = event.ticketBoard;
+        return event
+    }
 }

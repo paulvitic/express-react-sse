@@ -12,7 +12,6 @@ export function translateEvent(event: DomainEvent): E.Either<Error, OutgoingMess
                 headers: {
                     aggregate: event.aggregate,
                     aggregateId: event.aggregateId,
-                    sequence: event.sequence,
                     generatedOn: event.generatedOn
                 },
                 type: event.eventType
