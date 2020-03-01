@@ -179,5 +179,11 @@ test("optional filter", () => {
     expect(res2).toHaveLength(1)
 });
 
+// collect all successes AND failures:
+//A.array.sequence(T.task)(arrayOfTaskEithers)
+
+// fail if some failure is encountered:
+//A.array.sequence(TE.taskEither)(arrayOfTaskEithers)
+
 
 

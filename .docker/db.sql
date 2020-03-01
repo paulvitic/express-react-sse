@@ -48,8 +48,7 @@ CREATE TABLE jira.ticket_update
     id                          VARCHAR(31) PRIMARY KEY,
     external_ref                INT         NOT NULL,
     key                         VARCHAR(31) NOT NULL,
-    change_log_read             BOOLEAN     NOT NULL,
-    changed                     BOOLEAN     NOT NULL,
+    collected                   BOOLEAN     NOT NULL,
     ticket_update_collection_id VARCHAR(31) NOT NULL,
     FOREIGN KEY (ticket_update_collection_id) REFERENCES ticket_update_collection (id),
     CONSTRAINT unique_ticket_update_external_ref UNIQUE (external_ref, key)

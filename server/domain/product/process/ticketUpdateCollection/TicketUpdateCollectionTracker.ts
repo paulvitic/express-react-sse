@@ -75,8 +75,7 @@ export class TicketUpdateCollectionTracker implements EventListener<TicketUpdate
             case TicketRemainedUnchanged.name:
                 return pipe(
                     E.either.of(<TicketChangeLogEvent>sourceEvent),
-                    E.chain(event => collection.completedForTicket(
-                        event.ticketExternalRef, event.ticketKey, sourceEvent.eventType ===TicketChanged.name)),
+                    E.chain(event => collection.completedForTicket(event.ticketExternalRef, event.ticketKey)),
                     E.chain(() => E.either.of(collection))
                 );
             case TicketUpdateCollectionFailed.name:

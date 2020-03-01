@@ -111,9 +111,9 @@ export default class TicketUpdateCollection extends AggregateRoot {
         )
     }
 
-    completedForTicket(ticketExternalRef: number, ticketKey: string, changed:boolean):E.Either<Error, void> {
+    completedForTicket(ticketExternalRef: number, ticketKey: string):E.Either<Error, void> {
         return E.tryCatch( () => {
-                this._ticketUpdates.get(ticketKey).changed(changed);
+                this._ticketUpdates.get(ticketKey).collect();
                 return this.complete()
             },
             err => err as Error
@@ -132,11 +132,11 @@ export default class TicketUpdateCollection extends AggregateRoot {
     }
 
     private complete(): void {
-        let allRead = true;
+        let allCollected = true;
         for (let update of this._ticketUpdates.values()){
-            allRead = allRead && update.isChangeLogRead;
+            allCollected = allCollected && update.collected;
         }
-        if (allRead) {
+        if (allCollected) {
             this._status = TicketUpdateCollectionStatus.COMPLETED;
             this._endedAt = new Date();
         }

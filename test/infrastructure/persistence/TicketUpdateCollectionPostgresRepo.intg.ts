@@ -11,7 +11,6 @@ import {
     DEV_PROJECT_ID_FIXTURE,
     TICKET_UPDATE_COLL_ID_FIXTURE
 } from "../../domain/product/productFixtures";
-import TicketBoard from "../../../server/domain/product/TicketBoard";
 import TicketUpdate from "../../../server/domain/product/TicketUpdate";
 
 let repo: TicketUpdateCollectionRepository;
@@ -45,7 +44,8 @@ afterEach( async () => {
 
 describe("save", () => {
     let ticketUpdates = new Map<string, TicketUpdate>();
-    ticketUpdates.set("dd", new TicketUpdate("dd", 2000, "ff"))
+    ticketUpdates.set("dd", new TicketUpdate("dd", 2000, "ff"));
+    ticketUpdates.set("aa", new TicketUpdate("aa", 2000, "gg"));
     let ticketUpdateCollectionFixture = new TicketUpdateCollection(
         TICKET_UPDATE_COLL_ID_FIXTURE,
         true,

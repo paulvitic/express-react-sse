@@ -1,26 +1,21 @@
 import DomainEntity from "../DomainEntity";
 
 export default class TicketUpdate extends DomainEntity {
-    private _changeLogRead: boolean;
-    private _changed: boolean;
+    private _collected: boolean;
 
     constructor(id: string,
                 readonly externalRef: number,
-                readonly ticketKey: string) {
+                readonly ticketKey: string,
+                collected?: boolean) {
         super(id);
-        this._changeLogRead = false
+        this._collected = collected === undefined ? false : collected;
     }
 
-    get isChanged() {
-        return this._changed
+    get collected() {
+        return this._collected
     }
 
-    get isChangeLogRead() {
-        return this._changeLogRead
-    }
-
-    changed(changed: boolean){
-        this._changeLogRead = true;
-        this._changed = changed
+    collect(){
+        this._collected = true;
     }
 }

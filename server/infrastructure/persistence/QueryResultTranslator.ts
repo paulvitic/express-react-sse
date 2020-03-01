@@ -12,7 +12,7 @@ export const developmentProjectFields: string =
     "tb.id as tb_id, tb.key, tb.external_ref";
 export const ticketUpdateCollectionFields: string =
     "c.id as c_id, c.active, c.status, c.dev_project_id, c.from_day, c.to_day, c.started_at, c.ended_at, c.failed_at, c.fail_reason, " +
-    "u.id as u_id, u.key, u.external_ref, u.change_log_read, u.changed";
+    "u.id as u_id, u.key, u.external_ref, u.collected";
 
 class TicketBoardValidationError extends Error {
     constructor(message) {
