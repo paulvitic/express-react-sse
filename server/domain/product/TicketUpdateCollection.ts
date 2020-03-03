@@ -51,13 +51,17 @@ export default class TicketUpdateCollection extends AggregateRoot {
                 to?: Date,
                 startedAt?: Date,
                 private _endedAt? : Date,
-                ticketUpdates?: Map<string, TicketUpdate>,
+                ticketUpdates?: TicketUpdate[],
                 private _failedAt?: string,
                 private _failReason?: string) {
         super(id, active);
         this._period = new TicketUpdateCollectionPeriod(from, to);
         this._startedAt = startedAt ? startedAt : new Date();
-        this._ticketUpdates = ticketUpdates ? ticketUpdates : new Map<string, TicketUpdate>()
+        this._ticketUpdates = ticketUpdates ?
+            ticketUpdates.reduce(
+                (previous: Map<string, TicketUpdate>, current: TicketUpdate) => previous.set(current.ticketKey, current),
+                new Map<string, TicketUpdate>()) :
+            new Map<string, TicketUpdate>()
     }
 
     static create(nextPeriod: NextTicketUpdateCollectionPeriod):

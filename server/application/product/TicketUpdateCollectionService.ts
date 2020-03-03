@@ -1,7 +1,6 @@
 import * as TE from "fp-ts/lib/TaskEither";
-
 import {TicketUpdateCollectionQueryService} from "./TicketUpdateCollectionQueryService";
-import {TicketUpdateCollectionTracker} from "../../domain/product/process/ticketUpdateCollection/TicketUpdateCollectionExecutive";
+import {TicketUpdateCollectionTracker} from "../../domain/product/process/ticketUpdateCollection/TicketUpdateCollectionTracker";
 import {pipe} from "fp-ts/lib/pipeable";
 
 export class TicketUpdateCollectionService {

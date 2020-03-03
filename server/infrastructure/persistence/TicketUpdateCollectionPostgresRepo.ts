@@ -12,9 +12,11 @@ import {
     translateToTicketUpdateCollection
 } from "./QueryResultTranslator";
 import * as translate from "./TicketUpdateCollectionPostgresTranslator";
+import LogFactory from "../../domain/LogFactory";
 
 export default class TicketUpdateCollectionPostgresRepo extends PostgresRepository<TicketUpdateCollection>
 implements TicketUpdateCollectionRepository {
+    private readonly log = LogFactory.get(TicketUpdateCollectionPostgresRepo.name);
 
     private readonly byId = 'SELECT '+ ticketUpdateCollectionFields +
         ' FROM ticket_update_collection AS c LEFT JOIN ticket_update as u ON u.ticket_update_collection_id = c.id  WHERE c.id=$1';
@@ -27,6 +29,7 @@ implements TicketUpdateCollectionRepository {
     findById(id: string): TE.TaskEither<Error, O.Option<TicketUpdateCollection>> {
         return pipe(
             this.client.query(this.byId, [id]),
+            TE.chainFirst(query => TE.rightIO(this.log.io.info(`Query:\n ${query}`))),
             TE.map(translateToTicketUpdateCollection),
             TE.chain(TE.fromEither)
         )
@@ -44,13 +47,18 @@ implements TicketUpdateCollectionRepository {
         throw new Error("Method not implemented.");
     }
 
-    save(collection: TicketUpdateCollection): TE.TaskEither<Error, any> {
+    save(collection: TicketUpdateCollection): TE.TaskEither<Error, TicketUpdateCollection> {
         return  pipe(
             TE.fromEither(translate.toInsertCollectionQuery(collection)),
+            TE.chainFirst(query => TE.rightIO(this.log.io.info(`Executing insert query: ${query}`))),
             TE.chain(query => this.client.query(query).foldTaskEither(
                 err => this.rollBack(err),
                 result => this.commit(result))),
-            TE.chain( result => TE.fromEither(translate.fromCollectionInsertResult(result)))
+            TE.chain( result => TE.fromEither(translate.fromCollectionInsertResult(result))),
+            TE.chainFirst(inserted => TE.rightIO(
+                this.log.io.info(`Inserted:\n ${JSON.stringify(inserted,
+                    (key, value)=> value instanceof Map ? [...value] : value, // not exactly the string output we need
+                    2)}`)))
         )
     }
 

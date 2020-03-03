@@ -43,9 +43,10 @@ afterEach( async () => {
 });
 
 describe("save", () => {
-    let ticketUpdates = new Map<string, TicketUpdate>();
-    ticketUpdates.set("dd", new TicketUpdate("dd", 2000, "ff"));
-    ticketUpdates.set("aa", new TicketUpdate("aa", 2000, "gg"));
+    let ticketUpdates = [
+        new TicketUpdate("dd", 2000, "ff"),
+        new TicketUpdate("aa", 2000, "gg")
+    ];
     let ticketUpdateCollectionFixture = new TicketUpdateCollection(
         TICKET_UPDATE_COLL_ID_FIXTURE,
         true,

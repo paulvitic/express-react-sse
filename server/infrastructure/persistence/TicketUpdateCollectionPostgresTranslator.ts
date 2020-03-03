@@ -55,32 +55,29 @@ function toInsertTicketUpdateQuery(ticketUpdate: TicketUpdate, collectionId: str
 
 export function fromCollectionInsertResult(results: QueryResultRow):
     E.Either<Error, TicketUpdateCollection> {
-    return E.tryCatch(() => {
-            toCollection(results[1]);
-            toTicketUpdate(results[2]);
-            return null;
-    }, reason => reason as Error)
-}
-
-function toCollection(result: QueryResult):
-    E.Either<Error, TicketUpdateCollection> {
-    return E.tryCatch(() => {
-            let {rows} = result;
-            let [row] = rows;
-            return new TicketUpdateCollection(
-                row.id,
-                row.active,
-                row.dev_project_id,
-                row.status,
-                row.from_day,
-                row.to_day,
-                row.started_at,
-                row.ended_at,
-                undefined,
-                row.failed_at,
-                row.fail_reason
-            )},
-        reason => reason as Error)
+    return pipe(
+        array.sequence(E.either)(array.map(results.splice(2), toTicketUpdate)),
+        E.chain(ticketUpdates => {
+            return E.tryCatch(() => {
+                let collectionResult = results[1];
+                let {rows} = collectionResult;
+                let [row] = rows;
+                return new TicketUpdateCollection(
+                    row.id,
+                    row.active,
+                    row.dev_project_id,
+                    row.status,
+                    row.from_day,
+                    row.to_day,
+                    row.started_at,
+                    row.ended_at,
+                    ticketUpdates,
+                    row.failed_at,
+                    row.fail_reason
+                )
+            }, reason => reason as Error)
+        })
+    )
 }
 
 function toTicketUpdate(result: QueryResult):
