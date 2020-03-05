@@ -33,8 +33,8 @@ const DEFAULT_LOGGER = (() => {
 
 
 export default class WinstonLogFactory {
-  // TODO abstract LogFactory return type and create an interface for LogFactory at domain
-  public get(module:string | undefined) {
+    // TODO how to get log level from config
+    public get(module:string | undefined) {
     let winstonLogger;
     if (module) {
       if (!winston.loggers.has(module)) {

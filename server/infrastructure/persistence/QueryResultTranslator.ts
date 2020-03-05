@@ -10,9 +10,7 @@ import TicketUpdateCollection from "../../domain/product/TicketUpdateCollection"
 export const developmentProjectFields: string =
     "dp.id as dp_id, dp.active, dp.name, dp.started_on, dp.ticket_board_id, " +
     "tb.id as tb_id, tb.key, tb.external_ref";
-export const ticketUpdateCollectionFields: string =
-    "c.id as c_id, c.active, c.status, c.dev_project_id, c.from_day, c.to_day, c.started_at, c.ended_at, c.failed_at, c.fail_reason, " +
-    "u.id as u_id, u.key, u.external_ref, u.collected";
+
 
 class TicketBoardValidationError extends Error {
     constructor(message) {
@@ -75,28 +73,6 @@ export function translateToOptionalDevProject(result: QueryResultRow):
                         row.key,
                         row.external_ref) :
                     undefined
-            ))},
-        reason => reason as Error)
-}
-
-export function translateToTicketUpdateCollection(result: QueryResultRow):
-    E.Either<TicketBoardValidationError, O.Option<TicketUpdateCollection>>{
-    return E.tryCatch(() => {
-            let {rows} = result;
-            if (rows.length === 0) return O.none;
-            let [row] = rows;
-            return O.some(new TicketUpdateCollection(
-                row.c_id,
-                row.active,
-                row.dev_project_id,
-                row.status,
-                row.from_day,
-                row.to_day,
-                row.started_at,
-                row.ended_at,
-                undefined,
-                row.failed_at,
-                row.fail_reason
             ))},
         reason => reason as Error)
 }

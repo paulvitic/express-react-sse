@@ -31,7 +31,7 @@ CREATE TABLE jira.development_project
 
 CREATE TABLE jira.ticket_update_collection
 (
-    id             VARCHAR(31) PRIMARY KEY,
+    collection_id  VARCHAR(31) PRIMARY KEY,
     active         BOOLEAN     NOT NULL,
     status         VARCHAR(31) NOT NULL,
     dev_project_id VARCHAR(31) NOT NULL,
@@ -45,11 +45,11 @@ CREATE TABLE jira.ticket_update_collection
 
 CREATE TABLE jira.ticket_update
 (
-    id                          VARCHAR(31) PRIMARY KEY,
-    external_ref                INT         NOT NULL,
-    key                         VARCHAR(31) NOT NULL,
-    collected                   BOOLEAN     NOT NULL,
-    ticket_update_collection_id VARCHAR(31) NOT NULL,
-    FOREIGN KEY (ticket_update_collection_id) REFERENCES ticket_update_collection (id),
+    ticket_update_id VARCHAR(31) PRIMARY KEY,
+    external_ref     INT         NOT NULL,
+    key              VARCHAR(31) NOT NULL,
+    collected        BOOLEAN     NOT NULL,
+    collection_id    VARCHAR(31) NOT NULL,
+    FOREIGN KEY (collection_id) REFERENCES ticket_update_collection(collection_id),
     CONSTRAINT unique_ticket_update_external_ref UNIQUE (external_ref, key)
 );

@@ -6,7 +6,7 @@ import RabbitClient from "../clients/RabbitClient";
 import PostgresClient from "../clients/PostgresClient";
 import {RequestHandler} from "express";
 import {TicketBoardsResource, TicketBoardsEndpoints} from "../rest";
-import DevelopmentProjectService from "../../application/product/TicketBoardsService";
+import DevelopmentProjectService from "../../application/product/DevelopmentProjectService";
 import {UsersEndpoints, UsersResource} from "../rest/team/UsersResource";
 import PostgresEventStore from "../persistence/PostgresEventStore";
 import EventStore from "../../domain/EventStore";
@@ -15,7 +15,7 @@ import EventBus from "../../domain/EventBus";
 import {Repository} from "../../domain/Repository";
 import TicketBoard from "../../domain/product/TicketBoard";
 import {registerDomainEvent} from "../JsonEventTranslator";
-import {TicketBoardLinked} from "../../domain/product/event/TicketBoardLinked";
+import {TicketBoardLinked} from "../../domain/product/event";
 import JiraIntegration from "../integration/JiraIntegration";
 import LogFactory from "../../domain/LogFactory";
 

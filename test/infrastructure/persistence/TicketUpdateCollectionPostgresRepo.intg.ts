@@ -63,3 +63,75 @@ describe("save", () => {
         expect(saved.isRight()).toBeTruthy();
     })
 });
+
+describe("find by id", () => {
+    let ticketUpdateCollectionFixture = new TicketUpdateCollection(
+        `${TICKET_UPDATE_COLL_ID_FIXTURE}-0`,
+        true,
+        DEV_PROJECT_ID_FIXTURE,
+        TicketUpdateCollectionStatus.RUNNING,
+        new Date(),
+        undefined,
+        undefined,
+        undefined,
+        [
+            new TicketUpdate("aa", 2000, "bb"),
+            new TicketUpdate("cc", 2001, "dd")
+        ]);
+
+    test("should not find", async () => {
+        await repo.save(ticketUpdateCollectionFixture).run();
+        let found = await repo.findById(`${TICKET_UPDATE_COLL_ID_FIXTURE}-1`).run();
+        expect(found.isRight() && found.value.isNone()).toBeTruthy();
+    });
+
+    test("should find", async () => {
+        await repo.save(ticketUpdateCollectionFixture).run();
+        let found = await repo.findById(`${TICKET_UPDATE_COLL_ID_FIXTURE}-0`).run();
+        expect(found.isRight() && found.value.isSome()).toBeTruthy();
+    })
+});
+
+describe("find by status", () => {
+    let ticketUpdateCollectionFixture0 = new TicketUpdateCollection(
+        `${TICKET_UPDATE_COLL_ID_FIXTURE}-0`,
+        true,
+        DEV_PROJECT_ID_FIXTURE,
+        TicketUpdateCollectionStatus.RUNNING,
+        new Date(),
+        undefined,
+        undefined,
+        undefined,
+        [
+            new TicketUpdate("aa", 2000, "bb"),
+            new TicketUpdate("cc", 2001, "dd")
+        ]);
+
+    let ticketUpdateCollectionFixture1 = new TicketUpdateCollection(
+        `${TICKET_UPDATE_COLL_ID_FIXTURE}-1`,
+        true,
+        DEV_PROJECT_ID_FIXTURE,
+        TicketUpdateCollectionStatus.RUNNING,
+        new Date(),
+        undefined,
+        undefined,
+        undefined,
+        [
+            new TicketUpdate("ee", 2002, "ff"),
+            new TicketUpdate("gg", 2003, "hh")
+        ]);
+
+    test("should find two", async () => {
+        await repo.save(ticketUpdateCollectionFixture0).run();
+        await repo.save(ticketUpdateCollectionFixture1).run();
+        let found = await repo.findByStatus(TicketUpdateCollectionStatus.RUNNING).run();
+        expect(found.isRight() && found.value.length===2).toBeTruthy();
+    });
+
+    test("should not find", async () => {
+        await repo.save(ticketUpdateCollectionFixture0).run();
+        await repo.save(ticketUpdateCollectionFixture1).run();
+        let found = await repo.findByStatus(TicketUpdateCollectionStatus.COMPLETED).run();
+        expect(found.isRight() && found.value.length === 0).toBeTruthy();
+    })
+});
