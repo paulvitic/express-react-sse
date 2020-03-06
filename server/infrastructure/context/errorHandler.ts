@@ -1,10 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
-import WinstonLogFactory from "./WinstonLogFactory";
-
-const log = WinstonLogFactory.get("errorHandler");
+import LogFactory from "../../domain/LogFactory";
 
 export default function errorHandler(err, req: Request, res: Response, next: NextFunction) {
-  log.error(`error while handing request ${req.url}`, err);
+  LogFactory.get("errorHandler").error(`error while handing request ${req.url}`, err);
   res.status(res.statusCode || 500);
   res.json({message: err.message});
 }

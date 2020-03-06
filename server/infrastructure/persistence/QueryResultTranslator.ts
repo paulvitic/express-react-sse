@@ -5,7 +5,6 @@ import TicketBoard from "../../domain/product/TicketBoard";
 import * as O from "fp-ts/lib/Option";
 import * as E from 'fp-ts/lib/Either'
 import DevelopmentProject from "../../domain/product/DevelopmentProject";
-import TicketUpdateCollection from "../../domain/product/TicketUpdateCollection";
 
 export const developmentProjectFields: string =
     "dp.id as dp_id, dp.active, dp.name, dp.started_on, dp.ticket_board_id, " +

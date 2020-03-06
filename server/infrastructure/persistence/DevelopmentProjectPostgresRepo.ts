@@ -34,23 +34,23 @@ export default class DevelopmentProjectPostgresRepo
         throw new Error("Method not implemented.");
     }
 
-    findById(id: string): TE.TaskEither<Error, O.Option<DevelopmentProject>> {
+    findById = (id: string): TE.TaskEither<Error, O.Option<DevelopmentProject>> => {
         return pipe(
             this.client.query(this.byId, [id]),
             TE.map(translateToOptionalDevProject),
             TE.chain(TE.fromEither)
         )
-    }
+    };
 
-    findOneByTicketBoardKey(key: string): TE.TaskEither<Error, O.Option<DevelopmentProject>> {
+    findOneByTicketBoardKey = (key: string): TE.TaskEither<Error, O.Option<DevelopmentProject>> => {
         return pipe(
             this.client.query(this.byTicketBoardKey, [key]),
             TE.map(translateToOptionalDevProject),
             TE.chain(TE.fromEither)
         )
-    }
+    };
 
-    save(devProject: DevelopmentProject): TE.TaskEither<Error, DevelopmentProject> {
+    save = (devProject: DevelopmentProject): TE.TaskEither<Error, DevelopmentProject> => {
         return pipe(
             this.client.query(this.begin),
             TE.chain( result => this.saveTicketBoard(devProject.ticketBoard, result)),
@@ -61,19 +61,22 @@ export default class DevelopmentProjectPostgresRepo
                 TE.right(T.task.of(option.value)) :
                 TE.left(T.task.of(new Error("Development project not not saved."))))
         )
-    }
+    };
 
-    update(id: string, item: DevelopmentProject): TE.TaskEither<Error, DevelopmentProject> {
+    update = (id: string, item: DevelopmentProject)
+        : TE.TaskEither<Error, DevelopmentProject> => {
         throw new Error("Method not implemented.");
-    }
+    };
 
-    private saveTicketBoard(ticketBoard: TicketBoard, result: QueryResultRow): TE.TaskEither<Error, QueryResultRow>{
+    private saveTicketBoard = (ticketBoard: TicketBoard, result: QueryResultRow)
+        : TE.TaskEither<Error, QueryResultRow> => {
         return ticketBoard === null ?
             TE.taskEither.of(result) :
             this.client.query(this.insertBoard, [ticketBoard.id, ticketBoard.externalRef, ticketBoard.key])
-    }
+    };
 
-    private saveDevelopmentProject(devProject: DevelopmentProject): TE.TaskEither<Error, QueryResultRow>{
+    private saveDevelopmentProject = (devProject: DevelopmentProject)
+        : TE.TaskEither<Error, QueryResultRow> => {
         let {ticketBoard} = devProject;
         return ticketBoard === null ?
             this.client.query(this.insert, [devProject.id, devProject.isActive, devProject.name, devProject.startedOn]) :

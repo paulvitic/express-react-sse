@@ -4,5 +4,5 @@ import * as TE from "fp-ts/lib/TaskEither";
 export default interface EventStore {
     logEvent(event: DomainEvent, published: boolean): TE.TaskEither<Error, boolean>;
     eventsOfAggregate(aggregate: string, aggregateId: string): Promise<DomainEvent[]>;
-    eventsOfAggregateSince(aggregate: string, aggregateId: string, since: number): Promise<DomainEvent[]>;
+    eventsOfAggregateSince(aggregate: string, aggregateId: string, since: Date): Promise<DomainEvent[]>;
 }

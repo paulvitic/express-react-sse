@@ -2,7 +2,7 @@ import LogFactory from "../LogFactory";
 import DomainEntity from "../DomainEntity";
 
 export default class TicketBoard extends DomainEntity {
-    static DEV_PROJECT_CATEGORY = "Development Project";
+    static PRODUCT_DEV_PROJECT_CATEGORY = "Product Development";
     private readonly log = LogFactory.get(TicketBoard.name);
 
     constructor(id: string,

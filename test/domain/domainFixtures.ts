@@ -1,9 +1,19 @@
-export const MOCK_EVENT_TYPE = "MockEventType";
+import DomainEvent, {AbstractDomainEvent} from "../../server/domain/DomainEvent";
 
-export const DOMAIN_EVENT_FIXTURE = {
-    eventType: MOCK_EVENT_TYPE,
-    sequence: 0,
-    generatedOn: new Date(),
-    aggregate: "MockAggregate",
-    aggregateId: "id"
-};
+export const AGGREGATE_TYPE_FIXTURE = "TestAggregate";
+export const AGGREGATE_ID_FIXTURE = "aggregate-id";
+export const EVENT_PAYLOAD_FIXTURE = "payload";
+
+export class MockDomainEvent extends AbstractDomainEvent{
+    constructor(aggregate: string,
+                aggregateId: string,
+                public mockPayload: string){
+        super(aggregate, aggregateId);
+    }
+}
+
+export const DOMAIN_EVENT_FIXTURE = new MockDomainEvent(
+    AGGREGATE_TYPE_FIXTURE,
+    AGGREGATE_ID_FIXTURE,
+    EVENT_PAYLOAD_FIXTURE
+);

@@ -80,6 +80,27 @@ test("from Promise to Task", async () => {
     expect(converted).toEqual("resolved")
 });
 
+// from Promise to Task:
+// =================
+//const read: T.Task<string> = () => {
+//    return new Promise<string>(resolve => {resolve('resolve')})
+//};
+
+
+// From Promise to TaskEither
+// ==========================
+const get = (url: string): TE.TaskEither<Error, string> => {
+    return TE.tryCatch(
+        () => fetch(url).then(res => res.text()),
+        reason => new Error(String(reason))
+    )
+};
+// const readYamlAsTaskEither = r => tryCatch(() => readYaml(r), e => e);
+
+// From callback to Task Either
+// ============================
+//const readFile = TE.taskify(fs.readFile);
+
 
 test("from Promise to TaskEither", async () => {
     let resolvedPromise = () => new Promise<string>( resolve => {

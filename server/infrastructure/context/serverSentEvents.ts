@@ -1,10 +1,8 @@
 import {Application, NextFunction, Request, Response} from "express";
-import WinstonLogFactory from "./WinstonLogFactory";
-
-const log = WinstonLogFactory.get("serverSentEvents");
+import LogFactory from "../../domain/LogFactory";
 
 const serverSentEvents = (app: Application) => {
-    
+    const log = LogFactory.get("serverSentEvents");
     return (req: Request, res: Response, next: NextFunction) => {
         const clientId = req.session.id;
         log.info(`server sent events connection called by ${clientId}`);

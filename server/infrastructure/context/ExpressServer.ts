@@ -7,18 +7,18 @@ import os from 'os';
 import installApiDocs from './apiDoc';
 import cookieParser from 'cookie-parser';
 import sessionConfig from "./sessionConfig";
-import WinstonLogFactory from "./WinstonLogFactory";
 import session from "express-session";
 import errorHandler from "./errorHandler";
 import sessionCounter from "./sessionCounter";
 import uuid from "../../domain/uuid";
 import serverSentEvents from "./serverSentEvents";
-import {TicketBoardsEndpoints} from "../rest";
+import {DevelopmentProjectEndpoints} from "../rest";
 import {UsersEndpoints} from "../rest/team/UsersResource";
 import RedisClient from "../clients/RedisClient";
+import LogFactory from "../../domain/LogFactory";
 
 const installMiddleware = (app: Application): Promise<void> => {
-    return new Promise<void>((resolve, reject) => {
+    return new Promise<void>((resolve) => {
         app.use(bodyParser.json({limit: process.env.REQUEST_LIMIT || '100kb'}));
         app.use(bodyParser.urlencoded({extended: true, limit: process.env.REQUEST_LIMIT || '100kb'}));
         app.use(bodyParser.text({limit: process.env.REQUEST_LIMIT || '100kb'}));
@@ -44,9 +44,9 @@ const addRoutes = (app: Application, resources: Map<string, RequestHandler>): Pr
             .get('/', resources.get(UsersEndpoints.search))
             .get('/auth', resources.get(UsersEndpoints.authenticate)));
 
-        app.use('/api/v1/ticketBoards', express.Router()
-            .post('/', resources.get(TicketBoardsEndpoints.create))
-            .get('/:id', resources.get(TicketBoardsEndpoints.byId)));
+        app.use('/api/v1/developmentProjects', express.Router()
+            .post('/', resources.get(DevelopmentProjectEndpoints.create))
+            .get('/:id', resources.get(DevelopmentProjectEndpoints.byId)));
 
         resolve();
     })
@@ -54,7 +54,7 @@ const addRoutes = (app: Application, resources: Map<string, RequestHandler>): Pr
 
 
 export default class ExpressServer {
-    private readonly log = WinstonLogFactory.get(ExpressServer.name);
+    private readonly log = LogFactory.get(ExpressServer.name);
     private readonly app: Application;
 
     constructor(private readonly port: number,

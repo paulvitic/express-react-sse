@@ -5,19 +5,28 @@ import RedisClient from "../clients/RedisClient";
 import RabbitClient from "../clients/RabbitClient";
 import PostgresClient from "../clients/PostgresClient";
 import {RequestHandler} from "express";
-import {TicketBoardsResource, TicketBoardsEndpoints} from "../rest";
+import {DevelopmentProjectEndpoints, DevelopmentProjectResource} from "../rest";
 import DevelopmentProjectService from "../../application/product/DevelopmentProjectService";
 import {UsersEndpoints, UsersResource} from "../rest/team/UsersResource";
 import PostgresEventStore from "../persistence/PostgresEventStore";
 import EventStore from "../../domain/EventStore";
 import RabbitEventBus from "../messaging/RabbitEventBus";
 import EventBus from "../../domain/EventBus";
-import {Repository} from "../../domain/Repository";
-import TicketBoard from "../../domain/product/TicketBoard";
 import {registerDomainEvent} from "../JsonEventTranslator";
-import {TicketBoardLinked} from "../../domain/product/event";
+import {
+    DevelopmentProjectCreated,
+    TicketBoardLinked,
+    TicketChanged,
+    TicketRemainedUnchanged,
+    TicketUpdateCollectionEnded,
+    TicketUpdateCollectionFailed,
+    TicketUpdateCollectionStarted,
+    UpdatedTicketsListFetched
+} from "../../domain/product/event";
 import JiraIntegration from "../integration/JiraIntegration";
 import LogFactory from "../../domain/LogFactory";
+import DevelopmentProjectRepository from "../../domain/product/repository/DevelopmentProjectRepository";
+import DevelopmentProjectPostgresRepo from "../persistence/DevelopmentProjectPostgresRepo";
 
 const exit = process.exit;
 
@@ -30,7 +39,7 @@ type Context = {
         services: []
     },
     repositories: {
-        ticketBoardRepo: Repository<TicketBoard>
+        developmentProjectRepo: DevelopmentProjectRepository
     }
     infrastructure: {
         rest: {
@@ -40,7 +49,14 @@ type Context = {
 }
 
 const registerEvents = function(){
-    registerDomainEvent(TicketBoardLinked.name, TicketBoardLinked)
+    registerDomainEvent(DevelopmentProjectCreated.name, DevelopmentProjectCreated);
+    registerDomainEvent(TicketBoardLinked.name, TicketBoardLinked);
+    registerDomainEvent(TicketChanged.name, TicketChanged);
+    registerDomainEvent(TicketRemainedUnchanged.name, TicketRemainedUnchanged);
+    registerDomainEvent(TicketUpdateCollectionEnded.name, TicketUpdateCollectionEnded);
+    registerDomainEvent(TicketUpdateCollectionFailed.name, TicketUpdateCollectionFailed);
+    registerDomainEvent(TicketUpdateCollectionStarted.name, TicketUpdateCollectionStarted);
+    registerDomainEvent(UpdatedTicketsListFetched.name, UpdatedTicketsListFetched);
 };
 
 export default class App {
@@ -55,7 +71,7 @@ export default class App {
             services: []
         },
         repositories: {
-            ticketBoardRepo: undefined
+            developmentProjectRepo: undefined
         },
         infrastructure: {
             rest: {
@@ -131,16 +147,17 @@ export default class App {
         this.context.eventStore = new PostgresEventStore(this.context.clients.get("postgresClient"));
         this.context.eventBus = await RabbitEventBus.init(this.context.clients.get("rabbitClient"), this.context.eventStore);
 
-        let {resources} = this.context.infrastructure.rest;
-
-        let ticketBoardsResource = new TicketBoardsResource(
+        let developmentProjectResource = new DevelopmentProjectResource(
             new DevelopmentProjectService(
                 this.context.eventBus,
+                new DevelopmentProjectPostgresRepo(this.context.clients.get("postgresClient")),
                 new JiraIntegration(this.env.JIRA_URL,
                     this.env.JIRA_USER,
                     this.env.JIRA_API_TOKEN)));
-        resources.set(TicketBoardsEndpoints.create, ticketBoardsResource.create);
-        resources.set(TicketBoardsEndpoints.byId, ticketBoardsResource.byId);
+
+        let {resources} = this.context.infrastructure.rest;
+        resources.set(DevelopmentProjectEndpoints.create, developmentProjectResource.create);
+        resources.set(DevelopmentProjectEndpoints.byId, developmentProjectResource.byId);
 
         let users = new UsersResource(this.env.GOOGLE_APP_CLIENT_ID, this.env.GOOGLE_APP_CLIENT_SECRET);
         resources.set(UsersEndpoints.authenticate, users.authenticate);

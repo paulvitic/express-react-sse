@@ -31,7 +31,7 @@ export const PROJECT_INFO_FIXTURE: TicketBoardInfo = {
     created: DEV_PROJECT_STARTED_ON_FIXTURE,
     projectCategory: {
         id: 1001,
-        name: TicketBoard.DEV_PROJECT_CATEGORY,
+        name: TicketBoard.PRODUCT_DEV_PROJECT_CATEGORY,
         description: "",
     }
 };

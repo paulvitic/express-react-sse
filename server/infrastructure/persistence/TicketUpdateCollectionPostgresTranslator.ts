@@ -97,7 +97,7 @@ function toCollection(c: any, ticketUpdates: TicketUpdate[]) {
         c.fail_reason), err => err as Error)
 }
 
-function fromResult(rows: any[]): E.Either<Error, TicketUpdateCollection> {
+function fromQueryResultRows(rows: any[]): E.Either<Error, TicketUpdateCollection> {
     return pipe(
         array.sequence(E.either)((rows as Array<any>).map(u => toTicketUpdate(u))),
         E.chain(ticketUpdates => toCollection(rows[0], ticketUpdates))
@@ -117,7 +117,7 @@ export function fromFindOptionalCollectionResult(results: QueryResultRow):
     let {rows} = results;
     return (rows as Array<any>).length===0 ?
         E.either.of(O.none) :
-        fromResult(rows).fold(
+        fromQueryResultRows(rows).fold(
             e => E.left(e),
             r => E.right(O.some(r)));
 }
@@ -134,7 +134,8 @@ export function fromFindCollectionsResult(results: QueryResultRow):
             }, new Map<string, any[]>());
             return Array.from(groupedRows.values());
         }, err => err as Error),
-        E.chain( groups => array.sequence(E.either)((groups as Array<any>).map(group => fromResult(group))))
+        E.chain( groupedRows =>
+            array.sequence(E.either)((groupedRows as Array<any>).map(rows => fromQueryResultRows(rows))))
     )
 }
 

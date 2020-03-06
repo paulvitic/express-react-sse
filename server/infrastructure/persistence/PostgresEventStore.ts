@@ -12,7 +12,7 @@ export default class PostgresEventStore implements EventStore {
     private readonly log = LogFactory.get(PostgresEventStore.name);
     private readonly insert = 'INSERT INTO jira.event_log(aggregate_id, aggregate, event_type, generated_on, event) VALUES($1, $2, $3, $4, $5) returning event_type, aggregate, aggregate_id'
     private readonly allEvents = 'SELECT event FROM jira.event_log WHERE aggregate=$1 AND aggregate_id=$2 ORDER BY generated_on';
-    private readonly eventsSince = 'SELECT event FROM jira.event_log WHERE aggregate=$1 AND aggregate_id=$2 AND sequence > $3 ORDER BY generated_on';
+    private readonly eventsSince = 'SELECT event FROM jira.event_log WHERE aggregate=$1 AND aggregate_id=$2 AND generated_on > $3 ORDER BY generated_on';
 
     constructor(private readonly client: PostgresClient) {}
 
@@ -27,13 +27,11 @@ export default class PostgresEventStore implements EventStore {
         );
     };
 
-
     eventsOfAggregate = async (aggregate: string, aggregateId: string): Promise<DomainEvent[]> => {
         return await this.queryEvents(this.allEvents, [aggregate, aggregateId]);
     };
 
-
-    eventsOfAggregateSince = async (aggregate: string, aggregateId: string, since: number): Promise<DomainEvent[]> => {
+    eventsOfAggregateSince = async (aggregate: string, aggregateId: string, since: Date): Promise<DomainEvent[]> => {
         return this.queryEvents(this.eventsSince, [aggregate, aggregateId, since]);
     };
 
@@ -56,7 +54,6 @@ export default class PostgresEventStore implements EventStore {
         return E.tryCatch(() => {
                 let {rows} = result;
                 return rows.length === 1;
-            },
-            reason => new Error(String(reason)))
+            }, reason => new Error(String(reason)))
     }
 }

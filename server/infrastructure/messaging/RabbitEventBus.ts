@@ -3,7 +3,7 @@ import DomainEvent from "../../domain/DomainEvent";
 import EventStore from "../../domain/EventStore";
 import RabbitClient from "../clients/RabbitClient";
 import {Channel, ConfirmChannel, Message } from 'amqplib';
-import {translateMessage, translateEvent} from "./MessageTranslator";
+import * as translate from "./MessageTranslator";
 import {pipe} from "fp-ts/lib/pipeable";
 import * as TE from 'fp-ts/lib/TaskEither'
 import LogFactory from "../../domain/LogFactory";
@@ -41,10 +41,8 @@ const consumeQueueName = 'to_target_domain_events_of_all_aggregates';
 
 export default class RabbitEventBus implements EventBus {
     private readonly log = LogFactory.get(RabbitEventBus.name);
-    //private sendChannel: Channel;
     private sendChannel: ConfirmChannel;
-    //private sendTask: (exchange: string, routingKey: string, content: Buffer, options?: Options.Publish) => TE.TaskEither<any, Replies.Empty>;
-
+    //private sendChannel: Channel;
     private receiveChannel: Channel;
     private subscribers: Map<string, EventHandler[]> = new Map<string, EventHandler[]>();
 
@@ -83,10 +81,9 @@ export default class RabbitEventBus implements EventBus {
     publishEvent = <T extends DomainEvent = DomainEvent>(event: T): TE.TaskEither<Error, boolean> => {
         this.log.info(`Publishing event type ${event.eventType}`);
         return pipe(
-            translateEvent(event),
-            TE.fromEither,
+            TE.fromEither(translate.toOutgoingMessage(event)),
             TE.chain(this.send),
-            TE.chain(sent => this.store.logEvent(event, !!sent))
+            TE.chain(sent => this.store.logEvent(event, sent))
         )
     };
 
@@ -100,13 +97,15 @@ export default class RabbitEventBus implements EventBus {
     onMessage = (msg: Message) => {
         this.log.info('msg [deliveryTag=' + msg.fields.deliveryTag + '] arrived');
         const self = this;
-        this.emit(msg, function (ok) {
-            self.log.info('sending Ack for msg');
+        this.emit(msg, function(ok) {
             try {
-                if (ok)
+                if (ok) {
+                    self.log.info('acknowledging the message');
                     self.receiveChannel.ack(msg);
-                else
+                } else {
+                    self.log.info('rejecting the message');
                     self.receiveChannel.reject(msg, true);
+                }
             } catch (e) {
                 self.rabbitClient.closeOnErr(e)
                     .then((closed) => {
@@ -118,15 +117,16 @@ export default class RabbitEventBus implements EventBus {
 
     emit = (msg, ack) => {
         this.log.info(`got msg: ${JSON.stringify(msg)}`);
-        translateMessage(msg)
-            .then((event) => {
+        translate.toDomainEvent(msg)
+            .then(async (event) => {
                 let handlers = this.subscribers.get(event.eventType);
                 if (handlers && handlers.length>0){
-                    handlers.forEach(handle => { handle(event)}) // TODO handler returns Promise, can we use yield as in https://www.promisejs.org/generators/
+                    for (const handle of handlers) {
+                        await handle(event)
+                    } // TODO handler returns Promise, can we use yield as in https://www.promisejs.org/generators/
                 }
                 ack(true)
-            })
-            .catch(err => {
+            }).catch(err => {
                 this.log.error('error while processing received message', err);
                 ack(true)
             })

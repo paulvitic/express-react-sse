@@ -8,7 +8,6 @@ export class TicketUpdateCollectionRedisRepo implements TicketUpdateCollectionRe
 
     constructor(private readonly redisClient: RedisClient,
                 private readonly hash: string) {
-        super();
     }
 
     findById(id: string): TE.TaskEither<Error, O.Option<TicketUpdateCollection>> {

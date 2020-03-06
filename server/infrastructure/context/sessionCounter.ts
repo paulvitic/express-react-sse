@@ -1,9 +1,8 @@
 import {NextFunction, Request, Response} from "express";
-import WinstonLogFactory from "./WinstonLogFactory";
-
-const log = WinstonLogFactory.get("sessionCounter");
+import LogFactory from "../../domain/LogFactory";
 
 export default function sessionCounter() {
+    const log = LogFactory.get("sessionCounter");
     // TODO change this to middleware that intercepts /login path and calls google to authenticate and toggles logged in flag. if not redirects to /login page
     return (req: Request, res: Response, next: NextFunction) => {
         if (req.session.views) {

@@ -53,9 +53,9 @@ export default class RabbitClient {
                     self.log.info(`connected ${self.user}@${self.host}:${self.port}${self.vhost}`);
                     resolve(true);
 
-                }).catch((err)=>{
-                self.log.error(`${err.message}`);
-                setTimeout(self.connect, 7000);
+                }).catch((err)=> {
+                    self.log.error(`${err.message}`);
+                    setTimeout(self.connect, 7000);
             });
         })
     };
@@ -89,7 +89,7 @@ export default class RabbitClient {
 
                 await channel.prefetch(10);
 
-                let exchangeAssert = await channel.assertExchange(exchange,'fanout',{ durable: true })
+                let exchangeAssert = await channel.assertExchange(exchange,'fanout',{ durable: true });
                 self.log.info(`exchange assert: ${JSON.stringify(exchangeAssert)}`);
                 resolve(channel);
 

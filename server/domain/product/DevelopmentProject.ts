@@ -91,7 +91,7 @@ export default class DevelopmentProject extends AggregateRoot {
         let created = pipe(
             E.tryCatch(() => new DevelopmentProject(Identity.generate(), true, info.name, info.created),
                     error => error as DevelopmentProjectError),
-            E.filterOrElse(() => info.projectCategory.name===TicketBoard.DEV_PROJECT_CATEGORY,
+            E.filterOrElse(() => info.projectCategory.name===TicketBoard.PRODUCT_DEV_PROJECT_CATEGORY,
                 () => new DevelopmentProjectError("Ticket board is not for a development project"))
         );
 

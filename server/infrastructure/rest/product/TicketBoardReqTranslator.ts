@@ -1,9 +1,11 @@
 import {Request} from 'express';
-import CreateProjectFromTicketBoard from "../../../application/product/commands/CreateProjectFromTicketBoard";
-import DeleteTicketBoardCommand from "../../../application/product/commands/DeleteTicketBoard";
+import {
+    CreateProjectFromTicketBoard,
+    RemoveTicketBoard
+} from "../../../application/product/commands";
 
 // TODO also validation
-type TicketBoardCommand = CreateProjectFromTicketBoard & DeleteTicketBoardCommand
+type TicketBoardCommand = CreateProjectFromTicketBoard & RemoveTicketBoard
 
 export default function translateTicketBoardRequest(req: Request): Promise<TicketBoardCommand> {
     return new Promise<TicketBoardCommand>((resolve, reject) => {

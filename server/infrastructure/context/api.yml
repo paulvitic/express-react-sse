@@ -17,7 +17,7 @@ produces:
   - application/json
 
 definitions:
-  createTicketBoardRequest:
+  createDevelopmentProjectRequest:
     type: object
     required:
       - key
@@ -81,10 +81,10 @@ paths:
         404:
           description: Authentication failed
 
-  /ticketBoards/{id}:
+  /developmentProjects/{id}:
     get:
       tags:
-        - TicketBoards
+        - DevelopmentProjects
       parameters:
         - name: id
           in: path
@@ -96,18 +96,18 @@ paths:
           description: Return the example with the specified id
         404:
           description: Example not found
-  /ticketBoards:
+  /developmentProjects:
     post:
-      summary: Add a ticket board
+      summary: Create development project
       tags:
-        - TicketBoards
+        - DevelopmentProjects
       parameters:
-        - name: createTicketBoardRequest
+        - name: createDevelopmentProjectRequest
           in: body
-          description: Create ticket board request.
+          description: Create development project request.
           required: true
           schema:
-            $ref: "#/definitions/createTicketBoardRequest"
+            $ref: "#/definitions/createDevelopmentProjectRequest"
       responses:
         '200':
           description: Created

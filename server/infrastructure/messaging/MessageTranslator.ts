@@ -4,7 +4,7 @@ import {translateJsonString} from "../JsonEventTranslator";
 import * as E from "fp-ts/lib/Either"
 import {OutgoingMessage} from "./RabbitEventBus";
 
-export function translateEvent(event: DomainEvent): E.Either<Error, OutgoingMessage> {
+export function toOutgoingMessage(event: DomainEvent): E.Either<Error, OutgoingMessage> {
     return E.tryCatch(() => {
           return {
             content: Buffer.from(JSON.stringify(event)),
@@ -21,7 +21,7 @@ export function translateEvent(event: DomainEvent): E.Either<Error, OutgoingMess
 }
 
 
-export function translateMessage(msg:Message): Promise<DomainEvent> {
+export function toDomainEvent(msg:Message): Promise<DomainEvent> {
     return new Promise<DomainEvent>((resolve, reject) => {
         translateJsonString(msg.content.toString()).then(event => {
             resolve(event)
