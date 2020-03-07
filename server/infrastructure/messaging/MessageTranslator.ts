@@ -1,11 +1,11 @@
 import DomainEvent from "../../domain/DomainEvent";
 import {Message} from "amqplib";
-import {translateJsonString} from "../JsonEventTranslator";
+import * as translate from "../JsonEventTranslator";
 import * as E from "fp-ts/lib/Either"
 import {OutgoingMessage} from "./RabbitEventBus";
 
 export function toOutgoingMessage(event: DomainEvent): E.Either<Error, OutgoingMessage> {
-    return E.tryCatch(() => {
+    return E.tryCatch2v(() => {
           return {
             content: Buffer.from(JSON.stringify(event)),
             options: {
@@ -21,12 +21,16 @@ export function toOutgoingMessage(event: DomainEvent): E.Either<Error, OutgoingM
 }
 
 
-export function toDomainEvent(msg:Message): Promise<DomainEvent> {
+/*export function toDomainEvent(msg:Message): Promise<DomainEvent> {
     return new Promise<DomainEvent>((resolve, reject) => {
-        translateJsonString(msg.content.toString()).then(event => {
+        translate.fromJsonString(msg.content.toString()).then(event => {
             resolve(event)
         }).catch(err => {
             reject(err)
         })
     })
+}*/
+
+export function toDomainEvent(msg:Message): E.Either<Error, DomainEvent> {
+    return translate.fromJsonString(msg.content.toString());
 }

@@ -11,7 +11,6 @@ export type RabbitClientParams = {
     vhost: string
 }
 
-// if the connection is closed or fails to be established at all, we will reconnect
 export default class RabbitClient {
     private readonly log = LogFactory.get(RabbitClient.name);
     private readonly url: string;

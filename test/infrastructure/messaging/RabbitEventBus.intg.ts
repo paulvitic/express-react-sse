@@ -29,7 +29,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-    await rabbitClient.closeConnectionTask().run()
+    await rabbitClient.closeConnectionTask().run();
 });
 
 
@@ -37,7 +37,6 @@ describe("publish", ()=> {
     test("should publish",  async () => {
         let res = await eventBus.publishEvent(DOMAIN_EVENT_FIXTURE).run();
         expect(res.isRight()).toBeTruthy();
-        await Sleep(3000);
     });
 });
 
@@ -52,7 +51,6 @@ describe("subscribe", ()=> {
         await eventBus.publishEvent(DOMAIN_EVENT_FIXTURE).run();
         await eventBus.publishEvent(DOMAIN_EVENT_FIXTURE).run();
         await eventBus.publishEvent(DOMAIN_EVENT_FIXTURE).run();
-        await Sleep(1000);
         expect(mockHandler).toBeCalledTimes(4);
     });
 });

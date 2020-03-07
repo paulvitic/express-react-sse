@@ -126,13 +126,13 @@ export default class App {
         this.context.eventStore = new PostgresEventStore(this.context.clients.get("postgresClient"));
         this.context.eventBus = await RabbitEventBus.init(this.context.clients.get("rabbitClient"), this.context.eventStore);
 
+        let {resources} = this.context.infrastructure.rest;
+
         let developmentProjectResource = new DevelopmentProjectResource(
             new DevelopmentProjectService(
                 this.context.eventBus,
                 new DevelopmentProjectPostgresRepo(this.context.clients.get("postgresClient")),
                 new JiraIntegration(this.env.JIRA_PARAMS)));
-
-        let {resources} = this.context.infrastructure.rest;
         resources.set(DevelopmentProjectEndpoints.create, developmentProjectResource.create);
         resources.set(DevelopmentProjectEndpoints.byId, developmentProjectResource.byId);
 
