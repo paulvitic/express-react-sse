@@ -2,7 +2,7 @@ import RabbitEventBus from "../../../server/infrastructure/messaging/RabbitEvent
 import RabbitClient from "../../../server/infrastructure/clients/RabbitClient";
 import PostgresEventStore from "../../../server/infrastructure/persistence/PostgresEventStore";
 import {
-    DOMAIN_EVENT_FIXTURE, EVENT_PAYLOAD_FIXTURE,
+    DOMAIN_EVENT_FIXTURE,
     MockDomainEvent
 } from "../../domain/domainFixtures";
 import config from "../../../server/infrastructure/config/config";
@@ -16,27 +16,20 @@ function Sleep(milliseconds) {
 }
 
 let eventBus :RabbitEventBus;
+let rabbitClient: RabbitClient;
 
 beforeAll(async () => {
+    jest.setTimeout(300000);
     LogFactory.init(new WinstonLogFactory());
     let env = await config();
     registerDomainEvent(MockDomainEvent.name, MockDomainEvent);
-    let rabbitClient = await RabbitClient.init(
-        env.RABBIT_HOST,
-        env.RABBIT_PORT,
-        env.RABBIT_USER,
-        env.RABBIT_PASS,
-        env.RABBIT_VHOST);
-
-    let postgresClient = await new PostgresClient(
-        env.POSTGRES_HOST,
-        env.POSTGRES_PORT,
-        env.POSTGRES_USER,
-        env.POSTGRES_DATABASE,
-        env.POSTGRES_PASS
-    ).init();
-
+    rabbitClient = await RabbitClient.init(env.RABBIT_PARAMS);
+    let postgresClient = await PostgresClient.init(env.POSTGRES_PARAMS);
     eventBus = await RabbitEventBus.init(rabbitClient, new PostgresEventStore(postgresClient));
+});
+
+afterAll(async () => {
+    await rabbitClient.closeConnectionTask().run()
 });
 
 
@@ -54,7 +47,6 @@ describe("subscribe", ()=> {
     });
 
     test("should receive",  async () => {
-        jest.setTimeout(30000);
         eventBus.subscribe(MockDomainEvent.name, mockHandler);
         await eventBus.publishEvent(DOMAIN_EVENT_FIXTURE).run();
         await eventBus.publishEvent(DOMAIN_EVENT_FIXTURE).run();

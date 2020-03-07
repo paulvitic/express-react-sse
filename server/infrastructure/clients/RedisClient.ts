@@ -1,29 +1,33 @@
 import redis, {RedisClient as Client} from 'redis';
 import LogFactory from "../../domain/LogFactory";
 
-// TODO get rid og cache integrate tis to redis repository
+export type RedisClientParams = {
+    host: string,
+    port:number,
+    password: string,
+}
+
 export default class RedisClient {
     private readonly log = LogFactory.get(RedisClient.name);
     private readonly client: Client;
 
-    constructor(private readonly host: string,
-                private readonly port:number,
-                password: string) {
+    private constructor(params: RedisClientParams) {
+        let {host, port, password} = params;
         this.client = redis.createClient({host, port, password});
     }
 
-    public init = (): Promise<RedisClient> => {
-        this.log.info(`initializing @${this.host}:${this.port}`);
-
+    static init = (params: RedisClientParams): Promise<RedisClient> => {
         return new Promise<RedisClient>((resolve, reject) => {
-            this.client.on('error', (err=> {
-                this.log.error('could not connect ', err);
+            let redisClient = new RedisClient(params);
+            redisClient.log.info(`initializing @${params.host}:${params.port}`);
+            redisClient.client.on('error', (err=> {
+                redisClient.log.error('could not connect ', err);
                 reject(err);
             }));
 
-            this.client.on('connect', ()=> {
-                this.log.info(`connected @${this.host}:${this.port}`);
-                resolve(this);
+            redisClient.client.on('connect', ()=> {
+                redisClient.log.info(`connected @${params.host}:${params.port}`);
+                resolve(redisClient);
             });
         });
     };

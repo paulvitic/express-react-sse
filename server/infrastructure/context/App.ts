@@ -86,6 +86,7 @@ export default class App {
         this.log.info(`getting configuration`);
         try {
             this.env = await config();
+            LogFactory.setLogLevel(this.env.LOG_LEVEL);
             await this.init();
             this.log.info("App started");
         } catch (err) {
@@ -95,7 +96,6 @@ export default class App {
     };
 
     private init = (): Promise<void> => {
-        LogFactory.init(new WinstonLogFactory());
         return new Promise<void>(async (resolve, reject) => {
             try {
                 let success = await this.initClients();
@@ -112,30 +112,9 @@ export default class App {
     private initClients = (): Promise<boolean> => {
         return new Promise<boolean>(async (resolve, reject) => {
             try {
-                this.context.clients.set('rabbitClient',
-                    await RabbitClient.init(
-                        this.env.RABBIT_HOST,
-                        this.env.RABBIT_PORT,
-                        this.env.RABBIT_USER,
-                        this.env.RABBIT_PASS,
-                        this.env.RABBIT_VHOST));
-
-                this.context.clients.set('postgresClient',
-                    await new PostgresClient(
-                        this.env.POSTGRES_HOST,
-                        this.env.POSTGRES_PORT,
-                        this.env.POSTGRES_USER,
-                        this.env.POSTGRES_DATABASE,
-                        this.env.POSTGRES_PASS
-                    ).init());
-
-                this.context.clients.set('redisClient',
-                    await new RedisClient(
-                        this.env.REDIS_HOST,
-                        this.env.REDIS_PORT,
-                        this.env.REDIS_PASS
-                    ).init());
-
+                this.context.clients.set('rabbitClient', await RabbitClient.init(this.env.RABBIT_PARAMS));
+                this.context.clients.set('postgresClient', await PostgresClient.init(this.env.POSTGRES_PARAMS));
+                this.context.clients.set('redisClient', await RedisClient.init(this.env.REDIS_PARAMS));
                 resolve(true)
             } catch (err) {
                 reject(err)
@@ -151,9 +130,7 @@ export default class App {
             new DevelopmentProjectService(
                 this.context.eventBus,
                 new DevelopmentProjectPostgresRepo(this.context.clients.get("postgresClient")),
-                new JiraIntegration(this.env.JIRA_URL,
-                    this.env.JIRA_USER,
-                    this.env.JIRA_API_TOKEN)));
+                new JiraIntegration(this.env.JIRA_PARAMS)));
 
         let {resources} = this.context.infrastructure.rest;
         resources.set(DevelopmentProjectEndpoints.create, developmentProjectResource.create);
@@ -168,9 +145,8 @@ export default class App {
                 this.env.PORT,
                 this.env.SESSION_COOKIE_TTL,
                 this.context.clients.get('redisClient'),
-                resources)
-                .init()
-                .then((server) => {
+                resources
+            ).init().then((server) => {
                     this.context.server = server;
                 }).catch(err => {
                     reject(err);

@@ -2,7 +2,7 @@ import EventBus, {EventHandler} from "../../domain/EventBus";
 import DomainEvent from "../../domain/DomainEvent";
 import EventStore from "../../domain/EventStore";
 import RabbitClient from "../clients/RabbitClient";
-import {Channel, ConfirmChannel, Message } from 'amqplib';
+import {Channel, ConfirmChannel, Message} from 'amqplib';
 import * as translate from "./MessageTranslator";
 import {pipe} from "fp-ts/lib/pipeable";
 import * as TE from 'fp-ts/lib/TaskEither'
@@ -42,7 +42,6 @@ const consumeQueueName = 'to_target_domain_events_of_all_aggregates';
 export default class RabbitEventBus implements EventBus {
     private readonly log = LogFactory.get(RabbitEventBus.name);
     private sendChannel: ConfirmChannel;
-    //private sendChannel: Channel;
     private receiveChannel: Channel;
     private subscribers: Map<string, EventHandler[]> = new Map<string, EventHandler[]>();
 
@@ -52,30 +51,66 @@ export default class RabbitEventBus implements EventBus {
     ) {}
 
     static init = async (client: RabbitClient, store: EventStore): Promise<RabbitEventBus> => {
-        const eventBus = new RabbitEventBus(client, store);
-        // create a separate channel to send
-        //eventBus.sendChannel =  await eventBus.rabbitClient.createChannel(sourceDomainExchange);
-        eventBus.sendChannel =  await eventBus.rabbitClient.createConfirmChannel(sourceDomainExchange);
-
-        // create a channel to receive
-        eventBus.receiveChannel = await eventBus.rabbitClient.createChannel(sourceDomainExchange);
-
-        // create a named non-exclusive queue so other clients can connect as well and bind to it
-        let queueInfo = await eventBus.receiveChannel.assertQueue(consumeQueueName, { exclusive: false});
-        eventBus.log.info(`queue info: ${JSON.stringify(queueInfo)}`);
-        await eventBus.receiveChannel.bindQueue(queueInfo.queue,  sourceDomainExchange, '');
-
-        // start consuming from queue
-        let consumeInfo = eventBus.receiveChannel.consume(queueInfo.queue, eventBus.onMessage, { noAck: false });
-        eventBus.log.info(`consume info: ${JSON.stringify(consumeInfo)}`);
-
         return new Promise<RabbitEventBus>(async (resolve, reject) => {
+            const eventBus = new RabbitEventBus(client, store);
+            await pipe(
+                eventBus.createSendChannel(sourceDomainExchange),
+                TE.chain(() => eventBus.createReceiveChannel(sourceDomainExchange)),
+                TE.chain(() => eventBus.createQueue(consumeQueueName)),
+                TE.chainFirst(queueInfo => TE.rightIO(eventBus.log.io.debug(`queue info: ${JSON.stringify(queueInfo)}`))),
+                TE.chain(eventBus.bindToQueue),
+                TE.chain(eventBus.consumeFromQueue)
+            ).run();
+
             try {
                 resolve(eventBus)
             } catch (e) {
                 reject(e);
             }
         })
+    };
+
+    private createSendChannel(exchange: string): TE.TaskEither<Error, ConfirmChannel> {
+        return pipe(
+            this.rabbitClient.createChannelTask(exchange, true),
+            TE.chain(channel => {
+                this.sendChannel = channel as ConfirmChannel;
+                return TE.taskEither.of(this.sendChannel);
+            })
+        )
+    }
+
+    private createReceiveChannel(exchange: string): TE.TaskEither<Error, Channel> {
+        return pipe(
+            this.rabbitClient.createChannelTask(exchange, false),
+            TE.chain(channel => {
+                this.receiveChannel = channel as ConfirmChannel;
+                return TE.taskEither.of(this.receiveChannel);
+            })
+        )
+    }
+
+    private createQueue = (queueName: string): TE.TaskEither<Error, string> => {
+        return TE.tryCatch( () =>
+            this.receiveChannel.assertQueue(queueName, { exclusive: false})
+                .then(queueInfo => queueInfo.queue),
+                err => err as Error)
+    };
+
+    private bindToQueue = (queueName: string): TE.TaskEither<Error, string> => {
+        return TE.tryCatch( () =>
+                this.receiveChannel.bindQueue(queueName, sourceDomainExchange, '')
+                    .then(() => queueName),
+                err => err as Error)
+    };
+
+    private consumeFromQueue = (queueName: string): TE.TaskEither<Error, string> => {
+        return TE.tryCatch( () =>
+            this.receiveChannel.consume(queueName, this.onMessage, { noAck: false })
+                .then(consumeInfo => {
+                    this.log.info(`consume info: ${JSON.stringify(consumeInfo)}`);
+                    return consumeInfo.consumerTag;
+            }), err => err as Error)
     };
 
     publishEvent = <T extends DomainEvent = DomainEvent>(event: T): TE.TaskEither<Error, boolean> => {
@@ -133,18 +168,14 @@ export default class RabbitEventBus implements EventBus {
     };
 
     private send = ({content, options}: OutgoingMessage): TE.TaskEither<Error, boolean> => {
-        return TE.tryCatch(() => {
-            return new Promise<boolean>( resolve => {
+        return TE.tryCatch(() => new Promise<boolean>( resolve => {
                 this.sendChannel.publish(sourceDomainExchange, '', content, options);
-                this.sendChannel.waitForConfirms()
-                    .then(_ => {
-                        resolve(true )
-                    })
-                    .catch(_ =>
+                this.sendChannel.waitForConfirms().then(_ => {
+                        resolve(true)
+                    }).catch(_ =>
                         resolve(false)
                     )
-            })
-        }, reason => new Error(String(reason)))
+            }), err => err as Error)
     }
 }
 

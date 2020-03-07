@@ -23,4 +23,8 @@ export default class LogFactory {
     public static init(delegate){
         LogFactory.delegate = delegate;
     }
+
+    static setLogLevel(logLevel: string) {
+        LogFactory.delegate.setLogLevel(logLevel)
+    }
 }

@@ -20,9 +20,7 @@ let jiraIntegration: JiraIntegration;
 beforeAll(async () => {
     LogFactory.init(new WinstonLogFactory());
     let env = await config();
-    jiraIntegration = new JiraIntegration(env.JIRA_URL,
-        env.JIRA_USER,
-        env.JIRA_API_TOKEN);
+    jiraIntegration = new JiraIntegration(env.JIRA_PARAMS);
 });
 
 describe('ticket board', () => {

@@ -7,6 +7,9 @@ import {pipe} from "fp-ts/lib/pipeable";
 import * as O from "fp-ts/lib/Option";
 import {array} from "fp-ts/lib/Array";
 import {console} from "fp-ts";
+import { traverse } from "fp-ts/lib/Array";
+import * as fs from "fs";
+import axios from "axios";
 
 // Folding: https://dev.to/gcanti/getting-started-with-fp-ts-semigroup-2mf7
 // By definition concat works with only two elements of A, what if we want to concat more elements?
@@ -80,26 +83,53 @@ test("from Promise to Task", async () => {
     expect(converted).toEqual("resolved")
 });
 
-// from Promise to Task:
-// =================
-//const read: T.Task<string> = () => {
-//    return new Promise<string>(resolve => {resolve('resolve')})
-//};
+test('callback to task either', () => {
+    //Our file interface and sample data
+    interface IFile {
+        fileName: string;
+        content: string;
+    }
+    const files: IFile[] = [
+        { fileName: "file1.txt", content: "file1" },
+        { fileName: "file2.txt", content: "file2" }
+    ];
+
+    //turning the node callback into a TaskEither
+    const write: (
+        filename: string,
+        data: string,
+        options: any
+    ) => TE.TaskEither<NodeJS.ErrnoException, void> = TE.taskify(fs.writeFile);
+
+    //using traverse rather than map and sequence
+    const teav: TE.TaskEither<NodeJS.ErrnoException, Array<void>> =
+        traverse(TE.taskEither)(files, file => write(file.fileName, file.content, {}));
+
+    //running the computation
+    teav
+        .run()
+        .then(either =>
+            either.fold(
+                (e: NodeJS.ErrnoException) => console.error(e),
+                (a: void[]) => console.log(`${a.length} files written`)
+            )
+        );
+});
 
 
 // From Promise to TaskEither
 // ==========================
 const get = (url: string): TE.TaskEither<Error, string> => {
-    return TE.tryCatch(
-        () => fetch(url).then(res => res.text()),
-        reason => new Error(String(reason))
-    )
-};
-// const readYamlAsTaskEither = r => tryCatch(() => readYaml(r), e => e);
+     return TE.tryCatch(
+         () => axios(url).then(res => res.data()),
+         reason => new Error(String(reason))
+     )};
 
-// From callback to Task Either
-// ============================
-//const readFile = TE.taskify(fs.readFile);
+// from Promise to Task:
+// =================
+// const read: T.Task<string> = () => {
+//     return new Promise<string>(resolve => {resolve('resolve')});
+// };
 
 
 test("from Promise to TaskEither", async () => {

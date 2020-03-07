@@ -18,15 +18,7 @@ let client: PostgresClient;
 beforeAll(async () => {
     LogFactory.init(new WinstonLogFactory());
     let env = await config();
-
-    client = await new PostgresClient(
-        env.POSTGRES_HOST,
-        env.POSTGRES_PORT,
-        env.POSTGRES_USER,
-        env.POSTGRES_DATABASE,
-        env.POSTGRES_PASS
-    ).init();
-
+    client = await PostgresClient.init(env.POSTGRES_PARAMS);
     repo = new DevelopmentProjectPostgresRepo(client);
 });
 

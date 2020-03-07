@@ -2,16 +2,20 @@ import {Pool, QueryConfig, QueryResult, QueryResultRow} from "pg";
 import * as TE from "fp-ts/lib/TaskEither";
 import LogFactory from "../../domain/LogFactory";
 
+export type PostgresClientParams = {
+    host: string,
+    port:number,
+    user: string,
+    database: string,
+    password: string
+}
+
 export default class PostgresClient {
     private readonly log = LogFactory.get(PostgresClient.name);
     private connPool: Pool;
 
-    constructor(private readonly host: string,
-                private readonly port:number,
-                private readonly user: string,
-                private readonly database: string,
-                password: string
-    ) {
+    private constructor(params: PostgresClientParams) {
+        let {user, database, password, port, host} = params;
         this.connPool = new Pool({
             user, database, password, port, host,
             max: 5,
@@ -21,24 +25,24 @@ export default class PostgresClient {
         });
     }
 
-    init = (): Promise<PostgresClient> => {
-        this.log.info(`initializing ${this.user}@${this.host}:${this.port}/${this.database}`);
+    static init = (params: PostgresClientParams): Promise<PostgresClient> => {
         return new Promise<PostgresClient>((resolve, reject) => {
-            this.connPool.on('error', (err, client) => {
-                console.error('Unexpected error on idle client', err);
+            let client = new PostgresClient(params);
+            client.log.info(`initializing ${params.user}@${params.host}:${params.port}/${params.database}`);
+            client.connPool.on('error', (err, pool) => {
+                client.log.error('Unexpected error on idle client', err);
                 // TODO try reconnecting
             });
 
-            this.connPool.query('SELECT NOW()')
+            client.connPool.query('SELECT NOW()')
                 .then((res) => {
-                    this.log.info(`connected ${this.user}@${this.host}:${this.port}/${this.database} on ${res.rows[0]["now"]}`);
-                })
-                .catch((err) => {
-                    this.log.warn(`Error while querying ${err}`);
+                    client.log.info(`connected ${params.user}@${params.host}:${params.port}/${params.database} on ${res.rows[0]["now"]}`);
+                }).catch((err) => {
+                    client.log.error(`error during connection test: ${err.message}`);
                     reject(err);
                 });
 
-            resolve(this);
+            resolve(client);
         })
     };
 

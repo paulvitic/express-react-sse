@@ -16,6 +16,12 @@ import {
 import LogFactory from "../../domain/LogFactory";
 import {TicketUpdateCollectionPeriod} from "../../domain/product/TicketUpdateCollection";
 
+export type JiraIntegrationParams = {
+    url: string,
+    user: string;
+    apiToken: string
+};
+
 export default class JiraIntegration implements TicketBoardIntegration {
     private readonly log = LogFactory.get(JiraIntegration.name);
     private readonly and ="AND ";
@@ -33,17 +39,16 @@ export default class JiraIntegration implements TicketBoardIntegration {
         'status',
         'customfield_10010'
     ];
-
+    private readonly url: string;
     private readonly basicAuthorization: string;
 
-    constructor(private readonly jiraUrl: string,
-                jiraUser: string,
-                jiraApiToken: string) {
-        this.basicAuthorization = `Basic ${Buffer.from(jiraUser + ":" + jiraApiToken).toString("base64")}`
+    constructor(params: JiraIntegrationParams) {
+        this.url = params.url;
+        this.basicAuthorization = `Basic ${Buffer.from(params.user + ":" + params.apiToken).toString("base64")}`
     }
 
     assertProject(key: string): TE.TaskEither<TicketBoardIntegrationFailure, TicketBoardInfo> {
-        const url = `${this.jiraUrl}/rest/api/3/search?jql=project%3D${key}+ORDER+BY+created+asc&fields=project%2Ccreated&maxResults=1`;
+        const url = `${this.url}/rest/api/3/search?jql=project%3D${key}+ORDER+BY+created+asc&fields=project%2Ccreated&maxResults=1`;
         return pipe(
                 this.executeGetRequest(url),
                 TE.chainFirst(response => TE.rightIO(this.log.io.info(`Assert project response: ${JSON.stringify(response.data)}`))),
@@ -53,7 +58,7 @@ export default class JiraIntegration implements TicketBoardIntegration {
     }
 
     getUpdatedTickets(key: string, period: TicketUpdateCollectionPeriod): TE.TaskEither<TicketBoardIntegrationFailure, UpdatedTicket[]> {
-        const url =  `${this.jiraUrl}/rest/api/3/search?jql=project%3D${key}+and+updated%3E%3D%22${toQueryDateFormat(period.from)}%22+and+updated%3C%22${toQueryDateFormat(period.to)}%22&fields=created%2Cupdated`;
+        const url =  `${this.url}/rest/api/3/search?jql=project%3D${key}+and+updated%3E%3D%22${toQueryDateFormat(period.from)}%22+and+updated%3C%22${toQueryDateFormat(period.to)}%22&fields=created%2Cupdated`;
         return pipe(
             this.executeGetRequest(url),
             TE.map(toUpdatedTickets),
@@ -63,7 +68,7 @@ export default class JiraIntegration implements TicketBoardIntegration {
 
     readTicketChangeLog(key: string, period: TicketUpdateCollectionPeriod):
         TE.TaskEither<TicketBoardIntegrationFailure, O.Option<TicketChangeLog>> {
-        const url =  `${this.jiraUrl}/rest/api/3/issue/${key}?expand=changelog&fields=${this.ticketFields}`;
+        const url =  `${this.url}/rest/api/3/issue/${key}?expand=changelog&fields=${this.ticketFields}`;
         return pipe(
             this.executeGetRequest(url),
             TE.chain(response => TE.right(T.task.of(toChangeLog(response, period))))
