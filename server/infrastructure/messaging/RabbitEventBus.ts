@@ -8,7 +8,6 @@ import {pipe} from "fp-ts/lib/pipeable";
 import * as TE from 'fp-ts/lib/TaskEither'
 import * as T from 'fp-ts/lib/Task'
 import * as O from 'fp-ts/lib/Option'
-
 import * as E from 'fp-ts/lib/Either'
 import LogFactory from "../../domain/LogFactory";
 import {array} from "fp-ts/lib/Array";
@@ -58,16 +57,15 @@ export default class RabbitEventBus implements EventBus {
     static init = async (client: RabbitClient, store: EventStore): Promise<RabbitEventBus> => {
         return new Promise<RabbitEventBus>(async (resolve, reject) => {
             const eventBus = new RabbitEventBus(client, store);
-            await pipe(
-                eventBus.createSendChannel(sourceDomainExchange),
-                TE.chain(() => eventBus.createReceiveChannel(sourceDomainExchange)),
-                TE.chain(() => eventBus.createQueue(consumeQueueName)),
-                TE.chainFirst(queueInfo => TE.rightIO(eventBus.log.io.debug(`queue info ${JSON.stringify(queueInfo)}`))),
-                TE.chain(eventBus.bindToQueue),
-                TE.chain(eventBus.consumeFromQueue)
-            ).run();
-
             try {
+                await pipe(
+                    eventBus.createSendChannel(sourceDomainExchange),
+                    TE.chain(() => eventBus.createReceiveChannel(sourceDomainExchange)),
+                    TE.chain(() => eventBus.createQueue(consumeQueueName)),
+                    TE.chainFirst(queueInfo => TE.rightIO(eventBus.log.io.debug(`queue info ${JSON.stringify(queueInfo)}`))),
+                    TE.chain(eventBus.bindToQueue),
+                    TE.chain(eventBus.consumeFromQueue)
+                ).run();
                 resolve(eventBus)
             } catch (e) {
                 reject(e);

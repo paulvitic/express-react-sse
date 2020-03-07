@@ -20,17 +20,6 @@ export function toOutgoingMessage(event: DomainEvent): E.Either<Error, OutgoingM
     }, reason => new Error(String(reason)))
 }
 
-
-/*export function toDomainEvent(msg:Message): Promise<DomainEvent> {
-    return new Promise<DomainEvent>((resolve, reject) => {
-        translate.fromJsonString(msg.content.toString()).then(event => {
-            resolve(event)
-        }).catch(err => {
-            reject(err)
-        })
-    })
-}*/
-
 export function toDomainEvent(msg:Message): E.Either<Error, DomainEvent> {
     return translate.fromJsonString(msg.content.toString());
 }
