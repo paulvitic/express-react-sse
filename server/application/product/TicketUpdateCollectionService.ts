@@ -8,10 +8,10 @@ export class TicketUpdateCollectionService {
     constructor(private readonly queryService: TicketUpdateCollectionQueryService,
                 private readonly executive: TicketUpdateCollectionTracker) {}
 
-    collectTicketUpdates(devProjectId: string):TE.TaskEither<Error, boolean>{
+    collectTicketUpdates(prodDevId: string):TE.TaskEither<Error, boolean>{
         return pipe(
-            this.queryService.nextUpdateCollectionPeriod(devProjectId),
-            TE.chain(TE.fromOption(() => new Error(`Can not find development project ${devProjectId}`))),
+            this.queryService.nextUpdateCollectionPeriod(prodDevId),
+            TE.chain(TE.fromOption(() => new Error(`Can not find development project ${prodDevId}`))),
             TE.chain(nextCollectionPeriod => this.executive.start(nextCollectionPeriod))
         )
     }

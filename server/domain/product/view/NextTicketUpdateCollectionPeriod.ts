@@ -1,5 +1,5 @@
 export class NextTicketUpdateCollectionPeriod {
-    constructor(readonly devProjectId: string,
+    constructor(readonly prodDevId: string,
                 readonly ticketBoardKey: string,
                 readonly devProjectStartedOn: Date,
                 readonly lastTicketUpdateCollectionPeriodEnd: Date) {}

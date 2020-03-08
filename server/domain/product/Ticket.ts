@@ -9,7 +9,7 @@ export default class Ticket extends AggregateRoot {
     constructor(id: string,
                 private _key: string,
                 private _externalRef: number,
-                private _devProjectId: string) {
+                private _prodDevId: string) {
         super(id);
         if (!_key || !_externalRef) throw new Error("external id or key can not be undefined.");
     }

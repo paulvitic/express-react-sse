@@ -1,18 +1,18 @@
-import DevelopmentProjectService from '../../../application/product/DevelopmentProjectService';
+import ProductDevelopmentService from '../../../application/product/ProductDevelopmentService';
 import {Request, Response} from 'express';
 import translateTicketBoardRequest from "./TicketBoardReqTranslator";
 import {CreateProjectFromTicketBoard} from "../../../application/product/commands";
 import LogFactory from "../../../domain/LogFactory";
 
-export const DevelopmentProjectEndpoints = {
-    byId: "TicketBoardsById",
-    create: "TicketBoardsCreate"
+export const ProductDevelopmentEndpoints = {
+    byId: "ProductDevelopmentById",
+    create: "ProductDevelopmentCreate"
 };
 
-export class DevelopmentProjectResource {
-    private readonly log = LogFactory.get(DevelopmentProjectResource.name);
+export class ProductDevelopmentResource {
+    private readonly log = LogFactory.get(ProductDevelopmentResource.name);
 
-    constructor(private service: DevelopmentProjectService) {}
+    constructor(private service: ProductDevelopmentService) {}
 
     byId = (req: Request, res: Response): void => {
         // use query service

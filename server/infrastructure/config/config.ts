@@ -5,7 +5,7 @@ import {PostgresClientParams} from "../clients/PostgresClient";
 import {RedisClientParams} from "../clients/RedisClient";
 
 export interface Environment {
-    NODE_ENV: string,
+    //NODE_ENV: string,
     APP_ID: string,
     PORT: number,
     LOG_LEVEL: string,
@@ -43,7 +43,7 @@ if (!envFound) {
 
 export default async function config(): Promise<Environment> {
     return {
-        NODE_ENV: getStringValueOrThrow(process.env, 'NODE_ENV'),
+        //NODE_ENV: getStringValueOrThrow(process.env, 'NODE_ENV'),
         APP_ID: getStringValueOrThrow(process.env, 'APP_ID'),
         PORT: process.env.PORT ? parseInt(process.env.PORT) : 4000,
         LOG_LEVEL: process.env.LOG_LEVEL || "info",

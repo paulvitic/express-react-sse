@@ -5,7 +5,7 @@ import TicketUpdateCollection, {TicketUpdateCollectionStatus} from "../TicketUpd
 
 export default interface TicketUpdateCollectionRepository extends Repository<TicketUpdateCollection> {
     findByStatus(status: TicketUpdateCollectionStatus): TE.TaskEither<Error, TicketUpdateCollection[]>
-    findLatestByProject(devProjectId: string): TE.TaskEither<Error, O.Option<TicketUpdateCollection>>
-    findByProject(devProjectId: string, limit:number): TE.TaskEither<Error, TicketUpdateCollection[]>
+    findLatestByProject(prodDevId: string): TE.TaskEither<Error, O.Option<TicketUpdateCollection>>
+    findByProject(prodDevId: string, limit:number): TE.TaskEither<Error, TicketUpdateCollection[]>
 }
 

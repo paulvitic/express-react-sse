@@ -7,7 +7,6 @@ import {pipe} from "fp-ts/lib/pipeable";
 import * as O from "fp-ts/lib/Option";
 import {array} from "fp-ts/lib/Array";
 import {console} from "fp-ts";
-import { traverse } from "fp-ts/lib/Array";
 import * as fs from "fs";
 import axios from "axios";
 
@@ -67,22 +66,7 @@ test("chain log", () => {
 // https://dev.to/ksaaskil/using-fp-ts-for-http-requests-and-validation-131c
 // https://dev.to/gcanti/interoperability-with-non-functional-code-using-fp-ts-432e
 // https://github.com/anotherhale/fp-ts_sync-example/blob/master/src/sync-example.ts
-test("from Promise to Task", async () => {
-    interface AppConfig {
-        service: {
-            interface: string
-            port: number
-        };
-    }
-
-    let convert = () => {
-        return new Promise<string>(resolve => {
-            resolve('resolved')}
-        )};
-    let converted = await convert();
-    expect(converted).toEqual("resolved")
-});
-
+// https://github.com/anotherhale/fp-ts_async-example/blob/master/src/async-example.ts
 test('callback to task either', () => {
     //Our file interface and sample data
     interface IFile {
@@ -103,12 +87,10 @@ test('callback to task either', () => {
 
     //using traverse rather than map and sequence
     const teav: TE.TaskEither<NodeJS.ErrnoException, Array<void>> =
-        traverse(TE.taskEither)(files, file => write(file.fileName, file.content, {}));
+        array.traverse(TE.taskEither)(files, file => write(file.fileName, file.content, {}));
 
     //running the computation
-    teav
-        .run()
-        .then(either =>
+    teav.run().then(either =>
             either.fold(
                 (e: NodeJS.ErrnoException) => console.error(e),
                 (a: void[]) => console.log(`${a.length} files written`)
@@ -117,22 +99,18 @@ test('callback to task either', () => {
 });
 
 
-// From Promise to TaskEither
-// ==========================
-const get = (url: string): TE.TaskEither<Error, string> => {
-     return TE.tryCatch(
-         () => axios(url).then(res => res.data()),
-         reason => new Error(String(reason))
-     )};
+test("from promise to TaskEither 1", async () => {
+    const get = (url: string): TE.TaskEither<Error, string> => {
+        return TE.tryCatch(() => axios(url).then(res => res.data),
+            reason => new Error(String(reason))
+        )};
 
-// from Promise to Task:
-// =================
-// const read: T.Task<string> = () => {
-//     return new Promise<string>(resolve => {resolve('resolve')});
-// };
+    let res = await get('http://google.com').run();
+    expect(res).not.toBeNull();
+});
 
 
-test("from Promise to TaskEither", async () => {
+test("from Promise to TaskEither 2", async () => {
     let resolvedPromise = () => new Promise<string>( resolve => {
         resolve("resolved")
     });
@@ -183,7 +161,7 @@ test("optional fold to either", async () => {
         return resEither;
     });
 
-    expect(res).toHaveLength(3)
+    expect(res).toHaveLength(3);
     expect(res[0].isLeft()).toBeTruthy();
 
     expect(res[1].isRight()).toBeTruthy();
@@ -226,8 +204,8 @@ test("optional filter", () => {
         toOption(prop)
     );
 
-    expect(res1).toHaveLength(1)
-    expect(res2).toHaveLength(1)
+    expect(res1).toHaveLength(1);
+    expect(res2).toHaveLength(1);
 });
 
 // collect all successes AND failures:
@@ -235,6 +213,102 @@ test("optional filter", () => {
 
 // fail if some failure is encountered:
 //A.array.sequence(TE.taskEither)(arrayOfTaskEithers)
+
+describe('async', function () {
+
+    interface IPerson {
+        recurringPayment?: number
+    }
+
+    const getRecurringPayment = (person: IPerson): E.Either<Error, number> =>
+        E.fromNullable(new Error('No Recurring Payment'))(person.recurringPayment);
+
+    const niceNameCheck = (name: string) => {
+        if (/dude/i.test(name)) {
+            return 'Nice name'
+        } else {
+            throw new Error('Bad name')
+        }
+    };
+
+
+    it('should pass the error to the left fold function', function () {
+        return TE.taskEither.of('hello')
+            .map(() => {
+                throw new Error('aaaaaa')
+            })
+            .fold(
+                // the first argument (or left) is
+                // run when the value is null or undefined
+                (err) => {
+                   expect(err).toEqual('No Recurring Payment')
+                },
+                // The second argument (or right) is
+                // run when the value exists
+                () => {
+                    throw new Error('This should not run')
+                }
+            )
+            .run()
+    })
+
+});
+
+
+describe('nullable values', function () {
+
+    /**
+     * Should run the first function passed to
+     * fold when the value is null or undefined.
+     *
+     * This is the simplest way of using option
+     */
+    it('Should call the first argument of fold',
+        function () {
+            const myVal = null;
+            O.fromNullable(myVal)
+                .fold(
+                    // the first argument (or left) is
+                    // run when the value is null or undefined
+                    () => expect(myVal).toBeNull(),
+                    // The second argument (or right) is
+                    // run when the value exists
+                    () => {throw new Error('This should not run')}
+                )
+        }
+    );
+
+    it('Should pull a list of names',
+        function () {
+            const names = [
+                'Bob Smith',
+                'Andy Hedge',
+                null,
+                'Helen Newbury',
+                undefined
+            ];
+
+            const getFirstName = (name: string | null | undefined) =>
+                O.fromNullable(name).map((name) => name.split(' ')[0]);
+
+            const defaultFirstName = (name: string | null | undefined) =>
+                getFirstName(name).alt(O.some('No name'));
+
+            const result = array.traverse(O.option)(names, defaultFirstName).getOrElse([]);
+
+            expect(result).toEqual([
+                'Bob',
+                'Andy',
+                'No name',
+                'Helen',
+                'No name'
+            ])
+        }
+    )
+
+});
+
+// https://github.com/davetayls/exploring-fp-ts-series/blob/master/src/02-handling-errors/handling-errors.test.ts
 
 
 

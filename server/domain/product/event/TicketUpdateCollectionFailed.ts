@@ -4,7 +4,7 @@ export class TicketUpdateCollectionFailed extends AbstractDomainEvent {
     constructor(
         aggregate: string,
         aggregateId: string,
-        readonly devProjectId: string,
+        readonly prodDevId: string,
         readonly ticketBoardKey: string,
         readonly processor: string,
         readonly reason: string){

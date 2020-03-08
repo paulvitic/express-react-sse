@@ -74,11 +74,12 @@ export default class RabbitEventBus implements EventBus {
     };
 
     publishEvent<T extends DomainEvent = DomainEvent>(event: T): TE.TaskEither<Error, boolean> {
-        this.log.info(`publishing ${event.eventType}`);
+        this.log.debug(`publishing ${event.eventType}`);
         return pipe(
             TE.fromEither(translate.toOutgoingMessage(event)),
             TE.chain(this.send),
-            TE.chain(sent => this.store.logEvent(event, sent))
+            TE.chain(sent => this.store.logEvent(event, sent)),
+            TE.chainFirst(() => TE.rightIO(this.log.io.info(`${JSON.stringify(event, null, 0)}`))),
         )
     };
 
@@ -151,11 +152,12 @@ export default class RabbitEventBus implements EventBus {
     private emit(msg): TE.TaskEither<Error, void> {
         return pipe(
             TE.fromEither(translate.toDomainEvent(msg)),
-            TE.chainFirst(event => TE.rightIO(this.log.io.info(`received ${event.eventType}`))),
+            TE.chainFirst(event => TE.rightIO(this.log.io.debug(`received ${event.eventType}`))),
             TE.chain(event => array.reduce(
                 O.fromNullable(this.subscribers.get(event.eventType)).getOrElse([]),
                 TE.taskEither.of(null),
-                (previous, current) => previous.chain(() => TE.rightTask(this.deliver(event, current, msg)))))
+                (previous, current) => previous.chain(() => TE.rightTask(this.deliver(event, current, msg)))
+            ))
         )
     };
 
@@ -172,7 +174,7 @@ export default class RabbitEventBus implements EventBus {
     };
 
     private deliver(event: DomainEvent, handler: EventHandler, msg: Message): T.Task<boolean>{
-        this.log.info(`delivering ${event.eventType} to ${handler.name}`);
+        this.log.debug(`delivering ${event.eventType} to ${handler.name}`);
         return pipe(
             TE.tryCatch( () => handler(event) as Promise<void>, err => err as Error),
             TE.fold(() => T.task.of(this.ack(msg, true).isRight()),

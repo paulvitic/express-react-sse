@@ -2,7 +2,7 @@ import EventStore from "../../domain/EventStore";
 import DomainEvent  from "../../domain/DomainEvent";
 import PostgresClient from "../clients/PostgresClient";
 import {QueryResultRow} from "pg";
-import {translateToDomainEvents} from "./QueryResultTranslator";
+import {translateToDomainEvents} from "./PostgresEventStoreTranslator";
 import {pipe} from "fp-ts/lib/pipeable";
 import * as TE from "fp-ts/lib/TaskEither";
 import * as E from "fp-ts/lib/Either";

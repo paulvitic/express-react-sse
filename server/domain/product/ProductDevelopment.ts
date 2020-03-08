@@ -2,19 +2,19 @@ import AggregateRoot from "../AggregateRoot";
 import * as TE from "fp-ts/lib/TaskEither";
 import * as E from "fp-ts/lib/Either";
 import TicketBoard from "./TicketBoard";
-import DevelopmentProjectRepository from "./repository/DevelopmentProjectRepository";
+import ProductDevelopmentRepository from "./repository/ProductDevelopmentRepository";
 import {pipe} from "fp-ts/lib/pipeable";
 import TicketBoardIntegration, {TicketBoardInfo} from "./service/TicketBoardIntegration";
 import Identity from "../Identity";
-import {DevelopmentProjectCreated, TicketBoardLinked} from "./event";
+import {ProductDevelopmentCreated, TicketBoardLinked} from "./event";
 import LogFactory from "../LogFactory";
 
-export class DevelopmentProjectError extends Error {}
+export class ProductDevelopmentError extends Error {}
 
-export default class DevelopmentProject extends AggregateRoot {
-    private readonly log = LogFactory.get(DevelopmentProject.name);
-    private _name: string;
-    private _startedOn: Date;
+export default class ProductDevelopment extends AggregateRoot {
+    private readonly log = LogFactory.get(ProductDevelopment.name);
+    private readonly _name: string;
+    private readonly _startedOn: Date;
     private _ticketBoard: TicketBoard | null;
 
     constructor(id: string,
@@ -23,7 +23,7 @@ export default class DevelopmentProject extends AggregateRoot {
                 startedOn: Date,
                 ticketBoard?: TicketBoard) {
         super(id, active);
-        if (!name) throw new DevelopmentProjectError("Can not create a project without a project name");
+        if (!name) throw new ProductDevelopmentError("Can not create a project without a project name");
         this._name = name;
         this._startedOn = startedOn;
         this._ticketBoard = ticketBoard ? ticketBoard : null;
@@ -45,24 +45,24 @@ export default class DevelopmentProject extends AggregateRoot {
         return this._ticketBoard !== null;
     }
 
-    static createFromTicketBoard(key:string, repo:DevelopmentProjectRepository, integration: TicketBoardIntegration):
-        TE.TaskEither<DevelopmentProjectError, DevelopmentProject> {
+    static createFromTicketBoard(key:string, repo:ProductDevelopmentRepository, integration: TicketBoardIntegration):
+        TE.TaskEither<ProductDevelopmentError, ProductDevelopment> {
         return pipe(
             repo.findOneByTicketBoardKey(key),
             TE.filterOrElse(found => found.isNone(),
-                () => new DevelopmentProjectError('Ticket board key already exists')),
+                () => new ProductDevelopmentError('Ticket board key already exists')),
             TE.chain(() => integration.assertProject(key)),
-            TE.map(DevelopmentProject.createFromProjectInfo),
+            TE.map(ProductDevelopment.createFromProjectInfo),
             TE.chain(TE.fromEither)
         )
     }
 
-    linkTicketBoard(key:string, externalRef: number): E.Either<DevelopmentProjectError, number> {
+    linkTicketBoard(key:string, externalRef: number): E.Either<ProductDevelopmentError, number> {
         return pipe(
-            E.either.of(new TicketBoard(Identity.generate(), key, externalRef)),
+            E.either.of(new TicketBoard(Identity.generate(), key, externalRef, this.id)),
             E.filterOrElse(() => this.ticketBoard===null,
-                () => new DevelopmentProjectError('Ticket board already exists')),
-            E.map(ticketBoard => new TicketBoardLinked(DevelopmentProject.name,
+                () => new ProductDevelopmentError('Ticket board already exists')),
+            E.map(ticketBoard => new TicketBoardLinked(ProductDevelopment.name,
                 this.id,
                 ticketBoard)),
             E.map(this.onTicketBoardLinked),
@@ -70,34 +70,34 @@ export default class DevelopmentProject extends AggregateRoot {
         )
     }
 
-    removeTicketBoard(key:string): E.Either<DevelopmentProjectError,boolean>{
-        if (!this.ticketBoard) return E.left(new DevelopmentProjectError('No ticket board to remove'));
-        if (this.ticketBoard.key!==key) return E.left(new DevelopmentProjectError(`No ticket board with key ${key} to remove`));
+    removeTicketBoard(key:string): E.Either<ProductDevelopmentError,boolean>{
+        if (!this.ticketBoard) return E.left(new ProductDevelopmentError('No ticket board to remove'));
+        if (this.ticketBoard.key!==key) return E.left(new ProductDevelopmentError(`No ticket board with key ${key} to remove`));
         // remove ticket board
         // create domain event
         return (E.right(true))
     }
 
-    updateTicketBoardKey(key:string): E.Either<DevelopmentProjectError,boolean>{
-        if (!this.ticketBoard) return E.left(new DevelopmentProjectError('No ticket board to update'));
-        if (this.ticketBoard.key===key) return E.left(new DevelopmentProjectError(`Ticket board with key is already ${key}`));
+    updateTicketBoardKey(key:string): E.Either<ProductDevelopmentError,boolean>{
+        if (!this.ticketBoard) return E.left(new ProductDevelopmentError('No ticket board to update'));
+        if (this.ticketBoard.key===key) return E.left(new ProductDevelopmentError(`Ticket board with key is already ${key}`));
         // update ticket board key
         // create domain event
         return (E.right(true))
     }
 
     private static createFromProjectInfo(info: TicketBoardInfo):
-        E.Either<DevelopmentProjectError,DevelopmentProject> {
+        E.Either<ProductDevelopmentError,ProductDevelopment> {
         let created = pipe(
-            E.tryCatch(() => new DevelopmentProject(Identity.generate(), true, info.name, info.created),
-                    error => error as DevelopmentProjectError),
+            E.tryCatch(() => new ProductDevelopment(Identity.generate(), true, info.name, info.created),
+                    error => error as ProductDevelopmentError),
             E.filterOrElse(() => info.projectCategory.name===TicketBoard.PRODUCT_DEV_PROJECT_CATEGORY,
-                () => new DevelopmentProjectError("Ticket board is not for a development project"))
+                () => new ProductDevelopmentError("Ticket board is not for a development project"))
         );
 
         return pipe(
-            created.map(project => new DevelopmentProjectCreated(
-                DevelopmentProject.name,
+            created.map(project => new ProductDevelopmentCreated(
+                ProductDevelopment.name,
                 project.id,
                 info.name)),
             E.chain(event => created.chain(project => project.recordEvent(event))),

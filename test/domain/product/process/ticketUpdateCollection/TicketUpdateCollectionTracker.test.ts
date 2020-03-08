@@ -2,7 +2,7 @@ import EventBus from "../../../../../server/domain/EventBus";
 import TicketUpdateCollectionRepository from "../../../../../server/domain/product/repository/TicketUpdateCollectionRepository";
 import {TicketUpdateCollectionTracker} from "../../../../../server/domain/product/process/ticketUpdateCollection/TicketUpdateCollectionTracker";
 import {
-    DEV_PROJECT_STARTED_ON_FIXTURE,
+    PRODUCT_DEV_STARTED_ON_FIXTURE,
     NEXT_COLLECTION_PERIOD_FIXTURE,
     UPDATED_TICKETS_LIST_FETCHED_FIXTURE
 } from "../../productFixtures";
@@ -49,8 +49,8 @@ describe("start", () => {
                 (mockEventBus.publishEvent as jest.Mock).mockClear();
 
                 expect(collectionStartedEvent.period).toEqual(new TicketUpdateCollectionPeriod(
-                    DEV_PROJECT_STARTED_ON_FIXTURE,
-                    new Date(DEV_PROJECT_STARTED_ON_FIXTURE.getDay()+1)))
+                    PRODUCT_DEV_STARTED_ON_FIXTURE,
+                    new Date(PRODUCT_DEV_STARTED_ON_FIXTURE.getDay()+1)))
             }).catch( e =>
                 expect(e).toBeNull()
             );

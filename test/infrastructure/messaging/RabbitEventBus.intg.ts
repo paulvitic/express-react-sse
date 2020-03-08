@@ -11,7 +11,7 @@ import LogFactory from "../../../server/domain/LogFactory";
 import WinstonLogFactory from "../../../server/infrastructure/context/winstonLogFactory";
 import {registerDomainEvent} from "../../../server/infrastructure/JsonEventTranslator";
 
-function Sleep(milliseconds) {
+function sleep(milliseconds) {
     return new Promise(resolve => setTimeout(resolve, milliseconds));
 }
 
@@ -19,7 +19,7 @@ let eventBus :RabbitEventBus;
 let rabbitClient: RabbitClient;
 
 beforeAll(async () => {
-    jest.setTimeout(300000);
+    //jest.setTimeout(300000);
     LogFactory.init(new WinstonLogFactory());
     let env = await config();
     registerDomainEvent(MockDomainEvent.name, MockDomainEvent);

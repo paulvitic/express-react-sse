@@ -12,7 +12,7 @@ import errorHandler from "./errorHandler";
 import sessionCounter from "./sessionCounter";
 import uuid from "../../domain/uuid";
 import serverSentEvents from "./serverSentEvents";
-import {DevelopmentProjectEndpoints} from "../rest";
+import {ProductDevelopmentEndpoints} from "../rest";
 import {UsersEndpoints} from "../rest/team/UsersResource";
 import RedisClient from "../clients/RedisClient";
 import LogFactory from "../../domain/LogFactory";
@@ -45,8 +45,8 @@ const addRoutes = (app: Application, resources: Map<string, RequestHandler>): Pr
             .get('/auth', resources.get(UsersEndpoints.authenticate)));
 
         app.use('/api/v1/developmentProjects', express.Router()
-            .post('/', resources.get(DevelopmentProjectEndpoints.create))
-            .get('/:id', resources.get(DevelopmentProjectEndpoints.byId)));
+            .post('/', resources.get(ProductDevelopmentEndpoints.create))
+            .get('/:id', resources.get(ProductDevelopmentEndpoints.byId)));
 
         resolve();
     })

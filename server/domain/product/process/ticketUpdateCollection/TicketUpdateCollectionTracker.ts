@@ -39,7 +39,7 @@ export class TicketUpdateCollectionTracker implements EventListener<TicketUpdate
             TE.chain( collection => this.eventBus.publishEvent(new TicketUpdateCollectionStarted(
                     TicketUpdateCollection.name,
                     collection.id,
-                    collection.devProjectId,
+                    collection.productDevId,
                     nextCollectionPeriod.ticketBoardKey,
                     collection.period)
             ))
@@ -48,7 +48,7 @@ export class TicketUpdateCollectionTracker implements EventListener<TicketUpdate
 
     onEvent = async (sourceEvent: TicketUpdateCollectionExecutiveEvent): Promise<E.Either<Error, void>> => {
         return pipe (
-            this.repo.findLatestByProject(sourceEvent.devProjectId),
+            this.repo.findLatestByProject(sourceEvent.prodDevId),
             TE.chain(collection => collection.isSome() ? 
                 TE.fromEither(this.handleEvent(sourceEvent, collection.value)) : 
                 TE.leftTask(T.task.of(new Error('collection does not exists')))),
@@ -57,7 +57,7 @@ export class TicketUpdateCollectionTracker implements EventListener<TicketUpdate
                 this.eventBus.publishEvent(new TicketUpdateCollectionEnded(
                     TicketUpdateCollection.name,
                     collection.id,
-                    collection.devProjectId)) :
+                    collection.productDevId)) :
                 TE.taskEither.of(null))
         ).run();
     };

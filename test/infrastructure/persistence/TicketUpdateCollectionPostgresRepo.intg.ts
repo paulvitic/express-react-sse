@@ -8,47 +8,59 @@ import TicketUpdateCollectionRepository
 import TicketUpdateCollectionPostgresRepo
     from "../../../server/infrastructure/persistence/TicketUpdateCollectionPostgresRepo";
 import {
-    DEV_PROJECT_ID_FIXTURE,
+    PRODUCT_DEV_ID_FIXTURE, PRODUCT_DEV_NAME_FIXTURE, PRODUCT_DEV_STARTED_ON_FIXTURE,
     TICKET_UPDATE_COLL_ID_FIXTURE
 } from "../../domain/product/productFixtures";
 import TicketUpdate from "../../../server/domain/product/TicketUpdate";
+import ProductDevPostgresRepo from "../../../server/infrastructure/persistence/ProductDevPostgresRepo";
+import ProductDevelopment from "../../../server/domain/product/ProductDevelopment";
 
 let repo: TicketUpdateCollectionRepository;
 let client: PostgresClient;
+let productDevelopmentFixture = `${PRODUCT_DEV_ID_FIXTURE}-1`
 
 beforeAll(async () => {
+    jest.setTimeout(300000);
     LogFactory.init(new WinstonLogFactory());
     let env = await config();
     client = await PostgresClient.init(env.POSTGRES_PARAMS);
     repo = new TicketUpdateCollectionPostgresRepo(client);
+    let productDevRepo = new ProductDevPostgresRepo(client);
+    let devProjectFixture = new ProductDevelopment(
+        productDevelopmentFixture,
+        true,
+        PRODUCT_DEV_NAME_FIXTURE,
+        PRODUCT_DEV_STARTED_ON_FIXTURE);
+    await productDevRepo.save(devProjectFixture).run();
 });
 
-afterEach( async () => {
+afterAll( async () => {
     try {
         // noinspection SqlWithoutWhere
         await client.query('DELETE FROM jira.ticket_update').run();
         // noinspection SqlWithoutWhere
         await client.query('DELETE FROM jira.ticket_update_collection').run();
+        // noinspection SqlWithoutWhere
+        await client.query(`DELETE FROM jira.product_development WHERE product_dev_id='${productDevelopmentFixture}' `).run();
     } catch(err) {
         throw Error(`Error while deleting ticket board fixture: ${err.message}`)
     }
 });
 
 describe("save", () => {
-    let ticketUpdates = [
-        new TicketUpdate("dd", 2000, "ff"),
-        new TicketUpdate("aa", 2000, "gg")
-    ];
     let ticketUpdateCollectionFixture = new TicketUpdateCollection(
         TICKET_UPDATE_COLL_ID_FIXTURE,
         true,
-        DEV_PROJECT_ID_FIXTURE,
+        productDevelopmentFixture,
         TicketUpdateCollectionStatus.RUNNING,
         new Date(),
         undefined,
         undefined,
         undefined,
-        ticketUpdates);
+        [
+            new TicketUpdate("dd", 2000, "ff"),
+            new TicketUpdate("aa", 2000, "gg")
+        ]);
 
     test("should save", async () => {
         let saved = await repo.save(ticketUpdateCollectionFixture).run();
@@ -58,9 +70,9 @@ describe("save", () => {
 
 describe("find by id", () => {
     let ticketUpdateCollectionFixture = new TicketUpdateCollection(
-        `${TICKET_UPDATE_COLL_ID_FIXTURE}-0`,
+        `${TICKET_UPDATE_COLL_ID_FIXTURE}-1`,
         true,
-        DEV_PROJECT_ID_FIXTURE,
+        productDevelopmentFixture,
         TicketUpdateCollectionStatus.RUNNING,
         new Date(),
         undefined,
@@ -72,23 +84,22 @@ describe("find by id", () => {
         ]);
 
     test("should not find", async () => {
-        await repo.save(ticketUpdateCollectionFixture).run();
-        let found = await repo.findById(`${TICKET_UPDATE_COLL_ID_FIXTURE}-1`).run();
+        let found = await repo.findById(`${TICKET_UPDATE_COLL_ID_FIXTURE}-0`).run();
         expect(found.isRight() && found.value.isNone()).toBeTruthy();
     });
 
     test("should find", async () => {
         await repo.save(ticketUpdateCollectionFixture).run();
-        let found = await repo.findById(`${TICKET_UPDATE_COLL_ID_FIXTURE}-0`).run();
+        let found = await repo.findById(`${TICKET_UPDATE_COLL_ID_FIXTURE}-1`).run();
         expect(found.isRight() && found.value.isSome()).toBeTruthy();
     })
 });
 
 describe("find by status", () => {
     let ticketUpdateCollectionFixture0 = new TicketUpdateCollection(
-        `${TICKET_UPDATE_COLL_ID_FIXTURE}-0`,
+        `${TICKET_UPDATE_COLL_ID_FIXTURE}-2`,
         true,
-        DEV_PROJECT_ID_FIXTURE,
+        productDevelopmentFixture,
         TicketUpdateCollectionStatus.RUNNING,
         new Date(),
         undefined,
@@ -100,9 +111,9 @@ describe("find by status", () => {
         ]);
 
     let ticketUpdateCollectionFixture1 = new TicketUpdateCollection(
-        `${TICKET_UPDATE_COLL_ID_FIXTURE}-1`,
+        `${TICKET_UPDATE_COLL_ID_FIXTURE}-3`,
         true,
-        DEV_PROJECT_ID_FIXTURE,
+        productDevelopmentFixture,
         TicketUpdateCollectionStatus.RUNNING,
         new Date(),
         undefined,

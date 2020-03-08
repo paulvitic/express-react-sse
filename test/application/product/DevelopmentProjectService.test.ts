@@ -1,4 +1,4 @@
-import DevelopmentProjectService from "../../../server/application/product/DevelopmentProjectService";
+import ProductDevelopmentService from "../../../server/application/product/DevelopmentProjectService";
 import EventBus from "../../../server/domain/EventBus";
 import * as O from "fp-ts/lib/Option";
 import * as TE from "fp-ts/lib/TaskEither";
@@ -6,7 +6,7 @@ import {PROJECT_INFO_FIXTURE} from "../../domain/product/productFixtures";
 import LogFactory from "../../../server/domain/LogFactory";
 import WinstonLogFactory from "../../../server/infrastructure/context/winstonLogFactory";
 import {CreateProjectFromTicketBoard} from "../../../server/application/product/commands";
-import DevelopmentProjectRepository from "../../../server/domain/product/repository/DevelopmentProjectRepository";
+import ProductDevelopmentRepository from "../../../server/domain/product/repository/DevelopmentProjectRepository";
 import TicketBoardIntegration from "../../../server/domain/product/service/TicketBoardIntegration";
 
 jest.mock('../../../server/domain/EventBus');
@@ -14,7 +14,7 @@ jest.mock('../../../server/domain/product/repository/DevelopmentProjectRepositor
 jest.mock('../../../server/domain/product/service/TicketBoardIntegration');
 
 let mockEventBus: EventBus = require('../../../server/domain/EventBus');
-let mockRepository: DevelopmentProjectRepository = require('../../../server/domain/product/repository/DevelopmentProjectRepository');
+let mockRepository: ProductDevelopmentRepository = require('../../../server/domain/product/repository/DevelopmentProjectRepository');
 let mockIntegration: TicketBoardIntegration = require('../../../server/domain/product/service/TicketBoardIntegration');
 
 mockEventBus.publishEvent = jest.fn().mockImplementation(event => {
@@ -22,7 +22,7 @@ mockEventBus.publishEvent = jest.fn().mockImplementation(event => {
 });
 
 LogFactory.init(new WinstonLogFactory());
-let service: DevelopmentProjectService = new DevelopmentProjectService(mockEventBus, mockRepository, mockIntegration);
+let service: ProductDevelopmentService = new ProductDevelopmentService(mockEventBus, ProductDevelopmentRepository, mockIntegration);
 
 beforeAll(() => {
 
@@ -33,15 +33,15 @@ describe('create project from ticket board', () => {
         jest.mock('../../../server/domain/product/DevelopmentProject');
         const mockDevProject = require('../../../server/domain/product/DevelopmentProject');
 
-        mockRepository.findOneByTicketBoardKey = jest.fn().mockImplementationOnce(key => {
-            return TE.taskEither.of(O.some(mockDevProject))
+        ProductDevelopmentRepository.findOneByTicketBoardKey = jest.fn().mockImplementationOnce(key => {
+            return TE.taskEither.of(O.some(ProductDevelopment))
         });
 
         mockIntegration.assertProject = jest.fn().mockImplementationOnce(() => {
             return TE.taskEither.of(PROJECT_INFO_FIXTURE)
         });
 
-        mockRepository.save = jest.fn().mockImplementationOnce((devProject) => {
+        ProductDevelopmentRepository.save = jest.fn().mockImplementationOnce((devProject) => {
             return TE.taskEither.of(devProject)
         });
 
@@ -56,7 +56,7 @@ describe('create project from ticket board', () => {
     test('should return new development project id', async () => {
         let expectedId: string;
 
-        mockRepository.findOneByTicketBoardKey = jest.fn().mockImplementationOnce(key => {
+        ProductDevelopmentRepository.findOneByTicketBoardKey = jest.fn().mockImplementationOnce(key => {
             return TE.taskEither.of(O.none)
         });
 
@@ -64,7 +64,7 @@ describe('create project from ticket board', () => {
             return TE.taskEither.of(PROJECT_INFO_FIXTURE)
         });
 
-        mockRepository.save = jest.fn().mockImplementationOnce(devProject => {
+        ProductDevelopmentRepository.save = jest.fn().mockImplementationOnce(devProject => {
             expectedId = devProject.id;
             return TE.taskEither.of(devProject)
         });

@@ -45,7 +45,7 @@ export default class TicketUpdateCollection extends AggregateRoot {
 
     constructor(id: string,
                 active: boolean,
-                private readonly _devProjectId: string,
+                private readonly _productDevId: string,
                 private _status: TicketUpdateCollectionStatus,
                 from: Date,
                 to?: Date,
@@ -59,7 +59,7 @@ export default class TicketUpdateCollection extends AggregateRoot {
         this._startedAt = startedAt ? startedAt : new Date();
         this._ticketUpdates = ticketUpdates ?
             ticketUpdates.reduce(
-                (previous: Map<string, TicketUpdate>, current: TicketUpdate) => previous.set(current.ticketKey, current),
+                (previous: Map<string, TicketUpdate>, current: TicketUpdate) => previous.set(current.key, current),
                 new Map<string, TicketUpdate>()) :
             new Map<string, TicketUpdate>()
     }
@@ -75,14 +75,14 @@ export default class TicketUpdateCollection extends AggregateRoot {
             E.map(from => new TicketUpdateCollection(
                 Identity.generate(),
                 true,
-                nextPeriod.devProjectId,
+                nextPeriod.prodDevId,
                 TicketUpdateCollectionStatus.RUNNING,
                 from))
         )
     }
 
-    get devProjectId(): string {
-        return this._devProjectId
+    get productDevId(): string {
+        return this._productDevId
     }
 
     get period(){

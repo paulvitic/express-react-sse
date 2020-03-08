@@ -6,7 +6,7 @@ export class UpdatedTicketsListFetched extends AbstractDomainEvent {
     constructor(
         aggregate: string,
         aggregateId: string,
-        readonly devProjectId: string,
+        readonly prodDevId: string,
         readonly ticketBoardKey: string,
         readonly period: TicketUpdateCollectionPeriod,
         readonly updatedTickets: UpdatedTicket[]){

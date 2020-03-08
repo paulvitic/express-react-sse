@@ -1,6 +1,6 @@
 import {IO} from "fp-ts/lib/IO";
 
-type Logger = {
+export type Logger = {
     error: (message: string, ...meta: any[]) => void
     warn: (message: string, ...meta: any[]) => void
     info: (message: string, ...meta: any[]) => void

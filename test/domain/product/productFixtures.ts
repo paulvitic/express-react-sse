@@ -9,12 +9,12 @@ import {NextTicketUpdateCollectionPeriod} from "../../../server/domain/product/v
 import TicketUpdateCollection, {TicketUpdateCollectionPeriod} from "../../../server/domain/product/TicketUpdateCollection";
 import {UpdatedTicketsListFetched} from "../../../server/domain/product/event";
 
-export const DEV_PROJECT_ID_FIXTURE = "dev-project-1";
-export const DEV_PROJECT_STARTED_ON_FIXTURE = new Date("2018-11-27T00:00:00.000");
+export const PRODUCT_DEV_ID_FIXTURE = "product-dev-1";
+export const PRODUCT_DEV_STARTED_ON_FIXTURE = new Date("2018-11-27T00:00:00.000");
 export const TICKET_BOARD_ID_FIXTURE = "ticket-board-1";
 export const TICKET_BOARD_KEY_FIXTURE = "TEST";
-export const DEV_PROJECT_NAME_FIXTURE = "Fixture Project";
-export const DEV_PROJECT_DESCRIPTION_FIXTURE = "Fixture Project description";
+export const PRODUCT_DEV_NAME_FIXTURE = "Fixture Project";
+export const PRODUCT_DEV_DESCRIPTION_FIXTURE = "Fixture Project description";
 export const TICKET_UPDATE_COLL_ID_FIXTURE = "ticket-update-coll-1";
 export const TICKET_UPDATE_COLL_FROM_FIXTURE = new Date("2018-11-27T00:00:00.000");
 export const TICKET_UPDATE_COLL_TO_FIXTURE = new Date("2018-11-28T00:00:00.000");
@@ -26,9 +26,9 @@ export const TICKET_KEY_FIXTURE_1 = "TEST-TICKET-1";
 export const PROJECT_INFO_FIXTURE: TicketBoardInfo = {
     id: 1000,
     key: TICKET_BOARD_KEY_FIXTURE,
-    name: DEV_PROJECT_NAME_FIXTURE,
-    description: DEV_PROJECT_DESCRIPTION_FIXTURE,
-    created: DEV_PROJECT_STARTED_ON_FIXTURE,
+    name: PRODUCT_DEV_NAME_FIXTURE,
+    description: PRODUCT_DEV_DESCRIPTION_FIXTURE,
+    created: PRODUCT_DEV_STARTED_ON_FIXTURE,
     projectCategory: {
         id: 1001,
         name: TicketBoard.PRODUCT_DEV_PROJECT_CATEGORY,
@@ -37,9 +37,9 @@ export const PROJECT_INFO_FIXTURE: TicketBoardInfo = {
 };
 
 export const NEXT_COLLECTION_PERIOD_FIXTURE: NextTicketUpdateCollectionPeriod = {
-    devProjectId: DEV_PROJECT_ID_FIXTURE,
+    devProjectId: PRODUCT_DEV_ID_FIXTURE,
     ticketBoardKey: TICKET_BOARD_KEY_FIXTURE,
-    devProjectStartedOn: DEV_PROJECT_STARTED_ON_FIXTURE,
+    devProjectStartedOn: PRODUCT_DEV_STARTED_ON_FIXTURE,
     lastTicketUpdateCollectionPeriodEnd: null
 };
 
@@ -53,21 +53,21 @@ export const UPDATED_TICKET_FIXTURE_1: UpdatedTicket = {
     key:TICKET_KEY_FIXTURE_1
 };
 
-export const TICKET_UPDATE_COLLECTION_PERIOD_FIXTURE = new TicketUpdateCollectionPeriod(DEV_PROJECT_STARTED_ON_FIXTURE);
+export const TICKET_UPDATE_COLLECTION_PERIOD_FIXTURE = new TicketUpdateCollectionPeriod(PRODUCT_DEV_STARTED_ON_FIXTURE);
 
 export const TICKET_CHANGELOG_0: TicketChangeLog ={
     id: 1001,
     key: TICKET_KEY_FIXTURE_0,
     changeLog:[{
         field: "",
-        timeStamp: DEV_PROJECT_STARTED_ON_FIXTURE,
+        timeStamp: PRODUCT_DEV_STARTED_ON_FIXTURE,
         from: "",
         fromString: "",
         to: "",
         toString: "",
     },{
         field: "",
-        timeStamp: DEV_PROJECT_STARTED_ON_FIXTURE,
+        timeStamp: PRODUCT_DEV_STARTED_ON_FIXTURE,
         from: "",
         fromString: "",
         to: "",
@@ -80,14 +80,14 @@ export const TICKET_CHANGELOG_1: TicketChangeLog = {
     key: TICKET_KEY_FIXTURE_1,
     changeLog:[{
         field: "",
-        timeStamp: DEV_PROJECT_STARTED_ON_FIXTURE,
+        timeStamp: PRODUCT_DEV_STARTED_ON_FIXTURE,
         from: "",
         fromString: "",
         to: "",
         toString: "",
     },{
         field: "",
-        timeStamp: DEV_PROJECT_STARTED_ON_FIXTURE,
+        timeStamp: PRODUCT_DEV_STARTED_ON_FIXTURE,
         from: "",
         fromString: "",
         to: "",
@@ -98,7 +98,7 @@ export const TICKET_CHANGELOG_1: TicketChangeLog = {
 export const UPDATED_TICKETS_LIST_FETCHED_FIXTURE = new UpdatedTicketsListFetched(
     TicketUpdateCollection.name,
     TICKET_UPDATE_COLLECTION_ID_FIXTURE,
-    DEV_PROJECT_ID_FIXTURE,
+    PRODUCT_DEV_ID_FIXTURE,
     TICKET_KEY_FIXTURE_0,
     TICKET_UPDATE_COLLECTION_PERIOD_FIXTURE,
     [UPDATED_TICKET_FIXTURE_0, UPDATED_TICKET_FIXTURE_1]

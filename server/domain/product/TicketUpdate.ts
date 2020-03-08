@@ -4,8 +4,8 @@ export default class TicketUpdate extends DomainEntity {
     private _collected: boolean;
 
     constructor(id: string,
-                readonly externalRef: number,
-                readonly ticketKey: string,
+                readonly ref: number,
+                readonly key: string,
                 collected?: boolean) {
         super(id);
         this._collected = collected === undefined ? false : collected;

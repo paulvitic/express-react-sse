@@ -51,7 +51,7 @@ export default class JiraIntegration implements TicketBoardIntegration {
         const url = `${this.url}/rest/api/3/search?jql=project%3D${key}+ORDER+BY+created+asc&fields=project%2Ccreated&maxResults=1`;
         return pipe(
                 this.executeGetRequest(url),
-                TE.chainFirst(response => TE.rightIO(this.log.io.info(`Assert project response: ${JSON.stringify(response.data)}`))),
+                TE.chainFirst(response => TE.rightIO(this.log.io.debug(`Assert project response: ${JSON.stringify(response.data)}`))),
                 TE.map(toProjectInfo),
                 TE.chain(TE.fromEither)
         )

@@ -5,16 +5,17 @@ import RedisClient from "../clients/RedisClient";
 import RabbitClient from "../clients/RabbitClient";
 import PostgresClient from "../clients/PostgresClient";
 import {RequestHandler} from "express";
-import {DevelopmentProjectEndpoints, DevelopmentProjectResource} from "../rest";
-import DevelopmentProjectService from "../../application/product/DevelopmentProjectService";
-import {UsersEndpoints, UsersResource} from "../rest/team/UsersResource";
+import {
+    ProductDevelopmentEndpoints, ProductDevelopmentResource,
+    UsersEndpoints, UsersResource} from "../rest";
+import ProductDevelopmentService from "../../application/product/ProductDevelopmentService";
 import PostgresEventStore from "../persistence/PostgresEventStore";
 import EventStore from "../../domain/EventStore";
 import RabbitEventBus from "../messaging/RabbitEventBus";
 import EventBus from "../../domain/EventBus";
 import {registerDomainEvent} from "../JsonEventTranslator";
 import {
-    DevelopmentProjectCreated,
+    ProductDevelopmentCreated,
     TicketBoardLinked,
     TicketChanged,
     TicketRemainedUnchanged,
@@ -25,8 +26,8 @@ import {
 } from "../../domain/product/event";
 import JiraIntegration from "../integration/JiraIntegration";
 import LogFactory from "../../domain/LogFactory";
-import DevelopmentProjectRepository from "../../domain/product/repository/DevelopmentProjectRepository";
-import DevelopmentProjectPostgresRepo from "../persistence/DevelopmentProjectPostgresRepo";
+import ProductDevelopmentRepository from "../../domain/product/repository/ProductDevelopmentRepository";
+import ProductDevPostgresRepo from "../persistence/ProductDevPostgresRepo";
 
 const exit = process.exit;
 
@@ -39,7 +40,7 @@ type Context = {
         services: []
     },
     repositories: {
-        developmentProjectRepo: DevelopmentProjectRepository
+        developmentProjectRepo: ProductDevelopmentRepository
     }
     infrastructure: {
         rest: {
@@ -49,7 +50,7 @@ type Context = {
 }
 
 const registerEvents = function(){
-    registerDomainEvent(DevelopmentProjectCreated.name, DevelopmentProjectCreated);
+    registerDomainEvent(ProductDevelopmentCreated.name, ProductDevelopmentCreated);
     registerDomainEvent(TicketBoardLinked.name, TicketBoardLinked);
     registerDomainEvent(TicketChanged.name, TicketChanged);
     registerDomainEvent(TicketRemainedUnchanged.name, TicketRemainedUnchanged);
@@ -90,7 +91,7 @@ export default class App {
             await this.init();
             this.log.info("App started");
         } catch (err) {
-            this.log.error("App start failed", err);
+            this.log.error(`App start failed: ${err.message}`);
             exit(1);
         }
     };
@@ -128,13 +129,13 @@ export default class App {
 
         let {resources} = this.context.infrastructure.rest;
 
-        let developmentProjectResource = new DevelopmentProjectResource(
-            new DevelopmentProjectService(
+        let developmentProjectResource = new ProductDevelopmentResource(
+            new ProductDevelopmentService(
                 this.context.eventBus,
-                new DevelopmentProjectPostgresRepo(this.context.clients.get("postgresClient")),
+                new ProductDevPostgresRepo(this.context.clients.get("postgresClient")),
                 new JiraIntegration(this.env.JIRA_PARAMS)));
-        resources.set(DevelopmentProjectEndpoints.create, developmentProjectResource.create);
-        resources.set(DevelopmentProjectEndpoints.byId, developmentProjectResource.byId);
+        resources.set(ProductDevelopmentEndpoints.create, developmentProjectResource.create);
+        resources.set(ProductDevelopmentEndpoints.byId, developmentProjectResource.byId);
 
         let users = new UsersResource(this.env.GOOGLE_APP_CLIENT_ID, this.env.GOOGLE_APP_CLIENT_SECRET);
         resources.set(UsersEndpoints.authenticate, users.authenticate);

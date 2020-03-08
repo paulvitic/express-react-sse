@@ -4,7 +4,7 @@ import * as T from "fp-ts/lib/Task";
 import EventBus from "../../../../../server/domain/EventBus";
 import TicketUpdateCollection from "../../../../../server/domain/product/TicketUpdateCollection";
 import {
-    DEV_PROJECT_ID_FIXTURE,
+    PRODUCT_DEV_ID_FIXTURE,
     TICKET_BOARD_KEY_FIXTURE, TICKET_CHANGELOG_0,
     TICKET_KEY_FIXTURE_0,
     TICKET_UPDATE_COLLECTION_ID_FIXTURE,
@@ -40,7 +40,7 @@ describe("on collection started", () => {
     let updatedTicketsListFetched = new UpdatedTicketsListFetched(
         TicketUpdateCollection.name,
         TICKET_UPDATE_COLLECTION_ID_FIXTURE,
-        DEV_PROJECT_ID_FIXTURE,
+        PRODUCT_DEV_ID_FIXTURE,
         TICKET_BOARD_KEY_FIXTURE,
         TICKET_UPDATE_COLLECTION_PERIOD_FIXTURE,
         [UPDATED_TICKET_FIXTURE_0, UPDATED_TICKET_FIXTURE_1]

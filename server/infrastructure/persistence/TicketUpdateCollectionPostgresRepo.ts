@@ -19,21 +19,17 @@ implements TicketUpdateCollectionRepository {
     findById(id: string): TE.TaskEither<Error, O.Option<TicketUpdateCollection>> {
         return pipe(
             TE.fromEither(translate.toFindByIdQuery(id)),
-            TE.chainFirst(query => TE.rightIO(this.log.io.info(`Executing find query: ${query}`))),
+            TE.chainFirst(query => TE.rightIO(this.log.io.debug(`Executing find query: ${query}`))),
             TE.chain(query => this.client.query(query)),
-            TE.chain( result => TE.fromEither(translate.fromFindOptionalCollectionResult(result))),
-            TE.chainFirst(found => TE.rightIO(
-                this.log.io.info(`Found:\n ${JSON.stringify(found,
-                (key, value)=> value instanceof Map ?  Object.fromEntries(value.entries()) : value,
-                2)}`)))
+            TE.chain( result => TE.fromEither(translate.fromFindOptionalCollectionResult(result)))
         )
     }
 
-    findByProject(devProjectId: string, limit: number): TE.TaskEither<Error, TicketUpdateCollection[]> {
+    findByProject(prodDevId: string, limit: number): TE.TaskEither<Error, TicketUpdateCollection[]> {
         throw new Error("Method not implemented.");
     }
 
-    findLatestByProject(devProjectId: string): TE.TaskEither<Error, O.Option<TicketUpdateCollection>> {
+    findLatestByProject(prodDevId: string): TE.TaskEither<Error, O.Option<TicketUpdateCollection>> {
         throw new Error("Method not implemented.");
     }
 
@@ -53,11 +49,7 @@ implements TicketUpdateCollectionRepository {
             TE.chain(query => this.client.query(query).foldTaskEither(
                 err => this.rollBack(err),
                 result => this.commit(result))),
-            TE.chain( result => TE.fromEither(translate.fromCollectionInsertResult(result))),
-            TE.chainFirst(inserted => TE.rightIO(
-                this.log.io.debug(`Inserted:\n ${JSON.stringify(inserted,
-                    (key, value)=> value instanceof Map ?  Object.fromEntries(value.entries()) : value,
-                    2)}`)))
+            TE.chain(() => TE.taskEither.of(collection))
         )
     }
 

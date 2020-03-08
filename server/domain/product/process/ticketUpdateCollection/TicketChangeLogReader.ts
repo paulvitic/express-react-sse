@@ -57,7 +57,7 @@ export default class TicketChangeLogReader implements EventListener<UpdatedTicke
         return T.task.of(new TicketUpdateCollectionFailed(
             sourceEvent.aggregate,
             sourceEvent.aggregateId,
-            sourceEvent.devProjectId,
+            sourceEvent.prodDevId,
             sourceEvent.ticketBoardKey,
             TicketChangeLogReader.name,
             error.message)
@@ -74,13 +74,13 @@ export default class TicketChangeLogReader implements EventListener<UpdatedTicke
             () => new TicketRemainedUnchanged(
                 sourceEvent.aggregate,
                 sourceEvent.aggregateId,
-                sourceEvent.devProjectId,
+                sourceEvent.prodDevId,
                 updatedTicketId,
                 updatedTicketKey),
             ticket => new TicketChanged(
                 sourceEvent.aggregate,
                 sourceEvent.aggregateId,
-                sourceEvent.devProjectId,
+                sourceEvent.prodDevId,
                 ticket.id,
                 ticket.key,
                 ticket.changeLog)

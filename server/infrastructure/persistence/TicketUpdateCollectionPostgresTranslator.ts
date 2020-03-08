@@ -9,7 +9,7 @@ import * as O from "fp-ts/lib/Option";
 export function toFindByIdQuery(id: string): E.Either<Error, string> {
     let query = `
         SELECT * FROM ticket_update_collection AS c 
-        LEFT JOIN ticket_update as u ON u.collection_id = c.collection_id  
+        LEFT JOIN ticket_update as u ON c.collection_id = u.collection_id  
         WHERE c.collection_id=$ID;`;
     return E.tryCatch2v(() => {
         query = query.replace(/\$ID/, `'${id}'`);
@@ -32,8 +32,8 @@ export function toInsertCollectionQuery(collection: TicketUpdateCollection):
     E.Either<Error, string> {
     let query = `
         BEGIN;
-        INSERT INTO ticket_update_collection(collection_id, active, status, dev_project_id, from_day, to_day, started_at)
-        VALUES ($ID, $ACTIVE, $STATUS, $DEV_PROJECT_ID, $FROM, $TO, $STARTED_AT)
+        INSERT INTO ticket_update_collection(collection_id, active, status, product_dev_id, from_day, to_day, started_at)
+        VALUES ($ID, $ACTIVE, $STATUS, $PRODUCT_DEV_ID, $FROM, $TO, $STARTED_AT)
         RETURNING *;
         `;
     return pipe(
@@ -41,7 +41,7 @@ export function toInsertCollectionQuery(collection: TicketUpdateCollection):
             query = query.replace(/\$ID/, `'${collection.id}'`);
             query = query.replace(/\$ACTIVE/, `${collection.isActive}`);
             query = query.replace(/\$STATUS/, `'${TicketUpdateCollectionStatus[collection.status]}'`);
-            query = query.replace(/\$DEV_PROJECT_ID/, `'${collection.devProjectId}'`);
+            query = query.replace(/\$PRODUCT_DEV_ID/, `'${collection.productDevId}'`);
             query = query.replace(/\$FROM/, `'${toSqlDate(collection.period.from)}'`);
             query = query.replace(/\$TO/, `'${toSqlDate(collection.period.to)}'`);
             query = query.replace(/\$STARTED_AT/, `'${toSqlDate(collection.startedAt)}'`);
@@ -59,14 +59,14 @@ export function toInsertCollectionQuery(collection: TicketUpdateCollection):
 function toInsertTicketUpdateQuery(ticketUpdate: TicketUpdate, collectionId: string, query: string):
     E.Either<Error, string> {
     let insertQuery = `
-        INSERT INTO ticket_update(ticket_update_id, external_ref, key, collected, collection_id)
+        INSERT INTO ticket_update(ticket_update_id, ticket_ref, ticket_key, collected, collection_id)
         VALUES ($ID, $EXTERNAL_REF, $KEY, $COLLECTED, $COLLECTION_ID)
         RETURNING *;
     `;
     return E.tryCatch2v(() => {
         insertQuery = insertQuery.replace(/\$ID/, `'${ticketUpdate.id}'`);
-        insertQuery = insertQuery.replace(/\$EXTERNAL_REF/, `${ticketUpdate.externalRef}`);
-        insertQuery = insertQuery.replace(/\$KEY/, `'${ticketUpdate.ticketKey}'`);
+        insertQuery = insertQuery.replace(/\$EXTERNAL_REF/, `${ticketUpdate.ref}`);
+        insertQuery = insertQuery.replace(/\$KEY/, `'${ticketUpdate.key}'`);
         insertQuery = insertQuery.replace(/\$COLLECTED/, `${ticketUpdate.collected}`);
         insertQuery = insertQuery.replace(/\$COLLECTION_ID/, `'${collectionId}'`);
         return query + insertQuery;
@@ -75,47 +75,54 @@ function toInsertTicketUpdateQuery(ticketUpdate: TicketUpdate, collectionId: str
 
 function toTicketUpdate(u: any):
     E.Either<Error, TicketUpdate> {
-    return E.tryCatch2v(() => new TicketUpdate(
-        u.ticket_update_id,
-        u.external_ref,
-        u.key,
-        u.collected), err => err as Error)
+    return E.tryCatch2v(() => {
+        //let [u] = result.rows;
+        return new TicketUpdate(
+            u.ticket_update_id,
+            u.ticket_ref,
+            u.ticket_key,
+            u.collected)
+    }, err => err as Error)
 }
 
-function toCollection(c: any, ticketUpdates: TicketUpdate[]) {
-    return E.tryCatch2v( () => new TicketUpdateCollection(
-        c.collection_id,
-        c.active,
-        c.dev_project_id,
-        c.status,
-        c.from_day,
-        c.to_day,
-        c.started_at,
-        c.ended_at,
-        ticketUpdates,
-        c.failed_at,
-        c.fail_reason), err => err as Error)
+function toCollection(c: any, ticketUpdates: TicketUpdate[]):
+    E.Either<Error, TicketUpdateCollection>  {
+    return E.tryCatch2v( () => {
+        return new TicketUpdateCollection(
+            c.collection_id,
+            c.active,
+            c.product_dev_id,
+            c.status,
+            c.from_day,
+            c.to_day,
+            c.started_at,
+            c.ended_at,
+            ticketUpdates,
+            c.failed_at,
+            c.fail_reason)
+    }, err => err as Error)
 }
 
 function fromQueryResultRows(rows: any[]): E.Either<Error, TicketUpdateCollection> {
     return pipe(
-        array.sequence(E.either)((rows as Array<any>).map(u => toTicketUpdate(u))),
+        array.sequence(E.either)(array.map(rows, row => toTicketUpdate(row))),
         E.chain(ticketUpdates => toCollection(rows[0], ticketUpdates))
     )
 }
 
-export function fromCollectionInsertResult(results: QueryResultRow):
+/*export function fromCollectionInsertResult(results: QueryResultRow):
     E.Either<Error, TicketUpdateCollection> {
     return pipe(
-        array.sequence(E.either)(array.map(results.splice(2), toTicketUpdate)),
+        array.sequence(E.either)(array.map(results.splice(2), (result:QueryResult) =>
+            toTicketUpdate(result.rows[1]))),
         E.chain(ticketUpdates => toCollection(results[1].rows[0], ticketUpdates))
     )
-}
+}*/
 
 export function fromFindOptionalCollectionResult(results: QueryResultRow):
     E.Either<Error, O.Option<TicketUpdateCollection>> {
     let {rows} = results;
-    return (rows as Array<any>).length===0 ?
+    return rows.length===0 ?
         E.either.of(O.none) :
         fromQueryResultRows(rows).fold(
             e => E.left(e),

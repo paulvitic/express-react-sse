@@ -1,6 +1,6 @@
 import {AbstractDomainEvent} from "../../DomainEvent";
 
-export class DevelopmentProjectCreated extends AbstractDomainEvent {
+export class ProductDevelopmentCreated extends AbstractDomainEvent {
     constructor(
         aggregate: string,
         aggregateId: string,

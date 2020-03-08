@@ -5,7 +5,7 @@ import UpdatedTicketsListCollector
 import EventBus from "../../../../../server/domain/EventBus";
 import TicketUpdateCollection, {TicketUpdateCollectionPeriod} from "../../../../../server/domain/product/TicketUpdateCollection";
 import {
-    DEV_PROJECT_ID_FIXTURE,
+    PRODUCT_DEV_ID_FIXTURE,
     TICKET_BOARD_ID_FIXTURE, TICKET_KEY_FIXTURE_0,
     TICKET_UPDATE_COLLECTION_ID_FIXTURE, TICKET_UPDATE_COLLECTION_PERIOD_FIXTURE, UPDATED_TICKET_FIXTURE_0
 } from "../../productFixtures";
@@ -31,7 +31,7 @@ describe("on collection started", () => {
     let collectionStartedEvent= new TicketUpdateCollectionStarted(
         TicketUpdateCollection.name,
         TICKET_UPDATE_COLLECTION_ID_FIXTURE,
-        DEV_PROJECT_ID_FIXTURE,
+        PRODUCT_DEV_ID_FIXTURE,
         TICKET_BOARD_ID_FIXTURE,
         TICKET_UPDATE_COLLECTION_PERIOD_FIXTURE
     );

@@ -29,11 +29,11 @@ export class TicketUpdateCollectionRedisRepo implements TicketUpdateCollectionRe
         throw new Error("Method not implemented.");
     }
 
-    findLatestByProject(devProjectId: string): TE.TaskEither<Error, O.Option<TicketUpdateCollection>> {
+    findLatestByProject(prodDevId: string): TE.TaskEither<Error, O.Option<TicketUpdateCollection>> {
         throw new Error("Method not implemented.");
     }
 
-    findByProject(devProjectId: string, limit: number): TE.TaskEither<Error, TicketUpdateCollection[]> {
+    findByProject(prodDevId: string, limit: number): TE.TaskEither<Error, TicketUpdateCollection[]> {
         throw new Error("Method not implemented.");
     }
 
