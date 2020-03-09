@@ -11,7 +11,6 @@ import * as E from 'fp-ts/lib/Either'
 import LogFactory from "../../domain/LogFactory";
 import {array} from "fp-ts/lib/Array";
 import EventListener from "../../domain/EventListener";
-import {throwError} from "fp-ts/lib/Exception";
 
 export type OutgoingMessage = {
     content: Buffer,
@@ -48,7 +47,7 @@ export default class RabbitEventBus implements EventBus {
     private readonly log = LogFactory.get(RabbitEventBus.name);
     private sendChannel: ConfirmChannel;
     private receiveChannel: Channel;
-    private eventListeners: Map<string, EventListener[]> = new Map<string, EventListener[]>();
+    private subscribers: Map<string, EventListener[]> = new Map<string, EventListener[]>();
 
     private constructor(
         private readonly rabbitClient: RabbitClient,
@@ -89,10 +88,10 @@ export default class RabbitEventBus implements EventBus {
     };
 
     private registerListener = (listener: EventListener, eventType: string): void => {
-        if (!this.eventListeners.get(eventType)) {
-            this.eventListeners.set(eventType, new Array<EventListener>())
+        if (!this.subscribers.get(eventType)) {
+            this.subscribers.set(eventType, new Array<EventListener>())
         }
-        this.eventListeners.get(eventType).push(listener);
+        this.subscribers.get(eventType).push(listener);
     };
 
     private send = ({content, options}: OutgoingMessage): TE.TaskEither<Error, boolean> => {
@@ -149,9 +148,9 @@ export default class RabbitEventBus implements EventBus {
                 }), err => err as Error)
     };
 
-    private onMessage = async (msg: Message) => {
+    private onMessage = (msg: Message) => {
         this.log.debug(`got msg ${JSON.stringify(msg)}`);
-        await this.emit(msg);
+        this.emit(msg);
     };
 
     private emit(msg): E.Either<Error, void> {
@@ -159,21 +158,21 @@ export default class RabbitEventBus implements EventBus {
             translate.toDomainEvent(msg),
             E.chainFirst(event => E.either.of(this.log.io.info(`received ${event.eventType}`))),
             E.chain(event => array
-                .map(this.subscribers(event), listener => this.deliver(event, listener, msg))
+                .map(this.subscribersOf(event), subscriber => this.deliver(subscriber, event))
                 .reduceRight((previous, current) => previous.chain(() => current))),
             E.fold(() => this.ack(msg, false), () => this.ack(msg, false))
         )
     };
 
-    private deliver(event: DomainEvent, listener: EventListener, msg: Message): E.Either<Error, void> {
+    private deliver(listener: EventListener, event: DomainEvent): E.Either<Error, void> {
         this.log.debug(`delivering ${event.eventType} to ${listener}`);
         return E.tryCatch2v(() => {
-                listener.onEvent(event).catch(e => throwError(e));
+                listener.onEvent(event).catch(e => {throw e as Error});
             }, err => err as Error)
     }
 
-    private subscribers = (event: DomainEvent): EventListener[] => {
-        return O.fromNullable(this.eventListeners.get(event.eventType)).getOrElse([])
+    private subscribersOf = (event: DomainEvent): EventListener[] => {
+        return O.fromNullable(this.subscribers.get(event.eventType)).getOrElse([])
     };
 
     private ack(msg: Message, ok: boolean): E.Either<Error, void> {
@@ -183,7 +182,7 @@ export default class RabbitEventBus implements EventBus {
                 this.receiveChannel.ack(msg);
             } else {
                 this.log.debug('rejecting the message');
-                this.receiveChannel.reject(msg, true);
+                this.receiveChannel.reject(msg, false);
             }
         }, err => err as Error)
     };

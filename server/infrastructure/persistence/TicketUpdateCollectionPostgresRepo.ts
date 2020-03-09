@@ -58,8 +58,15 @@ implements TicketUpdateCollectionRepository {
         )
     }
 
-    update(id: string, item: TicketUpdateCollection): TE.TaskEither<Error, TicketUpdateCollection> {
-        throw new Error("Method not implemented.");
+    update(id: string, collection: TicketUpdateCollection): TE.TaskEither<Error, TicketUpdateCollection> {
+        return  pipe(
+            TE.fromEither(translate.toUpdateCollectionQuery(id, collection)),
+            TE.chainFirst(query => TE.rightIO(this.log.io.info(`executing update query: ${query}`))),
+            TE.chain(query => this.client.query(query).foldTaskEither(
+                err => this.rollBack(err),
+                result => this.commit(result))),
+            TE.chain(() => TE.taskEither.of(collection))
+        )
     }
 
     delete(id: string): TE.TaskEither<Error, boolean> {

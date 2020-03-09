@@ -8,7 +8,7 @@ import TicketBoard from "../../domain/product/TicketBoard";
 export function toFindByIdQuery(id: string): E.Either<Error, string> {
     let query = `
         SELECT * FROM product_development AS pd 
-        LEFT JOIN ticket_board as tb ON tb.product_dev_id = pd.product_dev_id  
+        LEFT JOIN ticket_board as tb ON tb.product_dev_fk = pd.product_dev_id  
         WHERE pd.product_dev_id=$ID;`;
     return E.tryCatch2v(() => {
         query = query.replace(/\$ID/, `'${id}'`);
@@ -19,7 +19,7 @@ export function toFindByIdQuery(id: string): E.Either<Error, string> {
 export function toFindByTicketBoardKeyQuery(key: string): E.Either<Error, string> {
     let query = `
         SELECT * FROM product_development AS pd
-        LEFT JOIN ticket_board as tb ON tb.product_dev_id = pd.product_dev_id
+        LEFT JOIN ticket_board as tb ON tb.product_dev_fk = pd.product_dev_id
         WHERE tb.ticket_board_key=$KEY;`;
     return E.tryCatch2v(() => {
         query = query.replace(/\$KEY/, `'${key}'`);
@@ -53,15 +53,15 @@ export function toInsertProductDevQuery(productDev: ProductDevelopment):
 function toInsertTicketBoardQuery(ticketBoard: TicketBoard, productDevId: string, query: string):
     E.Either<Error, string> {
     let insertQuery = `
-        INSERT INTO ticket_board(ticket_board_id, ticket_board_ref, ticket_board_key, product_dev_id) 
-        VALUES($ID, $EXTERNAL_REF, $KEY, $PRODUCT_DEV_ID) 
+        INSERT INTO ticket_board(ticket_board_id, ticket_board_ref, ticket_board_key, product_dev_fk) 
+        VALUES($ID, $EXTERNAL_REF, $KEY, $PRODUCT_DEV_FK) 
         RETURNING *;
     `;
     return E.tryCatch2v(() => {
         insertQuery = insertQuery.replace(/\$ID/, `'${ticketBoard.id}'`);
         insertQuery = insertQuery.replace(/\$EXTERNAL_REF/, `${ticketBoard.ref}`);
         insertQuery = insertQuery.replace(/\$KEY/, `'${ticketBoard.key}'`);
-        insertQuery = insertQuery.replace(/\$PRODUCT_DEV_ID/, `'${productDevId}'`);
+        insertQuery = insertQuery.replace(/\$PRODUCT_DEV_FK/, `'${productDevId}'`);
         return query + insertQuery;
     }, err => err as Error)
 }
@@ -89,7 +89,7 @@ export function toTicketBoard(tb: any):
         tb.ticket_board_id,
         tb.ticket_board_ref,
         tb.ticket_board_key,
-        tb.product_dev_id), err => err as Error)
+        tb.product_dev_fk), err => err as Error)
 }
 
 function toCollection(pd: any, ticketBoard: TicketBoard) {

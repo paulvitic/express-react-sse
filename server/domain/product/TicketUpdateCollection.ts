@@ -51,9 +51,7 @@ export default class TicketUpdateCollection extends AggregateRoot {
                 to?: Date,
                 startedAt?: Date,
                 private _endedAt? : Date,
-                ticketUpdates?: TicketUpdate[],
-                private _failedAt?: string,
-                private _failReason?: string) {
+                ticketUpdates?: TicketUpdate[]) {
         super(id, active);
         this._period = new TicketUpdateCollectionPeriod(from, to);
         this._startedAt = startedAt ? startedAt : new Date();
@@ -97,16 +95,22 @@ export default class TicketUpdateCollection extends AggregateRoot {
         return this._startedAt
     }
 
+    get endedAt() {
+        return this._endedAt
+    }
+
     get ticketUpdates(): TicketUpdate[] {
         let updates: TicketUpdate[] = [];
-        for (let update of this._ticketUpdates.values()){
-            updates.push(update)
+        if (this._ticketUpdates && this._ticketUpdates.size !== 0 ) {
+            for (let update of this._ticketUpdates.values()){
+                updates.push(update)
+            }
         }
         return updates;
     }
 
     willRunForTickets(updatedTickets: UpdatedTicket[]): E.Either<Error, void> {
-        return E.tryCatch( () => {
+        return E.tryCatch2v( () => {
             updatedTickets.map(ticket => {
                 this._ticketUpdates.set(ticket.key,
                     new TicketUpdate(Identity.generate(), ticket.id, ticket.key))
@@ -116,7 +120,7 @@ export default class TicketUpdateCollection extends AggregateRoot {
     }
 
     completedForTicket(ticketExternalRef: number, ticketKey: string):E.Either<Error, void> {
-        return E.tryCatch( () => {
+        return E.tryCatch2v( () => {
                 this._ticketUpdates.get(ticketKey).collect();
                 return this.complete()
             },
@@ -124,11 +128,9 @@ export default class TicketUpdateCollection extends AggregateRoot {
         )
     }
 
-    failed(atProcessor: string, forReason: string):E.Either<Error, void> {
-        return E.tryCatch( () => {
+    failed():E.Either<Error, void> {
+        return E.tryCatch2v( () => {
                 this._status = TicketUpdateCollectionStatus.FAILED;
-                this._failedAt = atProcessor;
-                this._failReason = forReason;
                 this._endedAt = new Date();
             },
             err => err as Error

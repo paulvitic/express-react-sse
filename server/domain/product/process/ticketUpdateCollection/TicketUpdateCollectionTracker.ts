@@ -37,7 +37,7 @@ export class TicketUpdateCollectionTracker implements EventListener<TicketUpdate
             TE.filterOrElse(running => running.length === 0,
                 () => new Error('A ticket update collection is already running.')),
             TE.chain(() => TE.fromEither(TicketUpdateCollection.create(nextCollectionPeriod))),
-            TE.chain(collection => this.repo.save(collection)),
+            TE.chain(collection => this.repo.save(collection)), // FIXME we cant save we have to update
             TE.chain( collection => this.eventBus.publishEvent(new TicketUpdateCollectionStarted(
                     TicketUpdateCollection.name,
                     collection.id,
@@ -56,7 +56,7 @@ export class TicketUpdateCollectionTracker implements EventListener<TicketUpdate
                 TE.chain(collection => collection.isSome() ?
                     TE.fromEither(this.handleEvent(sourceEvent, collection.value)) :
                     TE.leftTask(T.task.of(new Error('collection does not exists')))),
-                TE.chain( collection => this.repo.save(collection)),
+                TE.chain( collection => this.repo.update(collection.id, collection)),
                 TE.chain(collection => collection.status!==TicketUpdateCollectionStatus.RUNNING ?
                     this.eventBus.publishEvent(new TicketUpdateCollectionEnded(
                         TicketUpdateCollection.name,
@@ -86,7 +86,7 @@ export class TicketUpdateCollectionTracker implements EventListener<TicketUpdate
             case TicketUpdateCollectionFailed.name:
                 return pipe(
                     E.either.of(<TicketUpdateCollectionFailed>sourceEvent),
-                    E.chain(event => collection.failed(event.processor, event.reason)),
+                    E.chain(() => collection.failed()),
                     E.map(() => collection)
                 );
         }

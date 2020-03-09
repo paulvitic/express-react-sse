@@ -8,6 +8,7 @@ export default class TicketUpdate extends DomainEntity {
                 readonly key: string,
                 collected?: boolean) {
         super(id);
+
         this._collected = collected === undefined ? false : collected;
     }
 

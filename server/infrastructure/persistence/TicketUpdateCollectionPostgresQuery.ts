@@ -46,8 +46,8 @@ export class TicketUpdateCollectionPostgresQuery implements TicketUpdateCollecti
         let query = `
         SELECT pd.product_dev_id, tb.ticket_board_key, pd.started_on as pd_started_on, tuc.ended_at as tuc_ended_at, tuc.status 
         FROM product_development pd
-        LEFT JOIN ticket_board tb ON pd.product_dev_id = tb.product_dev_id
-        LEFT JOIN ticket_update_collection tuc ON pd.product_dev_id = tuc.product_dev_id 
+        LEFT JOIN ticket_board tb ON pd.product_dev_id = tb.product_dev_fk
+        LEFT JOIN ticket_update_collection tuc ON pd.product_dev_id = tuc.product_dev_fk 
         WHERE pd.product_dev_id=$ID AND (tuc.status IS NULL OR tuc.status='COMPLETED') 
         ORDER BY tuc.started_at DESC;
         `;
