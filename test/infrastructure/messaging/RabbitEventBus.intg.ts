@@ -10,6 +10,7 @@ import PostgresClient from "../../../server/infrastructure/clients/PostgresClien
 import LogFactory from "../../../server/domain/LogFactory";
 import WinstonLogFactory from "../../../server/infrastructure/context/winstonLogFactory";
 import {registerDomainEvent} from "../../../server/infrastructure/JsonEventTranslator";
+import EventListener from "../../../server/domain/EventListener";
 
 function sleep(milliseconds) {
     return new Promise(resolve => setTimeout(resolve, milliseconds));
@@ -41,17 +42,19 @@ describe("publish", ()=> {
 });
 
 describe("subscribe", ()=> {
-    let mockHandler = jest.fn().mockImplementation(event => {
+    jest.mock('../../../server/domain/EventListener');
+    let mockEventListener: EventListener = require('../../../server/domain/EventListener');
+    mockEventListener.onEvent = jest.fn().mockImplementation(event => {
         return new Promise<void>(resolve => resolve())
     });
 
     test("should receive",  async () => {
-        eventBus.subscribe(MockDomainEvent.name, mockHandler);
+        eventBus.subscribe(mockEventListener, [MockDomainEvent.name]);
         await eventBus.publishEvent(DOMAIN_EVENT_FIXTURE).run();
         await eventBus.publishEvent(DOMAIN_EVENT_FIXTURE).run();
         await eventBus.publishEvent(DOMAIN_EVENT_FIXTURE).run();
         await eventBus.publishEvent(DOMAIN_EVENT_FIXTURE).run();
-        expect(mockHandler).toBeCalledTimes(4);
+        expect(mockEventListener.onEvent).toBeCalledTimes(4);
     });
 });
 

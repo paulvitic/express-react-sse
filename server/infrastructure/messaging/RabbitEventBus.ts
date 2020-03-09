@@ -1,4 +1,4 @@
-import EventBus, {EventHandler} from "../../domain/EventBus";
+import EventBus from "../../domain/EventBus";
 import DomainEvent from "../../domain/DomainEvent";
 import EventStore from "../../domain/EventStore";
 import RabbitClient from "../clients/RabbitClient";
@@ -6,11 +6,11 @@ import {Channel, ConfirmChannel, Message} from 'amqplib';
 import * as translate from "./MessageTranslator";
 import {pipe} from "fp-ts/lib/pipeable";
 import * as TE from 'fp-ts/lib/TaskEither'
-import * as T from 'fp-ts/lib/Task'
 import * as O from 'fp-ts/lib/Option'
 import * as E from 'fp-ts/lib/Either'
 import LogFactory from "../../domain/LogFactory";
 import {array} from "fp-ts/lib/Array";
+import EventListener from "../../domain/EventListener";
 
 export type OutgoingMessage = {
     content: Buffer,
@@ -47,7 +47,7 @@ export default class RabbitEventBus implements EventBus {
     private readonly log = LogFactory.get(RabbitEventBus.name);
     private sendChannel: ConfirmChannel;
     private receiveChannel: Channel;
-    private subscribers: Map<string, EventHandler[]> = new Map<string, EventHandler[]>();
+    private subscribers: Map<string, EventListener[]> = new Map<string, EventListener[]>();
 
     private constructor(
         private readonly rabbitClient: RabbitClient,
@@ -73,7 +73,7 @@ export default class RabbitEventBus implements EventBus {
         })
     };
 
-    publishEvent<T extends DomainEvent = DomainEvent>(event: T): TE.TaskEither<Error, boolean> {
+    publishEvent = <T extends DomainEvent = DomainEvent>(event: T): TE.TaskEither<Error, boolean> => {
         this.log.debug(`publishing ${event.eventType}`);
         return pipe(
             TE.fromEither(translate.toOutgoingMessage(event)),
@@ -83,11 +83,15 @@ export default class RabbitEventBus implements EventBus {
         )
     };
 
-    subscribe = (eventType: string, handler: EventHandler): void => {
+    subscribe = (listener: EventListener, eventTypes: string[]): void => {
+        eventTypes.forEach(eventType => this.registerListener(listener, eventType))
+    };
+
+    private registerListener = (listener: EventListener, eventType: string): void => {
         if (!this.subscribers.get(eventType)) {
-            this.subscribers.set(eventType, new Array<EventHandler>())
+            this.subscribers.set(eventType, new Array<EventListener>())
         }
-        this.subscribers.get(eventType).push(handler);
+        this.subscribers.get(eventType).push(listener);
     };
 
     private send = ({content, options}: OutgoingMessage): TE.TaskEither<Error, boolean> => {
@@ -146,17 +150,20 @@ export default class RabbitEventBus implements EventBus {
 
     private onMessage = async (msg: Message) => {
         this.log.debug(`got msg ${JSON.stringify(msg)}`);
-        await this.emit(msg).run();
+        await this.emit(msg);
     };
 
-    private emit(msg): TE.TaskEither<Error, void> {
+    private emit(msg): E.Either<Error, void> {
         return pipe(
-            TE.fromEither(translate.toDomainEvent(msg)),
-            TE.chainFirst(event => TE.rightIO(this.log.io.debug(`received ${event.eventType}`))),
-            TE.chain(event => array.reduce(
+            translate.toDomainEvent(msg),
+            E.chain(event => {
+                this.log.io.info(`received ${event.eventType}`);
+                return E.either.of(event)
+            }),
+            E.chain(event => array.reduce(
                 O.fromNullable(this.subscribers.get(event.eventType)).getOrElse([]),
-                TE.taskEither.of(null),
-                (previous, current) => previous.chain(() => TE.rightTask(this.deliver(event, current, msg)))
+                E.either.of(null),
+                (previous, current) => previous.chain(() => E.either.of(this.deliver(event, current, msg)))
             ))
         )
     };
@@ -173,12 +180,14 @@ export default class RabbitEventBus implements EventBus {
         }, err => err as Error)
     };
 
-    private deliver(event: DomainEvent, handler: EventHandler, msg: Message): T.Task<boolean>{
-        this.log.debug(`delivering ${event.eventType} to ${handler.name}`);
+    private deliver(event: DomainEvent, listener: EventListener, msg: Message): boolean {
+        this.log.debug(`delivering ${event.eventType} to ${listener}`);
         return pipe(
-            TE.tryCatch( () => handler(event) as Promise<void>, err => err as Error),
-            TE.fold(() => T.task.of(this.ack(msg, true).isRight()),
-                () => T.task.of(this.ack(msg, true).isRight()))
+            E.tryCatch2v(async () => {
+                return await listener.onEvent(event);
+            }, err => err as Error),
+            E.fold(() => this.ack(msg, true).isRight(),
+                () => this.ack(msg, true).isRight())
         )
     }
 }

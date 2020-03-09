@@ -21,18 +21,26 @@ export default class UpdatedTicketsListCollector implements EventListener<Ticket
     }
 
     async onEvent(sourceEvent: TicketUpdateCollectionStarted): Promise<E.Either<Error, void>> {
-        this.log.info(`Processing ${TicketUpdateCollectionStarted.name} event`);
-        let event = await this.fetchUpdatedTicketsList(sourceEvent).run();
-        let published = await this.eventBus.publishEvent(event).run();
-        return published.isRight() && published.value ? E.right(null) : E.left(new Error("event not published"));
+        this.log.info(`Processing event ${JSON.stringify(sourceEvent)}`);
+        return new Promise<E.Either<Error,void>>(resolve => {
+            pipe(
+                TE.taskEither.of(this.fetchUpdatedTicketsList(sourceEvent)),
+                TE.chain(event => TE.rightTask(event)),
+                TE.chain(this.eventBus.publishEvent),
+                TE.chain(published => published ?
+                    TE.rightTask(T.task.of(null)):
+                    TE.leftTask(T.task.of(new Error("event not published"))))
+            ).run().then(res => resolve(res))
+        })
     }
 
-    fetchUpdatedTicketsList(sourceEvent: TicketUpdateCollectionStarted): T.Task<UpdatedTicketsListCollectorEvent> {
+    fetchUpdatedTicketsList(sourceEvent: TicketUpdateCollectionStarted):
+        T.Task<UpdatedTicketsListCollectorEvent> {
         return pipe(
-            this.integration.getUpdatedTickets(sourceEvent.ticketBoardKey, sourceEvent.period),
-            TE.fold<Error, UpdatedTicket[], UpdatedTicketsListCollectorEvent>(
-                error => this.onFetchError(sourceEvent, error),
-                updatedTickets => this.onFetchSuccess(sourceEvent, updatedTickets)
+                this.integration.getUpdatedTickets(sourceEvent.ticketBoardKey, sourceEvent.period),
+                TE.fold<Error, UpdatedTicket[], UpdatedTicketsListCollectorEvent>(
+                    error => this.onFetchError(sourceEvent, error),
+                    updatedTickets => this.onFetchSuccess(sourceEvent, updatedTickets)
             )
         )
     }

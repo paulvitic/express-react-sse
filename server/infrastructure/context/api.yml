@@ -17,19 +17,26 @@ produces:
   - application/json
 
 definitions:
-  createDevelopmentProjectRequest:
-    type: object
-    required:
-      - key
-    properties:
-      key:
-        type: string
   errorBody:
     type: object
     properties:
       message:
         type: string
       stack:
+        type: string
+  createProductDevelopmentRequest:
+    type: object
+    required:
+      - key
+    properties:
+      key:
+        type: string
+  startTicketUpdateCollectionRequest:
+    type: object
+    required:
+      - productDevId
+    properties:
+      productDevId:
         type: string
 
 paths:
@@ -81,33 +88,55 @@ paths:
         404:
           description: Authentication failed
 
-  /developmentProjects/{id}:
+  /productDevelopments/{id}:
     get:
       tags:
-        - DevelopmentProjects
+        - ProductDevelopment
       parameters:
         - name: id
           in: path
           required: true
-          description: The id of the ticket board to retrieve
+          description: The id of the product development project to retrieve
           type: integer
       responses:
         200:
-          description: Return the example with the specified id
+          description: Return the product development project with the specified id
         404:
           description: Example not found
-  /developmentProjects:
+  /productDevelopments:
     post:
-      summary: Create development project
+      summary: Create product development project
       tags:
-        - DevelopmentProjects
+        - ProductDevelopment
       parameters:
-        - name: createDevelopmentProjectRequest
+        - name: createProductDevelopmentRequest
           in: body
-          description: Create development project request.
+          description: Create product development project request.
           required: true
           schema:
-            $ref: "#/definitions/createDevelopmentProjectRequest"
+            $ref: "#/definitions/createProductDevelopmentRequest"
+      responses:
+        '200':
+          description: Created
+        '400':
+          description: Failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/definitions/errorBody'
+
+  /ticketUpdateCollections:
+    post:
+      summary: Start ticket update collection from product development ticket board
+      tags:
+        - TicketUpdateCollection
+      parameters:
+        - name: startTicketUpdateCollectionRequest
+          in: body
+          description: Start ticket update collection request.
+          required: true
+          schema:
+            $ref: "#/definitions/startTicketUpdateCollectionRequest"
       responses:
         '200':
           description: Created

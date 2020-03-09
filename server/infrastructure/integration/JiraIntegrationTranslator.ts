@@ -11,6 +11,7 @@ import {array} from "fp-ts/lib/Array";
 import * as O from "fp-ts/lib/Option";
 import {pipe} from "fp-ts/lib/pipeable";
 import LogFactory from "../../domain/LogFactory";
+import * as s from "connect-redis";
 
 
 const changelogFilter = {
@@ -80,6 +81,14 @@ const changelogFilter = {
         use: true
     }
 };
+
+export function getUpdatedTicketsUrl(baseUrl:string, key:string, period:TicketUpdateCollectionPeriod):
+    E.Either<Error, string>{
+    return E.tryCatch2v(() =>
+        `${this.url}/rest/api/3/search?jql=project%3D${key}+and+updated%3E%3D%22${toQueryDateFormat(period.from)}%22+and+updated%3C%22${toQueryDateFormat(period.to)}%22&fields=created%2Cupdated`
+    , err => new Error(`error while translating to get updated tickets url: ${(err as Error).message}`))
+}
+
 
 export function toProjectInfo({ data }: AxiosResponse<any>):
     E.Either<TicketBoardIntegrationFailure, TicketBoardInfo> {
@@ -164,7 +173,7 @@ function fromHistoryEntries(entries: any[], timeStamp: Date): ChangeLog[] {
     })
 }
 
-function toBeginningOfDay(dateString: string): Date{
+function toBeginningOfDay(dateString: string): Date {
     let date = new Date(dateString);
     date.setHours(0,0,0,0);
     return date;

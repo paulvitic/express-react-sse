@@ -37,7 +37,7 @@ export const PROJECT_INFO_FIXTURE: TicketBoardInfo = {
 };
 
 export const NEXT_COLLECTION_PERIOD_FIXTURE: NextTicketUpdateCollectionPeriod = {
-    devProjectId: PRODUCT_DEV_ID_FIXTURE,
+    prodDevId: PRODUCT_DEV_ID_FIXTURE,
     ticketBoardKey: TICKET_BOARD_KEY_FIXTURE,
     devProjectStartedOn: PRODUCT_DEV_STARTED_ON_FIXTURE,
     lastTicketUpdateCollectionPeriodEnd: null

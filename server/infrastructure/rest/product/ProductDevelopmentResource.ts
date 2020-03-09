@@ -1,12 +1,12 @@
 import ProductDevelopmentService from '../../../application/product/ProductDevelopmentService';
 import {Request, Response} from 'express';
-import translateTicketBoardRequest from "./TicketBoardReqTranslator";
+import * as translate from "./ProductDevelopmentReqTranslator";
 import {CreateProjectFromTicketBoard} from "../../../application/product/commands";
 import LogFactory from "../../../domain/LogFactory";
 
 export const ProductDevelopmentEndpoints = {
-    byId: "ProductDevelopmentById",
-    create: "ProductDevelopmentCreate"
+    byId: "FindProductDevelopmentById",
+    create: "CreateProductDevelopment"
 };
 
 export class ProductDevelopmentResource {
@@ -20,9 +20,13 @@ export class ProductDevelopmentResource {
     };
 
     create = (req: Request, res: Response, next): void => {
-        this.log.info(`create development project request received: ${JSON.stringify(req.body)}`);
-        translateTicketBoardRequest(req)
-            .then(command => {
+        this.log.info(`create product development request received: ${JSON.stringify(req.body)}`);
+        translate.toCommand(req).fold(
+            err => {
+                res.status(400);
+                next(err);
+            },
+            command => {
                 switch (command.type) {
                     case CreateProjectFromTicketBoard.name:
                         this.service.createFromTicketBoard(command).run()
@@ -35,8 +39,9 @@ export class ProductDevelopmentResource {
                             });
                         return;
                     default:
-                        res.status(400).json({reason: `${command.type} not known`})
+                        res.status(400).json({reason: `${command.type} command not known`})
                 }
-            })
+            }
+        )
     }
 }

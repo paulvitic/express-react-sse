@@ -1,6 +1,6 @@
 import DomainEvent from "./DomainEvent";
-import {default as E, Either} from "fp-ts/lib/Either";
+import * as E from "fp-ts/lib/Either";
 
-export default interface EventListener<EVENT extends DomainEvent> {
+export default interface EventListener<EVENT extends DomainEvent = DomainEvent> {
     onEvent(event: EVENT): Promise<E.Either<Error, void>>;
 }

@@ -12,10 +12,10 @@ import errorHandler from "./errorHandler";
 import sessionCounter from "./sessionCounter";
 import uuid from "../../domain/uuid";
 import serverSentEvents from "./serverSentEvents";
-import {ProductDevelopmentEndpoints} from "../rest";
-import {UsersEndpoints} from "../rest/team/UsersResource";
+import {ProductDevelopmentEndpoints, UsersEndpoints} from "../rest";
 import RedisClient from "../clients/RedisClient";
 import LogFactory from "../../domain/LogFactory";
+import {TicketUpdateCollectionEndpoints} from "../rest/product/TicketUpdateCollectionResource";
 
 const installMiddleware = (app: Application): Promise<void> => {
     return new Promise<void>((resolve) => {
@@ -44,9 +44,12 @@ const addRoutes = (app: Application, resources: Map<string, RequestHandler>): Pr
             .get('/', resources.get(UsersEndpoints.search))
             .get('/auth', resources.get(UsersEndpoints.authenticate)));
 
-        app.use('/api/v1/developmentProjects', express.Router()
+        app.use('/api/v1/productDevelopments', express.Router()
             .post('/', resources.get(ProductDevelopmentEndpoints.create))
             .get('/:id', resources.get(ProductDevelopmentEndpoints.byId)));
+
+        app.use('/api/v1/ticketUpdateCollections', express.Router()
+            .post('/', resources.get(TicketUpdateCollectionEndpoints.create)));
 
         resolve();
     })

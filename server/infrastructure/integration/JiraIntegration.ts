@@ -7,12 +7,7 @@ import { pipe } from 'fp-ts/lib/pipeable'
 import * as TE from 'fp-ts/lib/TaskEither'
 import * as T from 'fp-ts/lib/Task'
 import * as O from 'fp-ts/lib/Option';
-import {
-    toTicketInfoAssertionFailure,
-    toProjectInfo,
-    toUpdatedTickets,
-    toQueryDateFormat, toChangeLog
-} from "./JiraIntegrationTranslator";
+import * as translate from "./JiraIntegrationTranslator";
 import LogFactory from "../../domain/LogFactory";
 import {TicketUpdateCollectionPeriod} from "../../domain/product/TicketUpdateCollection";
 
@@ -47,21 +42,24 @@ export default class JiraIntegration implements TicketBoardIntegration {
         this.basicAuthorization = `Basic ${Buffer.from(params.user + ":" + params.apiToken).toString("base64")}`
     }
 
-    assertProject(key: string): TE.TaskEither<TicketBoardIntegrationFailure, TicketBoardInfo> {
+    assertProject(key: string):
+        TE.TaskEither<TicketBoardIntegrationFailure, TicketBoardInfo> {
         const url = `${this.url}/rest/api/3/search?jql=project%3D${key}+ORDER+BY+created+asc&fields=project%2Ccreated&maxResults=1`;
         return pipe(
-                this.executeGetRequest(url),
-                TE.chainFirst(response => TE.rightIO(this.log.io.debug(`Assert project response: ${JSON.stringify(response.data)}`))),
-                TE.map(toProjectInfo),
-                TE.chain(TE.fromEither)
+            this.executeGetRequest(url),
+            TE.chainFirst(response => TE.rightIO(this.log.io.info(`Assert project response: ${JSON.stringify(response.data)}`))),
+            TE.map(translate.toProjectInfo),
+            TE.chain(TE.fromEither)
         )
     }
 
-    getUpdatedTickets(key: string, period: TicketUpdateCollectionPeriod): TE.TaskEither<TicketBoardIntegrationFailure, UpdatedTicket[]> {
-        const url =  `${this.url}/rest/api/3/search?jql=project%3D${key}+and+updated%3E%3D%22${toQueryDateFormat(period.from)}%22+and+updated%3C%22${toQueryDateFormat(period.to)}%22&fields=created%2Cupdated`;
+    getUpdatedTickets(key: string, period: TicketUpdateCollectionPeriod):
+        TE.TaskEither<TicketBoardIntegrationFailure, UpdatedTicket[]> {
         return pipe(
-            this.executeGetRequest(url),
-            TE.map(toUpdatedTickets),
+            TE.fromEither(translate.getUpdatedTicketsUrl(this.url, key, period)),
+            TE.chain(this.executeGetRequest),
+            TE.chainFirst(response => TE.rightIO(this.log.io.info(`get updated tickets response: ${JSON.stringify(response.data)}`))),
+            TE.map(translate.toUpdatedTickets),
             TE.chain(TE.fromEither)
         )
     }
@@ -71,7 +69,8 @@ export default class JiraIntegration implements TicketBoardIntegration {
         const url =  `${this.url}/rest/api/3/issue/${key}?expand=changelog&fields=${this.ticketFields}`;
         return pipe(
             this.executeGetRequest(url),
-            TE.chain(response => TE.right(T.task.of(toChangeLog(response, period))))
+            TE.chainFirst(response => TE.rightIO(this.log.io.info(`read ticket change log response  response: ${JSON.stringify(response.data)}`))),
+            TE.chain(response => TE.right(T.task.of(translate.toChangeLog(response, period))))
         )
     }
 
@@ -81,6 +80,6 @@ export default class JiraIntegration implements TicketBoardIntegration {
             headers: {
                 Authorization: this.basicAuthorization,
                 Accept: 'application/json'
-            }}), error => toTicketInfoAssertionFailure(error as AxiosError))
+            }}), error => translate.toTicketInfoAssertionFailure(error as AxiosError))
     }
 }
