@@ -11,6 +11,7 @@ export function toFindByIdQuery(id: string): E.Either<Error, string> {
         SELECT * FROM ticket_update_collection AS c 
         LEFT JOIN ticket_update as u ON c.collection_id = u.collection_id  
         WHERE c.collection_id=$ID;`;
+
     return E.tryCatch2v(() => {
         query = query.replace(/\$ID/, `'${id}'`);
         return query;
@@ -19,11 +20,26 @@ export function toFindByIdQuery(id: string): E.Either<Error, string> {
 
 export function toFindByStatusQuery(status: TicketUpdateCollectionStatus): E.Either<Error, string> {
     let query = `
-        SELECT * FROM ticket_update_collection AS c 
-        LEFT JOIN ticket_update as u ON u.collection_id = c.collection_id  
-        WHERE status=$STATUS;`;
+        SELECT * FROM ticket_update_collection AS tuc 
+        LEFT JOIN ticket_update as tu ON tu.collection_id = tuc.collection_id  
+        WHERE tuc.status=$STATUS;`;
+
     return E.tryCatch2v(() => {
         query = query.replace(/\$STATUS/, `'${TicketUpdateCollectionStatus[status]}'`);
+        return query;
+    }, err => err as Error)
+}
+
+export function toFindLatestByProjectQuery(productDevId: string): E.Either<Error, string> {
+    let query = `
+        SELECT * FROM ticket_update_collection AS tuc 
+        LEFT JOIN ticket_update as tu ON tu.collection_id = tuc.collection_id  
+        WHERE tuc.product_dev_id=$PROD_DEV_ID 
+        ORDER BY tuc.started_at DESC 
+        LIMIT 1;`;
+
+    return E.tryCatch2v(() => {
+        query = query.replace(/\$PROD_DEV_ID/, `'${productDevId}'`);
         return query;
     }, err => err as Error)
 }
@@ -33,9 +49,9 @@ export function toInsertCollectionQuery(collection: TicketUpdateCollection):
     let query = `
         BEGIN;
         INSERT INTO ticket_update_collection(collection_id, active, status, product_dev_id, from_day, to_day, started_at)
-        VALUES ($ID, $ACTIVE, $STATUS, $PRODUCT_DEV_ID, $FROM, $TO, $STARTED_AT)
-        RETURNING *;
+        VALUES ($ID, $ACTIVE, $STATUS, $PRODUCT_DEV_ID, $FROM, $TO, $STARTED_AT);
         `;
+
     return pipe(
         E.tryCatch2v(() => {
             query = query.replace(/\$ID/, `'${collection.id}'`);
@@ -47,7 +63,10 @@ export function toInsertCollectionQuery(collection: TicketUpdateCollection):
             query = query.replace(/\$STARTED_AT/, `'${toSqlDate(collection.startedAt)}'`);
             return  query;
         }, err => err as Error),
-        E.chain(query => array.reduce(collection.ticketUpdates, E.either.of(query),
+
+        E.chain(query => array.reduce(
+            collection.ticketUpdates,
+            E.either.of(query),
             (previous, current) => {
                 return previous.isRight() ?
                     toInsertTicketUpdateQuery(current, collection.id, previous.value) :
@@ -60,10 +79,11 @@ function toInsertTicketUpdateQuery(ticketUpdate: TicketUpdate, collectionId: str
     E.Either<Error, string> {
     let insertQuery = `
         INSERT INTO ticket_update(ticket_update_id, ticket_ref, ticket_key, collected, collection_id)
-        VALUES ($ID, $EXTERNAL_REF, $KEY, $COLLECTED, $COLLECTION_ID)
-        RETURNING *;
+        VALUES ($ID, $EXTERNAL_REF, $KEY, $COLLECTED, $COLLECTION_ID);
     `;
+
     return E.tryCatch2v(() => {
+        if (ticketUpdate === undefined || null) return query;
         insertQuery = insertQuery.replace(/\$ID/, `'${ticketUpdate.id}'`);
         insertQuery = insertQuery.replace(/\$EXTERNAL_REF/, `${ticketUpdate.ref}`);
         insertQuery = insertQuery.replace(/\$KEY/, `'${ticketUpdate.key}'`);
@@ -109,15 +129,6 @@ function fromQueryResultRows(rows: any[]): E.Either<Error, TicketUpdateCollectio
         E.chain(ticketUpdates => toCollection(rows[0], ticketUpdates))
     )
 }
-
-/*export function fromCollectionInsertResult(results: QueryResultRow):
-    E.Either<Error, TicketUpdateCollection> {
-    return pipe(
-        array.sequence(E.either)(array.map(results.splice(2), (result:QueryResult) =>
-            toTicketUpdate(result.rows[1]))),
-        E.chain(ticketUpdates => toCollection(results[1].rows[0], ticketUpdates))
-    )
-}*/
 
 export function fromFindOptionalCollectionResult(results: QueryResultRow):
     E.Either<Error, O.Option<TicketUpdateCollection>> {

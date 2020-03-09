@@ -2,11 +2,6 @@ import {QueryResultRow} from "pg";
 import DomainEvent from "../../domain/DomainEvent";
 import * as translate from "../JsonEventTranslator";
 
-export const developmentProjectFields: string =
-    "dp.id as dp_id, dp.active, dp.name, dp.started_on, dp.ticket_board_id, " +
-    "tb.id as tb_id, tb.key, tb.external_ref";
-
-
 class TicketBoardValidationError extends Error {
     constructor(message) {
         super(message);

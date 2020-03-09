@@ -82,7 +82,9 @@ const changelogFilter = {
     }
 };
 
-export function getUpdatedTicketsUrl(baseUrl:string, key:string, period:TicketUpdateCollectionPeriod):
+
+
+export function toGetUpdatedTicketsUrl(baseUrl:string, key:string, period:TicketUpdateCollectionPeriod):
     E.Either<Error, string>{
     return E.tryCatch2v(() =>
         `${this.url}/rest/api/3/search?jql=project%3D${key}+and+updated%3E%3D%22${toQueryDateFormat(period.from)}%22+and+updated%3C%22${toQueryDateFormat(period.to)}%22&fields=created%2Cupdated`
@@ -144,7 +146,7 @@ export function toChangeLog({ data }: AxiosResponse<any>, period: TicketUpdateCo
         O.option.of(array
             .filterMap(histories, history => fromHistory(history, period)) // filters Option.none's
             .reduceRight((previous, current) => {return previous.concat(current)})), // flattens change log arrays from multiple history entries
-        O.filter(logs => logs.length !== 0), // if there are any change logs than passes Option.some of change logs array
+        O.filter(logs => logs.length !== 0), // if there are any change logs, then passes Option.some of change logs array
         O.map(changeLog => {return {id, key, changeLog}})
     )
 }
@@ -163,10 +165,8 @@ function fromHistoryEntries(entries: any[], timeStamp: Date): ChangeLog[] {
         let {field, fieldId, from, fromString, to, toString} = entry;
         return pipe(
             O.fromNullable(changelogFilter[field] || changelogFilter[fieldId]),
-            O.fold(() => {
-                log.warn(`History item field ${field} or field id ${fieldId} can not be mapped to change log filter`);
-                return O.none;
-            }, filter => O.some(filter)),
+            O.fold(() => warnUnmappedField(field, fieldId),
+                    filter => O.some(filter)),
             O.filter(filter => filter.use),
             O.map(() => {return {field, timeStamp, fieldId, from, fromString, to, toString}})
         )
@@ -179,7 +179,14 @@ function toBeginningOfDay(dateString: string): Date {
     return date;
 }
 
-export function toQueryDateFormat(date: Date): string {
+
+function warnUnmappedField(field: string, fieldId:string): O.Option<void> {
+    const log = LogFactory.get("JiraIntegrationTranslator");
+    log.warn(`History item field ${field} or field id ${fieldId} can not be mapped to change log filter`);
+    return O.none;
+}
+
+function toQueryDateFormat(date: Date): string {
     const d = date.getDate();
     const m = date.getMonth() + 1; //Month from 0 to 11
     const y = date.getFullYear();

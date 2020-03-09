@@ -11,6 +11,7 @@ import * as E from 'fp-ts/lib/Either'
 import LogFactory from "../../domain/LogFactory";
 import {array} from "fp-ts/lib/Array";
 import EventListener from "../../domain/EventListener";
+import {throwError} from "fp-ts/lib/Exception";
 
 export type OutgoingMessage = {
     content: Buffer,
@@ -47,7 +48,7 @@ export default class RabbitEventBus implements EventBus {
     private readonly log = LogFactory.get(RabbitEventBus.name);
     private sendChannel: ConfirmChannel;
     private receiveChannel: Channel;
-    private subscribers: Map<string, EventListener[]> = new Map<string, EventListener[]>();
+    private eventListeners: Map<string, EventListener[]> = new Map<string, EventListener[]>();
 
     private constructor(
         private readonly rabbitClient: RabbitClient,
@@ -88,10 +89,10 @@ export default class RabbitEventBus implements EventBus {
     };
 
     private registerListener = (listener: EventListener, eventType: string): void => {
-        if (!this.subscribers.get(eventType)) {
-            this.subscribers.set(eventType, new Array<EventListener>())
+        if (!this.eventListeners.get(eventType)) {
+            this.eventListeners.set(eventType, new Array<EventListener>())
         }
-        this.subscribers.get(eventType).push(listener);
+        this.eventListeners.get(eventType).push(listener);
     };
 
     private send = ({content, options}: OutgoingMessage): TE.TaskEither<Error, boolean> => {
@@ -156,16 +157,23 @@ export default class RabbitEventBus implements EventBus {
     private emit(msg): E.Either<Error, void> {
         return pipe(
             translate.toDomainEvent(msg),
-            E.chain(event => {
-                this.log.io.info(`received ${event.eventType}`);
-                return E.either.of(event)
-            }),
-            E.chain(event => array.reduce(
-                O.fromNullable(this.subscribers.get(event.eventType)).getOrElse([]),
-                E.either.of(null),
-                (previous, current) => previous.chain(() => E.either.of(this.deliver(event, current, msg)))
-            ))
+            E.chainFirst(event => E.either.of(this.log.io.info(`received ${event.eventType}`))),
+            E.chain(event => array
+                .map(this.subscribers(event), listener => this.deliver(event, listener, msg))
+                .reduceRight((previous, current) => previous.chain(() => current))),
+            E.fold(() => this.ack(msg, false), () => this.ack(msg, false))
         )
+    };
+
+    private deliver(event: DomainEvent, listener: EventListener, msg: Message): E.Either<Error, void> {
+        this.log.debug(`delivering ${event.eventType} to ${listener}`);
+        return E.tryCatch2v(() => {
+                listener.onEvent(event).catch(e => throwError(e));
+            }, err => err as Error)
+    }
+
+    private subscribers = (event: DomainEvent): EventListener[] => {
+        return O.fromNullable(this.eventListeners.get(event.eventType)).getOrElse([])
     };
 
     private ack(msg: Message, ok: boolean): E.Either<Error, void> {
@@ -179,17 +187,6 @@ export default class RabbitEventBus implements EventBus {
             }
         }, err => err as Error)
     };
-
-    private deliver(event: DomainEvent, listener: EventListener, msg: Message): boolean {
-        this.log.debug(`delivering ${event.eventType} to ${listener}`);
-        return pipe(
-            E.tryCatch2v(async () => {
-                return await listener.onEvent(event);
-            }, err => err as Error),
-            E.fold(() => this.ack(msg, true).isRight(),
-                () => this.ack(msg, true).isRight())
-        )
-    }
 }
 
 

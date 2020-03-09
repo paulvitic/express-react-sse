@@ -327,15 +327,12 @@ export default class App {
                     ]);
                 this.context.common.eventBus.subscribe(
                     this.context.product.domain.processors.updatedTicketsListCollector, [
-                        TicketUpdateCollectionStarted.name,
-                        TicketUpdateCollectionFailed.name,
-                        UpdatedTicketsListFetched.name
+                        TicketUpdateCollectionStarted.name
                     ]);
 
                 this.context.common.eventBus.subscribe(
                     this.context.product.domain.processors.ticketChangeLogReader, [
-                        TicketChanged.name,
-                        TicketRemainedUnchanged.name
+                        UpdatedTicketsListFetched.name
                     ]);
                 resolve();
             } catch (e) {

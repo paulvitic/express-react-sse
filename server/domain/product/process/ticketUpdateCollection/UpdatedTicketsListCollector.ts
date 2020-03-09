@@ -11,7 +11,9 @@ import {
     TicketUpdateCollectionStarted} from "../../event";
 import LogFactory from "../../../LogFactory";
 
-type UpdatedTicketsListCollectorEvent = TicketUpdateCollectionFailed | UpdatedTicketsListFetched;
+type UpdatedTicketsListCollectorEvent =
+    TicketUpdateCollectionFailed |
+    UpdatedTicketsListFetched;
 
 export default class UpdatedTicketsListCollector implements EventListener<TicketUpdateCollectionStarted>{
     private readonly log = LogFactory.get(UpdatedTicketsListCollector.name);

@@ -56,7 +56,7 @@ test("chain log", () => {
 
     let res = pipe(
         a(2),
-        IO.chainFirst((a) => log(`Got ${a}`)),
+        IO.chainFirst(a => log(`Got ${a}`)),
         IO.chain(add)
     );
 

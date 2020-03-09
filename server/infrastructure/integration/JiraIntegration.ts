@@ -56,7 +56,7 @@ export default class JiraIntegration implements TicketBoardIntegration {
     getUpdatedTickets(key: string, period: TicketUpdateCollectionPeriod):
         TE.TaskEither<TicketBoardIntegrationFailure, UpdatedTicket[]> {
         return pipe(
-            TE.fromEither(translate.getUpdatedTicketsUrl(this.url, key, period)),
+            TE.fromEither(translate.toGetUpdatedTicketsUrl(this.url, key, period)),
             TE.chain(this.executeGetRequest),
             TE.chainFirst(response => TE.rightIO(this.log.io.info(`get updated tickets response: ${JSON.stringify(response.data)}`))),
             TE.map(translate.toUpdatedTickets),
