@@ -18,7 +18,7 @@ import {
     TicketBoardLinked,
     TicketChanged,
     TicketRemainedUnchanged,
-    TicketUpdateCollectionEnded,
+    TicketUpdateCollectionCompleted,
     TicketUpdateCollectionFailed,
     TicketUpdateCollectionStarted,
     UpdatedTicketsListFetched
@@ -32,15 +32,14 @@ import {
     TicketUpdateCollectionResource
 } from "../rest/product/TicketUpdateCollectionResource";
 import {TicketUpdateCollectionService} from "../../application/product/TicketUpdateCollectionService";
-import {TicketUpdateCollectionPostgresQuery} from "../persistence/TicketUpdateCollectionPostgresQuery";
 import {TicketUpdateCollectionTracker} from "../../domain/product/process/ticketUpdateCollection/TicketUpdateCollectionTracker";
 import TicketUpdateCollectionPostgresRepo from "../persistence/TicketUpdateCollectionPostgresRepo";
 import UpdatedTicketsListCollector
     from "../../domain/product/process/ticketUpdateCollection/UpdatedTicketsListCollector";
 import TicketUpdateCollectionRepository from "../../domain/product/repository/TicketUpdateCollectionRepository";
 import TicketBoardIntegration from "../../domain/product/service/TicketBoardIntegration";
-import {TicketUpdateCollectionQueryService} from "../../application/product/TicketUpdateCollectionQueryService";
 import TicketChangeLogReader from "../../domain/product/process/ticketUpdateCollection/TicketChangeLogReader";
+import {TicketUpdateCollectionHandler} from "../../domain/product/policy/TicketUpdateCollectionHandler";
 
 const exit = process.exit;
 
@@ -63,6 +62,9 @@ type Context = {
             services: {
                 ticketBoardIntegration?: TicketBoardIntegration
             },
+            policy: {
+                ticketUpdateCollectionHandler?: TicketUpdateCollectionHandler
+            },
             processors:{
                 ticketUpdateCollectionTracker?: TicketUpdateCollectionTracker,
                 updatedTicketsListCollector?: UpdatedTicketsListCollector
@@ -73,7 +75,6 @@ type Context = {
             services: {
                 productDevelopmentService?: ProductDevelopmentService
                 ticketUpdateCollectionService?: TicketUpdateCollectionService
-                ticketUpdateCollectionQueryService?: TicketUpdateCollectionQueryService
             }
         },
         infrastructure: {
@@ -113,6 +114,7 @@ export default class App {
             domain: {
                 repositories: {},
                 services: {},
+                policy: {},
                 processors: {}
             },
             application: {
@@ -260,14 +262,10 @@ export default class App {
                         this.context.product.domain.repositories.productDevelopmentRepo,
                         this.context.product.domain.services.ticketBoardIntegration);
 
-                this.context.product.application.services.ticketUpdateCollectionQueryService =
-                    new TicketUpdateCollectionPostgresQuery(this.context.common.clients.postgresClient);
-
                 this.context.product.application.services.ticketUpdateCollectionService =
                     new TicketUpdateCollectionService(
-                        this.context.product.application.services.ticketUpdateCollectionQueryService,
-                        this.context.product.domain.processors.ticketUpdateCollectionTracker
-                    );
+                        this.context.product.domain.processors.ticketUpdateCollectionTracker,
+                        this.context.product.domain.repositories.productDevelopmentRepo);
                 resolve();
             }catch (e) {
                 reject(new Error("error while initializing application services: " + e.message ))
@@ -282,7 +280,7 @@ export default class App {
                 registerDomainEvent(TicketBoardLinked.name, TicketBoardLinked);
                 registerDomainEvent(TicketChanged.name, TicketChanged);
                 registerDomainEvent(TicketRemainedUnchanged.name, TicketRemainedUnchanged);
-                registerDomainEvent(TicketUpdateCollectionEnded.name, TicketUpdateCollectionEnded);
+                registerDomainEvent(TicketUpdateCollectionCompleted.name, TicketUpdateCollectionCompleted);
                 registerDomainEvent(TicketUpdateCollectionFailed.name, TicketUpdateCollectionFailed);
                 registerDomainEvent(TicketUpdateCollectionStarted.name, TicketUpdateCollectionStarted);
                 registerDomainEvent(UpdatedTicketsListFetched.name, UpdatedTicketsListFetched);
@@ -302,11 +300,14 @@ export default class App {
                     new UsersResource(this.env.GOOGLE_APP_CLIENT_ID, this.env.GOOGLE_APP_CLIENT_SECRET);
 
                 this.context.product.infrastructure.rest.productDevelopmentResource =
-                    new ProductDevelopmentResource(this.context.product.application.services.productDevelopmentService);
+                    new ProductDevelopmentResource(
+                        this.context.product.application.services.productDevelopmentService,
+                        this.context.product.domain.repositories.productDevelopmentRepo);
 
                 this.context.product.infrastructure.rest.ticketUpdateCollectionResource =
                     new TicketUpdateCollectionResource(
-                        this.context.product.application.services.ticketUpdateCollectionService);
+                        this.context.product.application.services.ticketUpdateCollectionService,
+                        this.context.product.domain.repositories.ticketUpdateCollectionRepo);
 
                 resolve();
             }catch (e) {
@@ -347,9 +348,11 @@ export default class App {
         resources.set(UsersEndpoints.authenticate, this.context.team.infrastructure.rest.userResource.authenticate);
         resources.set(UsersEndpoints.search, this.context.team.infrastructure.rest.userResource.search);
 
-        resources.set(ProductDevelopmentEndpoints.create, this.context.product.infrastructure.rest.productDevelopmentResource.create);
         resources.set(ProductDevelopmentEndpoints.byId, this.context.product.infrastructure.rest.productDevelopmentResource.byId);
+        resources.set(ProductDevelopmentEndpoints.search, this.context.product.infrastructure.rest.productDevelopmentResource.search);
+        resources.set(ProductDevelopmentEndpoints.create, this.context.product.infrastructure.rest.productDevelopmentResource.create);
 
+        resources.set(TicketUpdateCollectionEndpoints.search, this.context.product.infrastructure.rest.ticketUpdateCollectionResource.search);
         resources.set(TicketUpdateCollectionEndpoints.create, this.context.product.infrastructure.rest.ticketUpdateCollectionResource.create);
 
         return new Promise<void>((resolve, reject) => {

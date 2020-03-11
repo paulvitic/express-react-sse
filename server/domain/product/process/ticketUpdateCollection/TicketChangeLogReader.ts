@@ -1,4 +1,3 @@
-import EventListener from "../../../EventListener";
 import LogFactory from "../../../LogFactory";
 import EventBus from "../../../EventBus";
 import TicketBoardIntegration, {TicketChangeLog, UpdatedTicket} from "../../service/TicketBoardIntegration";
@@ -13,15 +12,18 @@ import * as TE from "fp-ts/lib/TaskEither";
 import * as E from "fp-ts/lib/Either";
 import {array} from "fp-ts/lib/Array";
 import * as O from "fp-ts/lib/Option";
+import {TicketUpdateCollectionProcess} from "./TicketUpdateCollectionProcess";
 
 export type TicketChangeLogEvent = TicketChanged | TicketRemainedUnchanged;
 type UpdatedTicketChangeLogReaderEvent = TicketUpdateCollectionFailed | TicketChangeLogEvent;
 
-export default class TicketChangeLogReader implements EventListener<UpdatedTicketsListFetched>{
+export default class TicketChangeLogReader extends TicketUpdateCollectionProcess {
     private readonly log = LogFactory.get(TicketChangeLogReader.name);
 
-    constructor(private readonly eventBus: EventBus,
-                private readonly integration: TicketBoardIntegration) {}
+    constructor(eventBus: EventBus,
+                private readonly integration: TicketBoardIntegration) {
+        super(eventBus)
+    }
 
     async onEvent(sourceEvent: UpdatedTicketsListFetched): Promise<E.Either<Error, void>> {
         this.log.info(`Processing ${UpdatedTicketsListFetched.name} event`);

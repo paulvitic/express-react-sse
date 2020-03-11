@@ -3,15 +3,51 @@ import {Request, Response} from "express";
 import * as translate from "./TicketUpdateCollectionReqTranslator";
 import {CollectTicketUpdates} from "../../../application/product/commands";
 import {TicketUpdateCollectionService} from "../../../application/product/TicketUpdateCollectionService";
+import TicketUpdateCollectionRepository from "../../../domain/product/repository/TicketUpdateCollectionRepository";
+import * as O from "fp-ts/lib/Option";
 
 export const TicketUpdateCollectionEndpoints = {
+    search: "SearchTicketUpdateCollections",
     create: "CreateTicketUpdateCollection"
 };
 
 export class TicketUpdateCollectionResource {
     private readonly log = LogFactory.get(TicketUpdateCollectionResource.name);
 
-    constructor(private service: TicketUpdateCollectionService) {}
+    constructor(private service: TicketUpdateCollectionService,
+                private repo: TicketUpdateCollectionRepository) {
+    }
+
+    search = (req: Request, res: Response, next): void => {
+        this.log.info(`search ticket update collections request received: ${JSON.stringify(req.body)}`);
+        // FIXME improve this code
+        translate.toSearchMethod(req).fold(
+            err => {
+                res.status(400);
+                next(err);
+            },
+            method => {
+                switch (method.name) {
+                    case "findLatestByProductId":
+                        this.repo.findLatestByProject(method.params.get("productDevId")).run()
+                            .then(ret => {
+                                ret.fold(
+                                    err => {
+                                        res.status(400);
+                                        next(err);
+                                    },
+                                    (optionalResult: O.Option<any>) => {
+                                        res.status(201).json(optionalResult.isSome() ? optionalResult.value : {})
+                                    })
+                            })
+                            .catch((err) => {
+                                res.status(400);
+                                next(err);
+                            });
+                        return;
+                }
+            })
+    };
 
     create = (req: Request, res: Response, next): void => {
         this.log.info(`start ticket update collection request received: ${JSON.stringify(req.body)}`);

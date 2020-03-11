@@ -11,6 +11,8 @@ import * as E from 'fp-ts/lib/Either'
 import LogFactory from "../../domain/LogFactory";
 import {array} from "fp-ts/lib/Array";
 import EventListener from "../../domain/EventListener";
+import * as M from "fp-ts/lib/Monoid";
+import AggregateRoot from "../../domain/AggregateRoot";
 
 export type OutgoingMessage = {
     content: Buffer,
@@ -81,6 +83,16 @@ export default class RabbitEventBus implements EventBus {
             TE.chain(sent => this.store.logEvent(event, sent)),
             TE.chainFirst(() => TE.rightIO(this.log.io.info(`${JSON.stringify(event, null, 0)}`))),
         )
+    };
+
+    publishEventsOf = (aggregate: AggregateRoot): TE.TaskEither<Error, boolean> => {
+        return pipe(
+            array.traverse(TE.taskEither)(aggregate.domainEvents, event => this.publishEvent(event)),
+            TE.filterOrElse(
+                deliveries => M.fold(M.monoidAll)(deliveries),
+                () => new Error("Not all events are delivered")),
+            TE.chain(() => TE.fromEither(aggregate.clearDomainEvents()))
+        );
     };
 
     subscribe = (listener: EventListener, eventTypes: string[]): void => {
@@ -159,7 +171,7 @@ export default class RabbitEventBus implements EventBus {
             E.chainFirst(event => E.either.of(this.log.io.info(`received ${event.eventType}`))),
             E.chain(event => array
                 .map(this.subscribersOf(event), subscriber => this.deliver(subscriber, event))
-                .reduceRight((previous, current) => previous.chain(() => current))),
+                .reduceRight((previous, current) => previous.chain(() => current), E.right(null))),
             E.fold(() => this.ack(msg, false), () => this.ack(msg, false))
         )
     };

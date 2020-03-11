@@ -98,7 +98,7 @@ export default class RabbitClient {
 
     private onChannelError = (channel: Channel): TE.TaskEither<Error, Channel> => {
         return TE.taskEither.of(channel.on('error', err => {
-            this.log.error('channel error: ', err);
+            this.log.error(`channel error:\n ${(err as Error).stack}`);
             return channel;
         }))
     };

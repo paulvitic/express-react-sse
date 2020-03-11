@@ -11,8 +11,6 @@ import {array} from "fp-ts/lib/Array";
 import * as O from "fp-ts/lib/Option";
 import {pipe} from "fp-ts/lib/pipeable";
 import LogFactory from "../../domain/LogFactory";
-import * as s from "connect-redis";
-
 
 const changelogFilter = {
     customfield_10011: {
@@ -160,7 +158,6 @@ function fromHistory(history:any, period:TicketUpdateCollectionPeriod): O.Option
 }
 
 function fromHistoryEntries(entries: any[], timeStamp: Date): ChangeLog[] {
-    const log = LogFactory.get("JiraIntegrationTranslator");
     return array.filterMap(entries, entry => {
         let {field, fieldId, from, fromString, to, toString} = entry;
         return pipe(

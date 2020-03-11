@@ -1,21 +1,28 @@
 import * as TE from "fp-ts/lib/TaskEither";
-import * as T from "fp-ts/lib/Task";
-
-import {TicketUpdateCollectionQueryService} from "./TicketUpdateCollectionQueryService";
 import {TicketUpdateCollectionTracker} from "../../domain/product/process/ticketUpdateCollection/TicketUpdateCollectionTracker";
-import {pipe} from "fp-ts/lib/pipeable";
 import {CollectTicketUpdates} from "./commands";
+import ProductDevelopmentRepository from "../../domain/product/repository/ProductDevelopmentRepository";
+import {pipe} from "fp-ts/lib/pipeable";
+
+class TicketUpdateCollectionServiceError extends Error {
+    constructor(message) {
+        super(message);
+        this.name = TicketUpdateCollectionService.name;
+    }
+}
 
 export class TicketUpdateCollectionService {
 
-    constructor(private readonly queryService: TicketUpdateCollectionQueryService,
-                private readonly executive: TicketUpdateCollectionTracker) {}
+    constructor(private readonly executive: TicketUpdateCollectionTracker,
+                private readonly prodDevRepo: ProductDevelopmentRepository) {}
 
     collectTicketUpdates(command: CollectTicketUpdates):TE.TaskEither<Error, boolean>{
         return pipe(
-            this.queryService.nextUpdateCollectionPeriod(command.prodDevId),
-            TE.chain(TE.fromOption(() => new Error(`Can not find development project ${command.prodDevId}`))),
-            TE.chain(nextCollectionPeriod => this.executive.start(nextCollectionPeriod))
+            this.prodDevRepo.findById(command.prodDevId),
+            TE.chain(productDev => productDev.isSome() ?
+                TE.right2v(productDev.value) :
+                TE.left2v(new TicketUpdateCollectionServiceError(`product development ${command.prodDevId} does not exists`))),
+            TE.chain( prodDev => this.executive.start(prodDev.id, prodDev.ticketBoard.key, prodDev.startedOn, command.defaultFrom))
         )
     }
 }

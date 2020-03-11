@@ -31,9 +31,10 @@ export default abstract class AggregateRoot extends DomainEntity {
         return this._domainEvents
     }
 
-    clearDomainEvents(): E.Either<Error, void> {
+    clearDomainEvents(): E.Either<Error, boolean> {
         return E.tryCatch(() => {
             this._domainEvents.length = 0;
+            return true;
             }, error => error as Error
         )
     }

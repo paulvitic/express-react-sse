@@ -1,15 +1,15 @@
 swagger: "2.0"
 info:
   version: 1.0.0
-  title: app-with-express-no-stress
-  description: App with express-no-stress
+  title: COMATCH product development
+  description: App to collect product development operational metrics
 basePath: /api/v1
 
 tags:
   - name: Specification
     description: The swagger API specification
-  - name: Uers
-    description: Users endpoints
+  - name: Users
+    description: Users resource endpoints
 
 consumes:
   - application/json
@@ -20,24 +20,28 @@ definitions:
   errorBody:
     type: object
     properties:
+      name:
+        type: string
       message:
         type: string
       stack:
         type: string
   createProductDevelopmentRequest:
     type: object
-    required:
-      - key
     properties:
-      key:
+      ticketBoardKey:
         type: string
+      defaultStart:
+        type: string
+        format: date
   startTicketUpdateCollectionRequest:
     type: object
-    required:
-      - productDevId
     properties:
       productDevId:
         type: string
+      defaultFrom:
+        type: string
+        format: date
 
 paths:
   /users:
@@ -104,6 +108,20 @@ paths:
         404:
           description: Example not found
   /productDevelopments:
+    get:
+      tags:
+        - ProductDevelopment
+      parameters:
+        - name: ticketBoardKey
+          in: query
+          description: The ticket board ket to get ticket updates from
+          required: true
+          type: string
+      responses:
+        200:
+          description: Return the product development project with the specified id
+        404:
+          description: Example not found
     post:
       summary: Create product development project
       tags:
@@ -126,12 +144,36 @@ paths:
                 $ref: '#/definitions/errorBody'
 
   /ticketUpdateCollections:
+    get:
+      summary: Searche ticket update collections
+      tags:
+        - TicketUpdateCollection
+      parameters:
+        - name: productDevId
+          in: query
+          description: Product development project id
+          required: true
+          type: string
+        - name: latest
+          in: query
+          description: Should return only the latest collection
+          required: false
+          type: boolean
+      responses:
+        '200':
+          description: Created
+        '400':
+          description: Failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/definitions/errorBody'
     post:
       summary: Start ticket update collection from product development ticket board
       tags:
         - TicketUpdateCollection
       parameters:
-        - name: startTicketUpdateCollectionRequest
+        - name: startTicketUpdateCollectionRequestBody
           in: body
           description: Start ticket update collection request.
           required: true
@@ -146,6 +188,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/definitions/errorBody'
+
   /spec:
     get:
       tags:

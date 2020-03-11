@@ -26,29 +26,31 @@ const installMiddleware = (app: Application): Promise<void> => {
         app.use(cookieParser());
         app.use(session(sessionConfig(app)));
         app.use(sessionCounter());
-        //app.use(errorHandler);
         resolve();
     });
 };
 
 const addRoutes = (app: Application, resources: Map<string, RequestHandler>): Promise<void> => {
     return new Promise<void>((resolve) => {
-        // provide the same static SPA files for all SPA internal routes used
+        // Endpoint serving static resources. Provide the same static SPA files for all SPA internal routes used
         app.use("/", express.static(`${path.normalize(__dirname + '/../../../')}/dist/static`));
         app.use("/login", express.static(`${path.normalize(__dirname + '/../../../')}/dist/static`));
 
-        // EventSource API makes a 'GET' request by default, you can not use another HTTP method
+        // Server sent events endpoint. EventSource API makes a 'GET' request by default, you can not use another HTTP method
         app.get('/events', serverSentEvents(app));
 
+        // Restful data resources
         app.use('/api/v1/users', express.Router()
             .get('/', resources.get(UsersEndpoints.search))
             .get('/auth', resources.get(UsersEndpoints.authenticate)));
 
         app.use('/api/v1/productDevelopments', express.Router()
-            .post('/', resources.get(ProductDevelopmentEndpoints.create))
-            .get('/:id', resources.get(ProductDevelopmentEndpoints.byId)));
+            .get('/:id', resources.get(ProductDevelopmentEndpoints.byId))
+            .get('/', resources.get(ProductDevelopmentEndpoints.search))
+            .post('/', resources.get(ProductDevelopmentEndpoints.create)));
 
         app.use('/api/v1/ticketUpdateCollections', express.Router()
+            .get('/', resources.get(TicketUpdateCollectionEndpoints.search))
             .post('/', resources.get(TicketUpdateCollectionEndpoints.create)));
 
         resolve();

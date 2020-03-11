@@ -1,4 +1,3 @@
-import EventListener from "../../../EventListener";
 import EventBus from "../../../EventBus";
 import TicketBoardIntegration, {UpdatedTicket} from "../../service/TicketBoardIntegration";
 import {pipe} from "fp-ts/lib/pipeable";
@@ -10,19 +9,21 @@ import {
     UpdatedTicketsListFetched,
     TicketUpdateCollectionStarted} from "../../event";
 import LogFactory from "../../../LogFactory";
+import {TicketUpdateCollectionProcess} from "./TicketUpdateCollectionProcess";
 
 type UpdatedTicketsListCollectorEvent =
     TicketUpdateCollectionFailed |
     UpdatedTicketsListFetched;
 
-export default class UpdatedTicketsListCollector implements EventListener<TicketUpdateCollectionStarted>{
+export default class UpdatedTicketsListCollector extends TicketUpdateCollectionProcess {
     private readonly log = LogFactory.get(UpdatedTicketsListCollector.name);
 
-    constructor(private readonly eventBus: EventBus,
+    constructor(eventBus: EventBus,
                 private readonly integration: TicketBoardIntegration) {
+        super(eventBus)
     }
 
-    async onEvent(sourceEvent: TicketUpdateCollectionStarted): Promise<E.Either<Error, void>> {
+    onEvent(sourceEvent: TicketUpdateCollectionStarted): Promise<E.Either<Error, void>> {
         this.log.info(`Processing event ${JSON.stringify(sourceEvent)}`);
         return new Promise<E.Either<Error,void>>(resolve => {
             pipe(

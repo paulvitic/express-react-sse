@@ -1,8 +1,8 @@
 import AggregateRoot from "../AggregateRoot";
 import * as TE from "fp-ts/lib/TaskEither";
+import * as T from "fp-ts/lib/Task";
 import * as E from "fp-ts/lib/Either";
 import TicketBoard from "./TicketBoard";
-import ProductDevelopmentRepository from "./repository/ProductDevelopmentRepository";
 import {pipe} from "fp-ts/lib/pipeable";
 import TicketBoardIntegration, {TicketBoardInfo} from "./service/TicketBoardIntegration";
 import Identity from "../Identity";
@@ -45,15 +45,25 @@ export default class ProductDevelopment extends AggregateRoot {
         return this._ticketBoard !== null;
     }
 
-    static createFromTicketBoard(key:string, repo:ProductDevelopmentRepository, integration: TicketBoardIntegration):
+    static createFromTicketBoard(key:string, defaultStart:Date, integration: TicketBoardIntegration):
         TE.TaskEither<ProductDevelopmentError, ProductDevelopment> {
         return pipe(
-            repo.findOneByTicketBoardKey(key),
-            TE.filterOrElse(found => found.isNone(),
-                () => new ProductDevelopmentError('Ticket board key already exists')),
-            TE.chain(() => integration.assertProject(key)),
-            TE.map(ProductDevelopment.createFromProjectInfo),
-            TE.chain(TE.fromEither)
+            integration.assertProject(key),
+            TE.filterOrElse(
+                info => info.projectCategory.name===TicketBoard.PRODUCT_DEV_PROJECT_CATEGORY,
+                () => new ProductDevelopmentError("Ticket board is not for a development project")
+            ),
+            TE.chain(info => TE.fromEither(
+                pipe(
+                    E.tryCatch(() => new ProductDevelopment(Identity.generate(), true, info.name, info.created),
+                        e => new ProductDevelopmentError("")),
+                    E.chainFirst( productDev => productDev.recordEvent(new ProductDevelopmentCreated(
+                        ProductDevelopment.name,
+                        productDev.id,
+                        productDev.name))),
+                    E.chainFirst(productDev => productDev.linkTicketBoard(key, info.id))
+                )
+            ))
         )
     }
 
@@ -85,26 +95,6 @@ export default class ProductDevelopment extends AggregateRoot {
         // create domain event
         return (E.right(true))
     }
-
-    private static createFromProjectInfo(info: TicketBoardInfo):
-        E.Either<ProductDevelopmentError,ProductDevelopment> {
-        let created = pipe(
-            E.tryCatch(() => new ProductDevelopment(Identity.generate(), true, info.name, info.created),
-                    error => error as ProductDevelopmentError),
-            E.filterOrElse(() => info.projectCategory.name===TicketBoard.PRODUCT_DEV_PROJECT_CATEGORY,
-                () => new ProductDevelopmentError("Ticket board is not for a development project"))
-        );
-
-        return pipe(
-            created.map(project => new ProductDevelopmentCreated(
-                ProductDevelopment.name,
-                project.id,
-                info.name)),
-            E.chain(event => created.chain(project => project.recordEvent(event))),
-            E.chain(() => created.chain(project => project.linkTicketBoard(info.key, info.id))),
-            E.chain(() => created)
-        );
-    };
 
     private onTicketBoardLinked = (event: TicketBoardLinked): TicketBoardLinked => {
         this._ticketBoard = event.ticketBoard;

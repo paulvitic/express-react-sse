@@ -29,7 +29,7 @@ export default class ProductDevPostgresRepo
             TE.chainFirst(query => TE.rightIO(this.log.io.debug(`Executing find query: ${query}`))),
             TE.chain(query => this.client.query(query)),
             TE.chain( result => TE.fromEither(translate.fromFindOptionalProductDevResult(result))),
-            TE.chainFirst(found => TE.rightIO(this.log.io.info(`Found:\n ${JSON.stringify(found,null,2)}`)))
+            TE.chainFirst(found => TE.rightIO(this.log.io.debug(`Found:\n ${JSON.stringify(found,null,2)}`)))
         )
     };
 

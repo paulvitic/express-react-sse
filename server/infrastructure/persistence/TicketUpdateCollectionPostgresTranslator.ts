@@ -49,8 +49,8 @@ export function toInsertCollectionQuery(collection: TicketUpdateCollection):
     E.Either<Error, string> {
     let query = `
         BEGIN;
-        INSERT INTO ticket_update_collection(collection_id, active, status, product_dev_fk, from_day, to_day, started_at)
-        VALUES ($ID, $ACTIVE, $STATUS, $PRODUCT_DEV_ID, $FROM, $TO, $STARTED_AT);
+        INSERT INTO ticket_update_collection(collection_id, active, status, product_dev_fk, ticket_board_key, from_day, to_day)
+        VALUES ($ID, $ACTIVE, $STATUS, $PRODUCT_DEV_ID, $TICKET_BOARD_KEY, $FROM, $TO);
         `;
 
     return pipe(
@@ -59,9 +59,9 @@ export function toInsertCollectionQuery(collection: TicketUpdateCollection):
             query = query.replace(/\$ACTIVE/, `${collection.isActive}`);
             query = query.replace(/\$STATUS/, `'${TicketUpdateCollectionStatus[collection.status]}'`);
             query = query.replace(/\$PRODUCT_DEV_ID/, `'${collection.productDevId}'`);
+            query = query.replace(/\$TICKET_BOARD_KEY/, `'${collection.ticketBoardKey}'`);
             query = query.replace(/\$FROM/, `'${toSqlDate(collection.period.from)}'`);
             query = query.replace(/\$TO/, `'${toSqlDate(collection.period.to)}'`);
-            query = query.replace(/\$STARTED_AT/, `'${toSqlDate(collection.startedAt)}'`);
             return  query;
         }, err => err as Error),
         E.chain(query => array.reduce(collection.ticketUpdates, E.either.of(query), (previous, current) => {
@@ -102,8 +102,8 @@ export function toUpdateCollectionQuery(id: string, collection: TicketUpdateColl
             query = query.replace(/\$STATUS/, `'${TicketUpdateCollectionStatus[collection.status]}'`);
             query = query.replace(/\$FROM/, `'${toSqlDate(collection.period.from)}'`);
             query = query.replace(/\$TO/, `'${toSqlDate(collection.period.to)}'`);
-            query = query.replace(/\$STARTED_AT/, `'${toSqlDate(collection.startedAt)}'`);
-            query = query.replace(/\$ENDED_AT/, `'${toSqlDate(collection.endedAt)}'`);
+            query = query.replace(/\$STARTED_AT/, collection.startedAt ? `'${toSqlDate(collection.startedAt)}'` : `NULL`);
+            query = query.replace(/\$ENDED_AT/, collection.endedAt ? `'${toSqlDate(collection.endedAt)}'` : `NULL`);
             return  query;
         }, err => err as Error)
     )
@@ -126,8 +126,9 @@ function toCollection(c: any, ticketUpdates: TicketUpdate[]):
         return new TicketUpdateCollection(
             c.collection_id,
             c.active,
-            c.product_dev_fk,
             c.status,
+            c.product_dev_fk,
+            c.ticket_board_key,
             c.from_day,
             c.to_day,
             c.started_at,
@@ -137,13 +138,9 @@ function toCollection(c: any, ticketUpdates: TicketUpdate[]):
 }
 
 export function fromQueryResultRows(rows: any[]): E.Either<Error, TicketUpdateCollection> {
-    let log = LogFactory.get("TicketUpdateTranslator");
-    log.info(`from query result rows ${JSON.stringify(rows, null, 1)}`);
     return pipe(
-        array.sequence(E.either)(
-            array.map(rows, row => toTicketUpdate(row))).fold(() => E.right(null), r => E.right(r)),
-        E.chain(ticketUpdates =>
-            toCollection(rows[0], ticketUpdates))
+        array.sequence(E.either)(rows.map(row =>  toTicketUpdate(row))).fold(() => E.right(null), r => E.right(r)),
+        E.chain(ticketUpdates => toCollection(rows[0], ticketUpdates))
     )
 }
 
@@ -169,8 +166,7 @@ export function fromFindCollectionsResult(results: QueryResultRow):
             }, new Map<string, any[]>());
             return Array.from(groupedRows.values());
         }, err => err as Error),
-        E.chain( groupedRows =>
-            array.sequence(E.either)((groupedRows as Array<any>).map(rows => fromQueryResultRows(rows))))
+        E.chain( groupedRows => array.sequence(E.either)((groupedRows as Array<any>).map(rows => fromQueryResultRows(rows))))
     )
 }
 

@@ -31,14 +31,15 @@ CREATE TABLE jira.ticket_board
 
 CREATE TABLE jira.ticket_update_collection
 (
-    collection_id  VARCHAR(31) PRIMARY KEY,
-    active         BOOLEAN     NOT NULL,
-    status         VARCHAR(31) NOT NULL,
-    product_dev_fk VARCHAR(31) NOT NULL,
-    from_day       TIMESTAMP   NOT NULL,
-    to_day         TIMESTAMP   NOT NULL,
-    started_at     TIMESTAMP   NOT NULL,
-    ended_at       TIMESTAMP,
+    collection_id    VARCHAR(31) PRIMARY KEY,
+    active           BOOLEAN     NOT NULL,
+    status           VARCHAR(31) NOT NULL,
+    product_dev_fk   VARCHAR(31) NOT NULL,
+    ticket_board_key VARCHAR(31) NOT NULL,
+    from_day         TIMESTAMP   NOT NULL,
+    to_day           TIMESTAMP   NOT NULL,
+    started_at       TIMESTAMP,
+    ended_at         TIMESTAMP,
     FOREIGN KEY (product_dev_fk) REFERENCES product_development (product_dev_id)
 );
 

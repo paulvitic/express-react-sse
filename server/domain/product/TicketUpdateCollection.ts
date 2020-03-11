@@ -1,60 +1,58 @@
 import AggregateRoot from "../AggregateRoot";
 import Identity from "../Identity";
 import * as E from "fp-ts/lib/Either";
-import * as O from "fp-ts/lib/Option";
-import {NextTicketUpdateCollectionPeriod} from "./view/NextTicketUpdateCollectionPeriod";
 import {pipe} from "fp-ts/lib/pipeable";
 import {UpdatedTicket} from "./service/TicketBoardIntegration";
 import TicketUpdate from "./TicketUpdate";
+import {TicketUpdateCollectionUnBlocked, TicketUpdateCollectionCreated, TicketUpdateCollectionStarted} from "./event";
+import LogFactory from "../LogFactory";
+
+
+class TicketUpdateCollectionError extends Error {
+    constructor(message) {
+        super(message);
+        this.name = TicketUpdateCollection.name;
+    }
+}
 
 export enum TicketUpdateCollectionStatus {
     RUNNING,
     COMPLETED,
-    FAILED
+    FAILED,
+    PENDING,
+    BLOCKED
 }
 
 export class TicketUpdateCollectionPeriod {
-    constructor(private readonly _from: Date, private _to?:Date){
-        this.setPeriodLength()
+    constructor(readonly from: Date,
+                readonly to: Date){
     }
 
     isDuring(timeStamp: Date): boolean {
-        return timeStamp > this.from && timeStamp < this.to
-    }
-
-    get from(){
-        return  this._from
-    }
-
-    get to(){
-        return  this._to
-    }
-
-    private setPeriodLength(){
-        if (!this.to){
-            this._to = new Date(this.from.getTime() + (1000 * 60 * 60 * 24))
-        }
-    }
+        return timeStamp > this.from && timeStamp < this.to}
 }
 
 
 export default class TicketUpdateCollection extends AggregateRoot {
+    private readonly log = LogFactory.get(TicketUpdateCollection.name);
     private readonly _period: TicketUpdateCollectionPeriod;
-    private readonly _startedAt: Date;
     private readonly _ticketUpdates: Map<string, TicketUpdate>;
 
     constructor(id: string,
                 active: boolean,
-                private readonly _productDevId: string,
                 private _status: TicketUpdateCollectionStatus,
+                private readonly _productDevId: string,
+                private readonly _ticketBoardKey,
                 from: Date,
                 to?: Date,
-                startedAt?: Date,
+                private _startedAt?: Date,
                 private _endedAt? : Date,
                 ticketUpdates?: TicketUpdate[]) {
         super(id, active);
-        this._period = new TicketUpdateCollectionPeriod(from, to);
-        this._startedAt = startedAt ? startedAt : new Date();
+        this._period = this._period =
+            new TicketUpdateCollectionPeriod(from,
+            to ? to : new Date(from.getTime() + (1000 * 60 * 60 * 24))
+        );
         this._ticketUpdates = ticketUpdates ?
             ticketUpdates.reduce(
                 (previous: Map<string, TicketUpdate>, current: TicketUpdate) => previous.set(current.key, current),
@@ -62,20 +60,27 @@ export default class TicketUpdateCollection extends AggregateRoot {
             new Map<string, TicketUpdate>()
     }
 
-    static create(nextPeriod: NextTicketUpdateCollectionPeriod):
-        E.Either<Error, TicketUpdateCollection> {
-        return pipe (
-            O.fromNullable(nextPeriod.ticketBoardKey),
-            E.fromOption(new Error("Development Project is not linked to a ticket board")),
-            E.chain(_ => E.right(nextPeriod.lastTicketUpdateCollectionPeriodEnd ?
-                    nextPeriod.lastTicketUpdateCollectionPeriodEnd :
-                    nextPeriod.devProjectStartedOn)),
-            E.map(from => new TicketUpdateCollection(
-                Identity.generate(),
-                true,
-                nextPeriod.prodDevId,
-                TicketUpdateCollectionStatus.RUNNING,
-                from))
+    static createPending(productDevId: string, ticketBoardKey:string, from: Date)
+        : E.Either<Error, TicketUpdateCollection> {
+        return pipe(
+            E.tryCatch2v(
+                () => new TicketUpdateCollection(
+                    Identity.generate(),
+                    true,
+                    TicketUpdateCollectionStatus.PENDING,
+                    productDevId,
+                    ticketBoardKey,
+                    from),
+                err => new TicketUpdateCollectionError(`error while creating pending ticket update collection: ${(err as Error).message}`)),
+            E.chainFirst(collection => collection.recordEvent(
+                new TicketUpdateCollectionCreated(
+                    TicketUpdateCollection.name,
+                    collection.id,
+                    collection.status,
+                    collection.productDevId,
+                    collection.ticketBoardKey,
+                    collection.period))),
+            E.map(collection => collection)
         )
     }
 
@@ -89,6 +94,10 @@ export default class TicketUpdateCollection extends AggregateRoot {
 
     get status(){
         return this._status
+    }
+
+    get ticketBoardKey(){
+        return this._ticketBoardKey
     }
 
     get startedAt() {
@@ -108,6 +117,58 @@ export default class TicketUpdateCollection extends AggregateRoot {
         }
         return updates;
     }
+
+    unBlock(): E.Either<Error, void> {
+        return E.tryCatch2v( () => {
+                if (this.status === TicketUpdateCollectionStatus.BLOCKED) {
+                    this._status = TicketUpdateCollectionStatus.PENDING;
+                    this.recordEvent(new TicketUpdateCollectionUnBlocked(
+                        TicketUpdateCollection.name,
+                        this.id,
+                        this.status,
+                        this.productDevId,
+                        this.ticketBoardKey,
+                        this.period
+                    ))
+                }},
+            err => err as Error
+        )
+    };
+
+    startCollection = (): E.Either<Error, void> => {
+        this.log.info("starting");
+        if (this._status === TicketUpdateCollectionStatus.FAILED || TicketUpdateCollectionStatus.PENDING) {
+            this._startedAt = new Date();
+            this._status = TicketUpdateCollectionStatus.RUNNING;
+            this.recordEvent(new TicketUpdateCollectionStarted(
+                TicketUpdateCollection.name,
+                this.id,
+                this.productDevId,
+                this.ticketBoardKey,
+                this.period));
+            return E.right(null)
+        } else {
+            return E.left(new Error("collection is currently running"));
+        }
+        /*switch (this.status) {
+            case TicketUpdateCollectionStatus.RUNNING:
+                return E.left(new Error("collection is currently running"));
+            case TicketUpdateCollectionStatus.BLOCKED:
+                return E.left(new Error("collection is blocked"));
+            case TicketUpdateCollectionStatus.COMPLETED:
+                return E.left(new Error("a completed collection can not re-run"));
+            case TicketUpdateCollectionStatus.FAILED || TicketUpdateCollectionStatus.PENDING:
+                this._startedAt = new Date();
+                this._status = TicketUpdateCollectionStatus.RUNNING;
+                this.recordEvent(new TicketUpdateCollectionStarted(
+                     TicketUpdateCollection.name,
+                     this.id,
+                     this.productDevId,
+                     this.ticketBoardKey,
+                     this.period));
+                return E.right(null)
+        }*/
+    };
 
     willRunForTickets(updatedTickets: UpdatedTicket[]): E.Either<Error, void> {
         return E.tryCatch2v( () => {
