@@ -163,6 +163,7 @@ export default class App {
                 await this.initRepositories();
                 await this.initDomainServices();
                 await this.initProcessors();
+                await this.initPolicies();
 
                 await this.initApplicationServices();
                 await this.initResources();
@@ -253,6 +254,20 @@ export default class App {
         })
     };
 
+    private initPolicies = (): Promise<void> => {
+        return new Promise<void>((resolve, reject) => {
+            try {
+                this.context.product.domain.policy.ticketUpdateCollectionHandler =
+                    new TicketUpdateCollectionHandler(
+                        this.context.product.domain.repositories.ticketUpdateCollectionRepo,
+                        this.context.common.eventBus);
+                resolve()
+            } catch (e) {
+                reject(new Error("error while initializing processors: " + e.message ))
+            }
+        })
+    };
+
     private initApplicationServices = (): Promise<void> => {
         return new Promise<void>(async (resolve, reject) => {
             try {
@@ -334,6 +349,11 @@ export default class App {
                 this.context.common.eventBus.subscribe(
                     this.context.product.domain.processors.ticketChangeLogReader, [
                         UpdatedTicketsListFetched.name
+                    ]);
+
+                this.context.common.eventBus.subscribe(
+                    this.context.product.domain.policy.ticketUpdateCollectionHandler, [
+                        TicketBoardLinked.name
                     ]);
                 resolve();
             } catch (e) {

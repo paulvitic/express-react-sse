@@ -20,7 +20,9 @@ export function toCommand(req: Request): E.Either<Error, TicketUpdateCollectionC
     return E.tryCatch2v(() => {
         switch (req.method) {
             case 'POST':
-                return new CollectTicketUpdates(req.body.productDevId, new Date(req.body.defaultFrom));
+                return new CollectTicketUpdates(
+                    req.body.productDevId,
+                    req.body.defaultFrom ? new Date(req.body.defaultFrom) : undefined);
             default:
                 throw new TicketUpdateCollectionReqTranslatorError(
                     `translation for request method ${req.method} is not implemented`)

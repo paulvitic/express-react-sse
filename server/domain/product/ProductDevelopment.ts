@@ -1,10 +1,9 @@
 import AggregateRoot from "../AggregateRoot";
 import * as TE from "fp-ts/lib/TaskEither";
-import * as T from "fp-ts/lib/Task";
 import * as E from "fp-ts/lib/Either";
 import TicketBoard from "./TicketBoard";
 import {pipe} from "fp-ts/lib/pipeable";
-import TicketBoardIntegration, {TicketBoardInfo} from "./service/TicketBoardIntegration";
+import TicketBoardIntegration from "./service/TicketBoardIntegration";
 import Identity from "../Identity";
 import {ProductDevelopmentCreated, TicketBoardLinked} from "./event";
 import LogFactory from "../LogFactory";
@@ -45,7 +44,7 @@ export default class ProductDevelopment extends AggregateRoot {
         return this._ticketBoard !== null;
     }
 
-    static createFromTicketBoard(key:string, defaultStart:Date, integration: TicketBoardIntegration):
+    static createFromTicketBoard(key:string, defaultStart: Date, integration: TicketBoardIntegration):
         TE.TaskEither<ProductDevelopmentError, ProductDevelopment> {
         return pipe(
             integration.assertProject(key),
@@ -55,12 +54,16 @@ export default class ProductDevelopment extends AggregateRoot {
             ),
             TE.chain(info => TE.fromEither(
                 pipe(
-                    E.tryCatch(() => new ProductDevelopment(Identity.generate(), true, info.name, info.created),
+                    E.tryCatch(() => new ProductDevelopment(
+                        Identity.generate(),
+                        true, info.name,
+                        defaultStart ? defaultStart : info.created),
                         e => new ProductDevelopmentError("")),
                     E.chainFirst( productDev => productDev.recordEvent(new ProductDevelopmentCreated(
                         ProductDevelopment.name,
                         productDev.id,
-                        productDev.name))),
+                        productDev.name,
+                        productDev.startedOn.toISOString()))),
                     E.chainFirst(productDev => productDev.linkTicketBoard(key, info.id))
                 )
             ))
@@ -72,9 +75,13 @@ export default class ProductDevelopment extends AggregateRoot {
             E.either.of(new TicketBoard(Identity.generate(), key, externalRef, this.id)),
             E.filterOrElse(() => this.ticketBoard===null,
                 () => new ProductDevelopmentError('Ticket board already exists')),
-            E.map(ticketBoard => new TicketBoardLinked(ProductDevelopment.name,
+            E.map(ticketBoard => new TicketBoardLinked(
+                ProductDevelopment.name,
                 this.id,
-                ticketBoard)),
+                ticketBoard.id,
+                ticketBoard.key,
+                ticketBoard.ref,
+                this.startedOn.toISOString())),
             E.map(this.onTicketBoardLinked),
             E.chain(this.recordEvent)
         )
@@ -97,7 +104,7 @@ export default class ProductDevelopment extends AggregateRoot {
     }
 
     private onTicketBoardLinked = (event: TicketBoardLinked): TicketBoardLinked => {
-        this._ticketBoard = event.ticketBoard;
+        this._ticketBoard = new TicketBoard(event.ticketBoardId, event.ticketBoardKey, event.ticketBoardRef, this.id);
         return event
     }
 }

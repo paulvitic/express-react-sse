@@ -31,7 +31,9 @@ export function toCommand(req: Request): E.Either<Error, TicketBoardCommand> {
     return E.tryCatch2v(() => {
         switch (req.method) {
             case 'POST':
-                return new CreateProjectFromTicketBoard(req.body.ticketBoardKey, req.body.defaultStart);
+                return new CreateProjectFromTicketBoard(
+                    req.body.ticketBoardKey,
+                    req.body.defaultStart ? new Date(req.body.defaultStart): undefined);
             default:
                 throwError(new Error('not implemented'))
         }

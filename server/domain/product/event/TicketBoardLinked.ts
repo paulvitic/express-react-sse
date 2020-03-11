@@ -5,7 +5,10 @@ export class TicketBoardLinked extends AbstractDomainEvent {
     constructor(
         aggregate: string,
         aggregateId: string,
-        readonly ticketBoard: TicketBoard){
+        readonly ticketBoardId: string,
+        readonly ticketBoardKey: string,
+        readonly ticketBoardRef: number,
+        readonly prodDevStartDate: string){
         super(aggregate, aggregateId);
     }
 }

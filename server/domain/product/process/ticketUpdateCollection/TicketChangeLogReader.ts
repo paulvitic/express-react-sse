@@ -47,7 +47,7 @@ export default class TicketChangeLogReader extends TicketUpdateCollectionProcess
     private readTicketChangeLog(sourceEvent: UpdatedTicketsListFetched, updatedTicket: UpdatedTicket, index: number):
         T.Task<UpdatedTicketChangeLogReaderEvent>{
         return pipe(
-            this.integration.readTicketChangeLog(updatedTicket.key, sourceEvent.period),
+            this.integration.readTicketChangeLog(updatedTicket.key, new Date(sourceEvent.fromDate), new Date(sourceEvent.toDate)),
             TE.fold<Error, O.Option<TicketChangeLog>, UpdatedTicketChangeLogReaderEvent>(
             error => this.onReadError(sourceEvent, error, index),
             ticketChangeLog => this.onReadSuccess(sourceEvent, updatedTicket.id, updatedTicket.key, ticketChangeLog, index))

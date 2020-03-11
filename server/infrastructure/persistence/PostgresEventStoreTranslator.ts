@@ -12,7 +12,7 @@ export function translateToDomainEvents(res: QueryResultRow): Promise<DomainEven
     return new Promise<DomainEvent[]>((resolve, reject) => {
         const events = new Array<DomainEvent>();
         for (let row of res.rows){
-            translate.fromJsoneObject(row.event).fold(
+            translate.fromJsonObject(row.event).fold(
                 err => reject(err),
                 event => events.push(event)
             )

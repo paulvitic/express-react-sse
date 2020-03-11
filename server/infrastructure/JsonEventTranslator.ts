@@ -8,7 +8,7 @@ export function registerDomainEvent(eventType: string, claz: any){
     registry.set(eventType, claz)
 }
 
-export function fromJsoneObject(partial: any):  E.Either<Error, DomainEvent> {
+export function fromJsonObject(partial: any):  E.Either<Error, DomainEvent> {
     return E.tryCatch2v(() => {
         const eventType = registry.get(partial._eventType);
         const event = new eventType(partial._aggregate, partial._aggregateId);
@@ -20,6 +20,6 @@ export function fromJsoneObject(partial: any):  E.Either<Error, DomainEvent> {
 export function fromJsonString(jsonString: string): E.Either<Error, DomainEvent> {
     return pipe(
         E.tryCatch2v(() => JSON.parse(jsonString), err => err as Error),
-        E.chain(fromJsoneObject)
+        E.chain(fromJsonObject)
     )
 }

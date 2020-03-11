@@ -1,5 +1,4 @@
 import {TaskEither} from "fp-ts/lib/TaskEither";
-import {TicketUpdateCollectionPeriod} from "../TicketUpdateCollection";
 import {Option} from "fp-ts/lib/Option";
 
 export type TicketBoardInfo = {
@@ -22,7 +21,7 @@ export type UpdatedTicket = {
 
 export type ChangeLog = {
     field: string,
-    timeStamp: Date,
+    timeStamp: string,
     from: string,
     fromString: string,
     to: string,
@@ -39,6 +38,6 @@ export class TicketBoardIntegrationFailure extends Error {}
 
 export default interface TicketBoardIntegration {
     assertProject(key:string): TaskEither<TicketBoardIntegrationFailure, TicketBoardInfo>
-    getUpdatedTickets(key: string, period: TicketUpdateCollectionPeriod): TaskEither<TicketBoardIntegrationFailure, UpdatedTicket[]>;
-    readTicketChangeLog(key: string, period: TicketUpdateCollectionPeriod): TaskEither<TicketBoardIntegrationFailure, Option<TicketChangeLog>>
+    getUpdatedTickets(key: string, from: Date, to: Date): TaskEither<TicketBoardIntegrationFailure, UpdatedTicket[]>;
+    readTicketChangeLog(key: string, from: Date, to: Date): TaskEither<TicketBoardIntegrationFailure, Option<TicketChangeLog>>
 }

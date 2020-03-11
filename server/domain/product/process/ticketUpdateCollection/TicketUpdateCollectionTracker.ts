@@ -1,6 +1,5 @@
 import * as TE from "fp-ts/lib/TaskEither";
 import * as E from "fp-ts/lib/Either";
-import * as T from "fp-ts/lib/Task";
 import TicketUpdateCollection from "../../TicketUpdateCollection";
 import TicketUpdateCollectionRepository from "../../repository/TicketUpdateCollectionRepository";
 import {pipe} from "fp-ts/lib/pipeable";
@@ -78,7 +77,7 @@ export class TicketUpdateCollectionTracker extends TicketUpdateCollectionProcess
             case TicketRemainedUnchanged.name:
                 return pipe(
                     E.either.of(<TicketChangeLogEvent>sourceEvent),
-                    E.chain(event => collection.completedForTicket(event.ticketExternalRef, event.ticketKey)),
+                    E.chain(event => collection.completedForTicket(event.ticketRef, event.ticketKey)),
                 );
             case TicketUpdateCollectionFailed.name:
                 return pipe(

@@ -6,7 +6,7 @@ export class TicketChanged extends AbstractDomainEvent {
         aggregate: string,
         aggregateId: string,
         readonly prodDevId: string,
-        readonly ticketExternalRef: number,
+        readonly ticketRef: number,
         readonly ticketKey: string,
         readonly changeLog: ChangeLog[]){
             super(aggregate, aggregateId);

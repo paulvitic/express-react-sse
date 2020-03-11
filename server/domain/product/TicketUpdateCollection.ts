@@ -27,9 +27,6 @@ export class TicketUpdateCollectionPeriod {
     constructor(readonly from: Date,
                 readonly to: Date){
     }
-
-    isDuring(timeStamp: Date): boolean {
-        return timeStamp > this.from && timeStamp < this.to}
 }
 
 
@@ -79,8 +76,8 @@ export default class TicketUpdateCollection extends AggregateRoot {
                     collection.status,
                     collection.productDevId,
                     collection.ticketBoardKey,
-                    collection.period))),
-            E.map(collection => collection)
+                    collection.period.from.toISOString(),
+                    collection.period.to.toISOString())))
         )
     }
 
@@ -145,7 +142,8 @@ export default class TicketUpdateCollection extends AggregateRoot {
                 this.id,
                 this.productDevId,
                 this.ticketBoardKey,
-                this.period));
+                this.period.from.toISOString(),
+                this.period.to.toISOString()));
             return E.right(null)
         } else {
             return E.left(new Error("collection is currently running"));

@@ -6,7 +6,6 @@ import {
 } from "../../domain/product/service/TicketBoardIntegration";
 import * as E from 'fp-ts/lib/Either'
 import { AxiosResponse, AxiosError} from "axios";
-import {TicketUpdateCollectionPeriod} from "../../domain/product/TicketUpdateCollection";
 import {array} from "fp-ts/lib/Array";
 import * as O from "fp-ts/lib/Option";
 import {pipe} from "fp-ts/lib/pipeable";
@@ -82,10 +81,10 @@ const changelogFilter = {
 
 
 
-export function toGetUpdatedTicketsUrl(baseUrl:string, key:string, period:TicketUpdateCollectionPeriod):
+export function toGetUpdatedTicketsUrl(baseUrl:string, key:string, from, to):
     E.Either<Error, string>{
     return E.tryCatch2v(() =>
-        `${this.url}/rest/api/3/search?jql=project%3D${key}+and+updated%3E%3D%22${toQueryDateFormat(period.from)}%22+and+updated%3C%22${toQueryDateFormat(period.to)}%22&fields=created%2Cupdated`
+        `${baseUrl}/rest/api/3/search?jql=project%3D${key}+and+updated%3E%3D%22${toQueryDateFormat(from)}%22+and+updated%3C%22${toQueryDateFormat(to)}%22&fields=created%2Cupdated`
     , err => new Error(`error while translating to get updated tickets url: ${(err as Error).message}`))
 }
 
@@ -137,27 +136,27 @@ export function toTicketInfoAssertionFailure({response}: AxiosError): TicketBoar
     }
 }
 
-export function toChangeLog({ data }: AxiosResponse<any>, period: TicketUpdateCollectionPeriod):
+export function toChangeLog({ data }: AxiosResponse<any>, from: Date, to: Date):
     O.Option<TicketChangeLog>{
     let {id, key, changelog: { histories } } = data;
     return pipe(
         O.option.of(array
-            .filterMap(histories, history => fromHistory(history, period)) // filters Option.none's
+            .filterMap(histories, history => fromHistory(history, from, to)) // filters Option.none's
             .reduceRight((previous, current) => {return previous.concat(current)})), // flattens change log arrays from multiple history entries
         O.filter(logs => logs.length !== 0), // if there are any change logs, then passes Option.some of change logs array
         O.map(changeLog => {return {id, key, changeLog}})
     )
 }
 
-function fromHistory(history:any, period:TicketUpdateCollectionPeriod): O.Option<ChangeLog[]>  {
+function fromHistory(history:any, from: Date, to:Date): O.Option<ChangeLog[]>  {
     return pipe(
         O.option.of(history),
-        O.filter(history => period.isDuring(new Date(history.created))), // if history is not created during update collection period than passes Option.none
+        O.filter(history => isDuring(new Date(history.created), from, to)), // if history is not created during update collection period than passes Option.none
         O.map(history => fromHistoryEntries(history.items, history.created))
     )
 }
 
-function fromHistoryEntries(entries: any[], timeStamp: Date): ChangeLog[] {
+function fromHistoryEntries(entries: any[], timeStamp: string): ChangeLog[] {
     return array.filterMap(entries, entry => {
         let {field, fieldId, from, fromString, to, toString} = entry;
         return pipe(
@@ -188,4 +187,8 @@ function toQueryDateFormat(date: Date): string {
     const m = date.getMonth() + 1; //Month from 0 to 11
     const y = date.getFullYear();
     return `${y}%2F${ m<=9 ? '0'+m : m }%2F${ d <= 9 ? '0'+d : d}`;
+}
+
+function isDuring(timeStamp: Date, from: Date, to: Date): boolean {
+    return timeStamp >= from && timeStamp < to
 }

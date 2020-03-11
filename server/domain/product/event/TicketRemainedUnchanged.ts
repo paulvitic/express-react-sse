@@ -5,7 +5,7 @@ export class TicketRemainedUnchanged extends AbstractDomainEvent {
         aggregate: string,
         aggregateId: string,
         readonly prodDevId: string,
-        readonly ticketExternalRef: number,
+        readonly ticketRef: number,
         readonly ticketKey: string){
         super(aggregate, aggregateId);
     }

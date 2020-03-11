@@ -40,7 +40,7 @@ export default class UpdatedTicketsListCollector extends TicketUpdateCollectionP
     fetchUpdatedTicketsList(sourceEvent: TicketUpdateCollectionStarted):
         T.Task<UpdatedTicketsListCollectorEvent> {
         return pipe(
-                this.integration.getUpdatedTickets(sourceEvent.ticketBoardKey, sourceEvent.period),
+                this.integration.getUpdatedTickets(sourceEvent.ticketBoardKey, new Date(sourceEvent.fromDate), new Date(sourceEvent.toDate)),
                 TE.fold<Error, UpdatedTicket[], UpdatedTicketsListCollectorEvent>(
                     error => this.onFetchError(sourceEvent, error),
                     updatedTickets => this.onFetchSuccess(sourceEvent, updatedTickets)
@@ -67,7 +67,8 @@ export default class UpdatedTicketsListCollector extends TicketUpdateCollectionP
             sourceEvent.aggregateId,
             sourceEvent.prodDevId,
             sourceEvent.ticketBoardKey,
-            sourceEvent.period,
+            sourceEvent.fromDate,
+            sourceEvent.toDate,
             updatedTickets
         ))
     }

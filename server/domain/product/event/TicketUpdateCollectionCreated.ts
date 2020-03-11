@@ -8,7 +8,8 @@ export class TicketUpdateCollectionCreated extends AbstractDomainEvent {
         readonly status: TicketUpdateCollectionStatus,
         readonly prodDevId: string,
         readonly ticketBoardKey: string,
-        readonly period: TicketUpdateCollectionPeriod){
+        readonly fromDate: string,
+        readonly toDate: string){
         super(aggregate, aggregateId);
     }
 }

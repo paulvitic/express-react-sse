@@ -8,7 +8,8 @@ export class UpdatedTicketsListFetched extends AbstractDomainEvent {
         aggregateId: string,
         readonly prodDevId: string,
         readonly ticketBoardKey: string,
-        readonly period: TicketUpdateCollectionPeriod,
+        readonly fromDate: string,
+        readonly toDate: string,
         readonly updatedTickets: UpdatedTicket[]){
         super(aggregate, aggregateId,);
     }
