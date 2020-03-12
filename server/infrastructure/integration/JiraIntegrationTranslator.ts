@@ -153,7 +153,7 @@ export function toChangeLog({ data }: AxiosResponse<any>, from: Date, to: Date):
     return pipe(
         O.option.of(array
             .filterMap(histories, history => fromHistory(history, from, to)) // filters Option.none's
-            .reduceRight((previous, current) => {return previous.concat(current)})), // flattens change log arrays from multiple history entries
+            .reduceRight((previous, current) => previous.concat(current), [])), // flattens change log arrays from multiple history entries
         O.filter(logs => logs.length !== 0), // if there are any change logs, then passes Option.some of change logs array
         O.map(changeLog => {return {id, key, changeLog}})
     )

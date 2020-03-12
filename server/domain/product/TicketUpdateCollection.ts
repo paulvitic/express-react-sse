@@ -46,8 +46,8 @@ export default class TicketUpdateCollection extends AggregateRoot {
                 ticketUpdates?: TicketUpdate[]) {
         super(id, active);
         this._period = this._period =
-            new TicketUpdateCollectionPeriod(from,
-            to ? to : new Date(from.getTime() + (1000 * 60 * 60 * 24))
+            new TicketUpdateCollectionPeriod(
+                from, to ? to : TicketUpdateCollection.getPeriodEnd(from)
         );
         this._ticketUpdates = ticketUpdates ?
             ticketUpdates.reduce(
@@ -68,8 +68,8 @@ export default class TicketUpdateCollection extends AggregateRoot {
                     ticketBoardKey,
                     from),
                 err => new TicketUpdateCollectionError(`error while creating pending ticket update collection: ${(err as Error).message}`)),
-            E.chainFirst(collection => collection.recordEvent(
-                new TicketUpdateCollectionCreated(
+            E.chainFirst(collection =>
+                collection.recordEvent(new TicketUpdateCollectionCreated(
                     TicketUpdateCollection.name,
                     collection.id,
                     collection.status,
@@ -134,25 +134,26 @@ export default class TicketUpdateCollection extends AggregateRoot {
     };
 
     willReadTickets(updatedTickets: UpdatedTicket[]): E.Either<Error, void> {
-        return E.tryCatch2v( () => {
-            updatedTickets.map(ticket => {
-                this._ticketUpdates.set(ticket.key, new TicketUpdate(Identity.generate(), ticket.id, ticket.key))
-            })},
+        return E.tryCatch2v(
+            () => {
+                updatedTickets.map(ticket => this._ticketUpdates.set(ticket.key, new TicketUpdate(Identity.generate(), ticket.id, ticket.key)));
+                return;
+            },
         err => err as Error
         )
     }
 
     completedForTicket(ticketExternalRef: number, ticketKey: string)
         :E.Either<Error, void> {
-        return E.tryCatch2v( () => {
-                this._ticketUpdates.get(ticketKey).collect();
-            },
+        return E.tryCatch2v(
+            () => this._ticketUpdates.get(ticketKey).collect(),
             err => err as Error
         )
     }
 
     failed():E.Either<Error, void> {
-        return E.tryCatch2v( () => {
+        return E.tryCatch2v(
+            () => {
                 this._status = TicketUpdateCollectionStatus.FAILED;
                 this._endedAt = new Date();
             },
@@ -179,5 +180,11 @@ export default class TicketUpdateCollection extends AggregateRoot {
             },
             err => err as Error
         )
+    }
+
+    private static getPeriodEnd(from: Date): Date {
+        let to = new Date(from);
+        to.setDate(to.getDate() + 1);
+        return to;
     }
 }

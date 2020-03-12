@@ -69,23 +69,6 @@ export function toInsertCollectionQuery(collection: TicketUpdateCollection):
     )
 }
 
-function toInsertTicketUpdateQuery(ticketUpdate: TicketUpdate, collectionId: string, query: string):
-    E.Either<Error, string> {
-    let insertQuery = `
-        INSERT INTO ticket_update(ticket_update_id, ticket_ref, ticket_key, collected, collection_fk)
-        VALUES ($ID, $EXTERNAL_REF, $KEY, $COLLECTED, $COLLECTION_FK);
-    `;
-
-    return E.tryCatch2v(() => {
-        insertQuery = insertQuery.replace(/\$ID/, `'${ticketUpdate.id}'`);
-        insertQuery = insertQuery.replace(/\$EXTERNAL_REF/, `${ticketUpdate.ref}`);
-        insertQuery = insertQuery.replace(/\$KEY/, `'${ticketUpdate.key}'`);
-        insertQuery = insertQuery.replace(/\$COLLECTED/, `${ticketUpdate.collected}`);
-        insertQuery = insertQuery.replace(/\$COLLECTION_FK/, `'${collectionId}'`);
-        return query + insertQuery;
-    }, err => err as Error)
-}
-
 export function toUpdateCollectionQuery(id: string, collection: TicketUpdateCollection):
     E.Either<Error, string> {
     let query = `
@@ -106,6 +89,23 @@ export function toUpdateCollectionQuery(id: string, collection: TicketUpdateColl
             return  query;
         }, err => err as Error)
     )
+}
+
+function toInsertTicketUpdateQuery(ticketUpdate: TicketUpdate, collectionId: string, query: string):
+    E.Either<Error, string> {
+    let insertQuery = `
+        INSERT INTO ticket_update(ticket_update_id, ticket_ref, ticket_key, collected, collection_fk)
+        VALUES ($ID, $EXTERNAL_REF, $KEY, $COLLECTED, $COLLECTION_FK);
+    `;
+
+    return E.tryCatch2v(() => {
+        insertQuery = insertQuery.replace(/\$ID/, `'${ticketUpdate.id}'`);
+        insertQuery = insertQuery.replace(/\$EXTERNAL_REF/, `${ticketUpdate.ref}`);
+        insertQuery = insertQuery.replace(/\$KEY/, `'${ticketUpdate.key}'`);
+        insertQuery = insertQuery.replace(/\$COLLECTED/, `${ticketUpdate.collected}`);
+        insertQuery = insertQuery.replace(/\$COLLECTION_FK/, `'${collectionId}'`);
+        return query + insertQuery;
+    }, err => err as Error)
 }
 
 function toTicketUpdate(u: any):

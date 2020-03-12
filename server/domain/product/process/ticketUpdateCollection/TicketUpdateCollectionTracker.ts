@@ -1,7 +1,6 @@
 import * as TE from "fp-ts/lib/TaskEither";
 import * as E from "fp-ts/lib/Either";
 import * as T from "fp-ts/lib/Task";
-import * as O from "fp-ts/lib/Option";
 import TicketUpdateCollection, {TicketUpdateCollectionStatus} from "../../TicketUpdateCollection";
 import TicketUpdateCollectionRepository from "../../repository/TicketUpdateCollectionRepository";
 import {pipe} from "fp-ts/lib/pipeable";
@@ -42,7 +41,10 @@ export class TicketUpdateCollectionTracker extends TicketUpdateCollectionProcess
             this.repo.findLatestByProject(prodDevId),
             TE.chain(collection => collection.isSome() ?
                 TE.right2v(collection.value) :
-                this.create(prodDevId, ticketBoardKey, defaultFrom, defaultFrom)),
+                this.create(prodDevId, ticketBoardKey, prodDevStart, defaultFrom)),
+            TE.chain(collection => collection.status === TicketUpdateCollectionStatus.COMPLETED ?
+                this.create(prodDevId, ticketBoardKey, collection.period.to) :
+                TE.right2v(collection)),
             TE.chainFirst(collection => TE.fromEither(collection.startCollection())),
             TE.chainFirst(collection => this.repo.update(collection.id, collection)),
             TE.chainFirst(collection => TE.rightIO(this.log.io.debug(`ticket update collection updated ${collection}`))),
@@ -65,28 +67,26 @@ export class TicketUpdateCollectionTracker extends TicketUpdateCollectionProcess
             ).run()
     };
 
-    handleEvent(sourceEvent: TicketUpdateCollectionExecutiveEvent, collection: TicketUpdateCollection):
+    handleEvent(event: TicketUpdateCollectionExecutiveEvent, collection: TicketUpdateCollection):
         E.Either<Error, void> {
-        switch (sourceEvent.eventType) {
+        switch (event.eventType) {
             case UpdatedTicketsListFetched.name:
-                return pipe(
-                    E.either.of(<UpdatedTicketsListFetched>sourceEvent),
-                    E.chain(event => collection.willReadTickets(event.updatedTickets))
-                );
-            case TicketChanged.name || TicketRemainedUnchanged.name:
-                return pipe(
-                    E.either.of(<TicketChangeLogEvent>sourceEvent),
-                    E.chain(event => collection.completedForTicket(event.ticketRef, event.ticketKey)),
-                );
+                return collection.willReadTickets(
+                    (event as UpdatedTicketsListFetched).updatedTickets);
+            case TicketChanged.name:
+                return collection.completedForTicket(
+                    (event as TicketChanged).ticketRef,
+                    (event as TicketChanged).ticketKey);
+            case TicketRemainedUnchanged.name:
+                return collection.completedForTicket(
+                    (event as TicketRemainedUnchanged).ticketRef,
+                    (event as TicketRemainedUnchanged).ticketKey);
             case TicketUpdateCollectionFailed.name:
-                return pipe(
-                    E.either.of(<TicketUpdateCollectionFailed>sourceEvent),
-                    E.chain(() => collection.failed()),
-                );
+                return collection.failed();
         }
     }
 
-    private create = (prodDevId: string, ticketBoardKey: string, prodDevStart: Date, defaultFrom: Date):
+    private create = (prodDevId: string, ticketBoardKey: string, prodDevStart: Date, defaultFrom?: Date):
         TE.TaskEither<Error, TicketUpdateCollection> => {
         let from = defaultFrom ? defaultFrom : prodDevStart;
         return pipe(

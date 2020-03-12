@@ -82,8 +82,21 @@ describe("create product development", () => {
                     headers: {
                         Accept: 'application/json'},
                     data: {
-                        productDevId: productDevId,
-                        defaultFrom: "2019-11-26"
+                        productDevId: productDevId
+                    }
+                });
+            expect(httpResponse).not.toBeNull();
+            log.info(`${httpResponse.data}`);
+            await sleep(2000);
+
+            httpResponse = await axios(
+                `http://localhost:3000/api/v1/ticketUpdateCollections`,
+                {
+                    method: 'POST',
+                    headers: {
+                        Accept: 'application/json'},
+                    data: {
+                        productDevId: productDevId
                     }
                 });
             expect(httpResponse).not.toBeNull();
