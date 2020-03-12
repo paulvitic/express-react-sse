@@ -30,7 +30,7 @@ beforeAll(async () => {
         productDevelopmentFixture,
         true,
         PRODUCT_DEV_NAME_FIXTURE,
-        PRODUCT_DEV_STARTED_ON_FIXTURE);
+        new Date(PRODUCT_DEV_STARTED_ON_FIXTURE));
     await productDevRepo.save(devProjectFixture).run();
 });
 

@@ -46,7 +46,8 @@ describe('create project from ticket board', () => {
             return TE.taskEither.of(devProject)
         });
 
-        let result = await service.createFromTicketBoard(new CreateProjectFromTicketBoard("TEST")).run();
+        let result = await service.createFromTicketBoard(
+            new CreateProjectFromTicketBoard("TEST", undefined)).run();
 
         expect(mockEventBus.publishEvent).toBeCalledTimes(0);
         expect(result.isLeft).toBeTruthy();
@@ -70,7 +71,8 @@ describe('create project from ticket board', () => {
             return TE.taskEither.of(devProject)
         });
 
-        let result = await service.createFromTicketBoard(new CreateProjectFromTicketBoard("TEST")).run();
+        let result = await service.createFromTicketBoard(
+            new CreateProjectFromTicketBoard("TEST", new Date("2019-11-27"))).run();
 
         expect(mockEventBus.publishEvent).toBeCalledTimes(2);
         expect(result.isRight()).toBeTruthy();

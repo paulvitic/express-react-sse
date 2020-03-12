@@ -1,6 +1,8 @@
 import * as TE from "fp-ts/lib/TaskEither";
 import * as E from "fp-ts/lib/Either";
-import TicketUpdateCollection from "../../TicketUpdateCollection";
+import * as T from "fp-ts/lib/Task";
+import * as O from "fp-ts/lib/Option";
+import TicketUpdateCollection, {TicketUpdateCollectionStatus} from "../../TicketUpdateCollection";
 import TicketUpdateCollectionRepository from "../../repository/TicketUpdateCollectionRepository";
 import {pipe} from "fp-ts/lib/pipeable";
 import EventBus from "../../../EventBus";
@@ -29,7 +31,6 @@ class TicketUpdateCollectionTrackerError extends Error {
 
 export class TicketUpdateCollectionTracker extends TicketUpdateCollectionProcess {
     private readonly log = LogFactory.get(TicketUpdateCollectionTracker.name);
-
     constructor(private readonly repo: TicketUpdateCollectionRepository,
                 eventBus: EventBus) {
         super(eventBus)
@@ -41,28 +42,27 @@ export class TicketUpdateCollectionTracker extends TicketUpdateCollectionProcess
             this.repo.findLatestByProject(prodDevId),
             TE.chain(collection => collection.isSome() ?
                 TE.right2v(collection.value) :
-                //TE.left2v(new TicketUpdateCollectionTrackerError(`no pending data collections exists for product development ${prodDevId}`))),
-                this.create(prodDevId, ticketBoardKey, defaultFrom && defaultFrom > prodDevStart ? defaultFrom : prodDevStart)),
+                this.create(prodDevId, ticketBoardKey, defaultFrom, defaultFrom)),
             TE.chainFirst(collection => TE.fromEither(collection.startCollection())),
             TE.chainFirst(collection => this.repo.update(collection.id, collection)),
-            TE.chainFirst(collection => TE.rightIO(this.log.io.info(`ticket update collection updated ${collection}`))),
+            TE.chainFirst(collection => TE.rightIO(this.log.io.debug(`ticket update collection updated ${collection}`))),
             TE.chain(collection => this.eventBus.publishEventsOf(collection))
         )
     }
 
-    onEvent = async (sourceEvent: TicketUpdateCollectionExecutiveEvent): Promise<E.Either<Error, void>> => {
-        this.log.info(`Processing event ${JSON.stringify(sourceEvent)}`);
-        return new Promise<E.Either<Error,void>>((resolve, reject) => {
-            pipe(
+    onEvent = (sourceEvent: TicketUpdateCollectionExecutiveEvent): Promise<E.Either<Error, void>> => {
+        this.log.info(`Processing event ${sourceEvent.eventType}`);
+        return pipe(
                 this.repo.findLatestByProject(sourceEvent.prodDevId),
-                TE.chain(collection => collection.isSome() ?
-                    TE.right2v(collection.value) :
-                    TE.left2v(new Error('collection does not exists'))),
+                TE.chain(collection => collection.isNone() ?
+                    TE.leftTask(T.task.of(new Error('collection does not exists'))) :
+                    TE.right2v(collection.value)),
                 TE.chainFirst(collection => TE.fromEither(this.handleEvent(sourceEvent, collection))),
+                TE.chainFirst( collection => TE.fromEither(collection.checkCompleted())),
                 TE.chainFirst( collection => this.repo.update(collection.id, collection)),
-                TE.chain(collection => this.eventBus.publishEventsOf(collection))
-            ).run().then(res => res ? resolve() : reject())
-        })
+                TE.chain(collection => this.eventBus.publishEventsOf(collection)),
+                TE.chain(() => TE.taskEither.of(null))
+            ).run()
     };
 
     handleEvent(sourceEvent: TicketUpdateCollectionExecutiveEvent, collection: TicketUpdateCollection):
@@ -71,10 +71,9 @@ export class TicketUpdateCollectionTracker extends TicketUpdateCollectionProcess
             case UpdatedTicketsListFetched.name:
                 return pipe(
                     E.either.of(<UpdatedTicketsListFetched>sourceEvent),
-                    E.chain(event => collection.willRunForTickets(event.updatedTickets))
+                    E.chain(event => collection.willReadTickets(event.updatedTickets))
                 );
-            case TicketChanged.name:
-            case TicketRemainedUnchanged.name:
+            case TicketChanged.name || TicketRemainedUnchanged.name:
                 return pipe(
                     E.either.of(<TicketChangeLogEvent>sourceEvent),
                     E.chain(event => collection.completedForTicket(event.ticketRef, event.ticketKey)),
@@ -87,11 +86,11 @@ export class TicketUpdateCollectionTracker extends TicketUpdateCollectionProcess
         }
     }
 
-
-    private create = (prodDevId: string, ticketBoardKey: string, from: Date):
+    private create = (prodDevId: string, ticketBoardKey: string, prodDevStart: Date, defaultFrom: Date):
         TE.TaskEither<Error, TicketUpdateCollection> => {
+        let from = defaultFrom ? defaultFrom : prodDevStart;
         return pipe(
-            TE.fromEither(TicketUpdateCollection.createPending(prodDevId, ticketBoardKey, from)),
+            TE.fromEither(TicketUpdateCollection.create(prodDevId, ticketBoardKey, from)),
             TE.chainFirst(this.eventBus.publishEventsOf),
             TE.chainFirst(this.repo.save)
         )

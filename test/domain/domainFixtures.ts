@@ -1,4 +1,4 @@
-import DomainEvent, {AbstractDomainEvent} from "../../server/domain/DomainEvent";
+import {AbstractDomainEvent} from "../../server/domain/DomainEvent";
 
 export const AGGREGATE_TYPE_FIXTURE = "TestAggregate";
 export const AGGREGATE_ID_FIXTURE = "aggregate-id";

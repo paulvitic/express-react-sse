@@ -92,7 +92,7 @@ describe("on event", () => {
     });
 
     test("updated tickets fetched should handle successfully", () => {
-        mockCollection.willRunForTickets = jest.fn().mockImplementationOnce(() => {
+        mockCollection.willReadTickets = jest.fn().mockImplementationOnce(() => {
             return E.either.of(null)
         });
 

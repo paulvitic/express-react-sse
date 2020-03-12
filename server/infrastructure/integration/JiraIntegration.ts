@@ -19,10 +19,6 @@ export type JiraIntegrationParams = {
 
 export default class JiraIntegration implements TicketBoardIntegration {
     private readonly log = LogFactory.get(JiraIntegration.name);
-    private readonly and ="AND ";
-    private readonly openTickets = "status not in (Closed, Done) ";
-    private readonly projects = "project in (Contact) ";
-    private readonly createdAfter = "createdDate >= ";
     private readonly ticketFields = [
         'created',
         'updated',
@@ -44,10 +40,10 @@ export default class JiraIntegration implements TicketBoardIntegration {
 
     assertProject(key: string):
         TE.TaskEither<TicketBoardIntegrationFailure, TicketBoardInfo>{
-        const url = `${this.url}/rest/api/3/search?jql=project%3D${key}+ORDER+BY+created+asc&fields=project%2Ccreated&maxResults=1`;
         return pipe(
-            this.executeGetRequest(url),
-            TE.chainFirst(response => TE.rightIO(this.log.io.info(`Assert project response: ${JSON.stringify(response.data)}`))),
+            TE.fromEither(translate.toAssertProjectUrl(this.url, key)),
+            TE.chain(this.executeGetRequest),
+            TE.chainFirst(response => TE.rightIO(this.log.io.debug(`Assert project response: ${JSON.stringify(response.data)}`))),
             TE.map(translate.toProjectInfo),
             TE.chain(TE.fromEither)
         )
@@ -58,7 +54,7 @@ export default class JiraIntegration implements TicketBoardIntegration {
         return pipe(
             TE.fromEither(translate.toGetUpdatedTicketsUrl(this.url, key, from, to)),
             TE.chain(this.executeGetRequest),
-            TE.chainFirst(response => TE.rightIO(this.log.io.info(`get updated tickets response: ${JSON.stringify(response.data)}`))),
+            TE.chainFirst(response => TE.rightIO(this.log.io.debug(`get updated tickets response: ${JSON.stringify(response.data)}`))),
             TE.map(translate.toUpdatedTickets),
             TE.chain(TE.fromEither)
         )
@@ -66,10 +62,10 @@ export default class JiraIntegration implements TicketBoardIntegration {
 
     readTicketChangeLog(key: string, from: Date, to: Date):
         TE.TaskEither<TicketBoardIntegrationFailure, O.Option<TicketChangeLog>> {
-        const url =  `${this.url}/rest/api/3/issue/${key}?expand=changelog&fields=${this.ticketFields}`;
         return pipe(
-            this.executeGetRequest(url),
-            TE.chainFirst(response => TE.rightIO(this.log.io.info(`read ticket change log response  response: ${JSON.stringify(response.data)}`))),
+            TE.fromEither(translate.toReadTicketChangeLogUrl(this.url, key, this.ticketFields)),
+            TE.chain(this.executeGetRequest),
+            TE.chainFirst(response => TE.rightIO(this.log.io.debug(`read ticket change log response  response: ${JSON.stringify(response.data)}`))),
             TE.chain(response => TE.right(T.task.of(translate.toChangeLog(response, from, to))))
         )
     };

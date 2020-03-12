@@ -5,7 +5,6 @@ import TicketUpdate from "../../domain/product/TicketUpdate";
 import {pipe} from "fp-ts/lib/pipeable";
 import {array} from "fp-ts/lib/Array";
 import * as O from "fp-ts/lib/Option";
-import LogFactory from "../../domain/LogFactory";
 
 export function toFindByIdQuery(id: string): E.Either<Error, string> {
     let query = `
@@ -126,7 +125,7 @@ function toCollection(c: any, ticketUpdates: TicketUpdate[]):
         return new TicketUpdateCollection(
             c.collection_id,
             c.active,
-            c.status,
+            TicketUpdateCollectionStatus[(c.status as string)],
             c.product_dev_fk,
             c.ticket_board_key,
             c.from_day,

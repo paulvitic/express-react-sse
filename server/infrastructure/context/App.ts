@@ -39,7 +39,7 @@ import UpdatedTicketsListCollector
 import TicketUpdateCollectionRepository from "../../domain/product/repository/TicketUpdateCollectionRepository";
 import TicketBoardIntegration from "../../domain/product/service/TicketBoardIntegration";
 import TicketChangeLogReader from "../../domain/product/process/ticketUpdateCollection/TicketChangeLogReader";
-import {TicketUpdateCollectionHandler} from "../../domain/product/policy/TicketUpdateCollectionHandler";
+import {TicketHandler} from "../../domain/product/policy/TicketHandler";
 
 const exit = process.exit;
 
@@ -63,7 +63,7 @@ type Context = {
                 ticketBoardIntegration?: TicketBoardIntegration
             },
             policy: {
-                ticketUpdateCollectionHandler?: TicketUpdateCollectionHandler
+                ticketHandler?: TicketHandler
             },
             processors:{
                 ticketUpdateCollectionTracker?: TicketUpdateCollectionTracker,
@@ -257,8 +257,8 @@ export default class App {
     private initPolicies = (): Promise<void> => {
         return new Promise<void>((resolve, reject) => {
             try {
-                this.context.product.domain.policy.ticketUpdateCollectionHandler =
-                    new TicketUpdateCollectionHandler(
+                this.context.product.domain.policy.ticketHandler =
+                    new TicketHandler(
                         this.context.product.domain.repositories.ticketUpdateCollectionRepo,
                         this.context.common.eventBus);
                 resolve()
@@ -352,8 +352,8 @@ export default class App {
                     ]);
 
                 this.context.common.eventBus.subscribe(
-                    this.context.product.domain.policy.ticketUpdateCollectionHandler, [
-                        TicketBoardLinked.name
+                    this.context.product.domain.policy.ticketHandler, [
+                        TicketChanged.name
                     ]);
                 resolve();
             } catch (e) {

@@ -4,7 +4,7 @@ import * as E from "fp-ts/lib/Either";
 import {pipe} from "fp-ts/lib/pipeable";
 import {UpdatedTicket} from "./service/TicketBoardIntegration";
 import TicketUpdate from "./TicketUpdate";
-import {TicketUpdateCollectionUnBlocked, TicketUpdateCollectionCreated, TicketUpdateCollectionStarted} from "./event";
+import {TicketUpdateCollectionCompleted, TicketUpdateCollectionCreated, TicketUpdateCollectionStarted} from "./event";
 import LogFactory from "../LogFactory";
 
 
@@ -16,11 +16,10 @@ class TicketUpdateCollectionError extends Error {
 }
 
 export enum TicketUpdateCollectionStatus {
+    PENDING,
     RUNNING,
     COMPLETED,
     FAILED,
-    PENDING,
-    BLOCKED
 }
 
 export class TicketUpdateCollectionPeriod {
@@ -57,7 +56,7 @@ export default class TicketUpdateCollection extends AggregateRoot {
             new Map<string, TicketUpdate>()
     }
 
-    static createPending(productDevId: string, ticketBoardKey:string, from: Date)
+    static create(productDevId: string, ticketBoardKey:string, from: Date)
         : E.Either<Error, TicketUpdateCollection> {
         return pipe(
             E.tryCatch2v(
@@ -115,26 +114,10 @@ export default class TicketUpdateCollection extends AggregateRoot {
         return updates;
     }
 
-    unBlock(): E.Either<Error, void> {
-        return E.tryCatch2v( () => {
-                if (this.status === TicketUpdateCollectionStatus.BLOCKED) {
-                    this._status = TicketUpdateCollectionStatus.PENDING;
-                    this.recordEvent(new TicketUpdateCollectionUnBlocked(
-                        TicketUpdateCollection.name,
-                        this.id,
-                        this.status,
-                        this.productDevId,
-                        this.ticketBoardKey,
-                        this.period
-                    ))
-                }},
-            err => err as Error
-        )
-    };
-
     startCollection = (): E.Either<Error, void> => {
-        this.log.info("starting");
-        if (this._status === TicketUpdateCollectionStatus.FAILED || TicketUpdateCollectionStatus.PENDING) {
+        this.log.debug("starting");
+        if (this._status === TicketUpdateCollectionStatus.FAILED || this._status === TicketUpdateCollectionStatus.PENDING) {
+            // FIXME also check period end date can not be larger then now
             this._startedAt = new Date();
             this._status = TicketUpdateCollectionStatus.RUNNING;
             this.recordEvent(new TicketUpdateCollectionStarted(
@@ -146,42 +129,23 @@ export default class TicketUpdateCollection extends AggregateRoot {
                 this.period.to.toISOString()));
             return E.right(null)
         } else {
-            return E.left(new Error("collection is currently running"));
+            return E.left(new Error(`collection in status ${TicketUpdateCollectionStatus[this.status]} can not start`));
         }
-        /*switch (this.status) {
-            case TicketUpdateCollectionStatus.RUNNING:
-                return E.left(new Error("collection is currently running"));
-            case TicketUpdateCollectionStatus.BLOCKED:
-                return E.left(new Error("collection is blocked"));
-            case TicketUpdateCollectionStatus.COMPLETED:
-                return E.left(new Error("a completed collection can not re-run"));
-            case TicketUpdateCollectionStatus.FAILED || TicketUpdateCollectionStatus.PENDING:
-                this._startedAt = new Date();
-                this._status = TicketUpdateCollectionStatus.RUNNING;
-                this.recordEvent(new TicketUpdateCollectionStarted(
-                     TicketUpdateCollection.name,
-                     this.id,
-                     this.productDevId,
-                     this.ticketBoardKey,
-                     this.period));
-                return E.right(null)
-        }*/
     };
 
-    willRunForTickets(updatedTickets: UpdatedTicket[]): E.Either<Error, void> {
+    willReadTickets(updatedTickets: UpdatedTicket[]): E.Either<Error, void> {
         return E.tryCatch2v( () => {
             updatedTickets.map(ticket => {
-                this._ticketUpdates.set(ticket.key,
-                    new TicketUpdate(Identity.generate(), ticket.id, ticket.key))
+                this._ticketUpdates.set(ticket.key, new TicketUpdate(Identity.generate(), ticket.id, ticket.key))
             })},
         err => err as Error
         )
     }
 
-    completedForTicket(ticketExternalRef: number, ticketKey: string):E.Either<Error, void> {
+    completedForTicket(ticketExternalRef: number, ticketKey: string)
+        :E.Either<Error, void> {
         return E.tryCatch2v( () => {
                 this._ticketUpdates.get(ticketKey).collect();
-                return this.complete()
             },
             err => err as Error
         )
@@ -196,14 +160,24 @@ export default class TicketUpdateCollection extends AggregateRoot {
         )
     }
 
-    private complete(): void {
-        let allCollected = true;
-        for (let update of this._ticketUpdates.values()){
-            allCollected = allCollected && update.collected;
-        }
-        if (allCollected) {
-            this._status = TicketUpdateCollectionStatus.COMPLETED;
-            this._endedAt = new Date();
-        }
+    checkCompleted(): E.Either<Error, void> {
+        return E.tryCatch2v( () => {
+                let allCollected = true;
+                for (let update of this._ticketUpdates.values()){
+                    allCollected = allCollected && update.collected;
+                }
+                if (allCollected) {
+                    this._status = TicketUpdateCollectionStatus.COMPLETED;
+                    this._endedAt = new Date();
+                    this.recordEvent(new TicketUpdateCollectionCompleted(
+                        TicketUpdateCollection.name,
+                        this.id,
+                        this.productDevId,
+                        this.ticketBoardKey,
+                        this.endedAt.toISOString()));
+                }
+            },
+            err => err as Error
+        )
     }
 }

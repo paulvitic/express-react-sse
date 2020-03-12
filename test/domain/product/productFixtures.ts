@@ -10,7 +10,7 @@ import TicketUpdateCollection, {TicketUpdateCollectionPeriod} from "../../../ser
 import {UpdatedTicketsListFetched} from "../../../server/domain/product/event";
 
 export const PRODUCT_DEV_ID_FIXTURE = "product-dev-1";
-export const PRODUCT_DEV_STARTED_ON_FIXTURE = new Date("2018-11-27T00:00:00.000");
+export const PRODUCT_DEV_STARTED_ON_FIXTURE = "2018-11-27T00:00:00.000";
 export const TICKET_BOARD_ID_FIXTURE = "ticket-board-1";
 export const TICKET_BOARD_KEY_FIXTURE = "TEST";
 export const PRODUCT_DEV_NAME_FIXTURE = "Fixture Project";

@@ -16,7 +16,7 @@ export type Logger = {
 export default class LogFactory {
     private static delegate;
 
-    public static get(module: string|undefined): Logger {
+    public static get(module?: string): Logger {
         return LogFactory.delegate.get(module)
     }
 

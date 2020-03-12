@@ -24,7 +24,7 @@ export default class UpdatedTicketsListCollector extends TicketUpdateCollectionP
     }
 
     onEvent(sourceEvent: TicketUpdateCollectionStarted): Promise<E.Either<Error, void>> {
-        this.log.info(`Processing event ${JSON.stringify(sourceEvent)}`);
+        this.log.info(`Processing event ${sourceEvent.eventType}`);
         return new Promise<E.Either<Error,void>>(resolve => {
             pipe(
                 TE.taskEither.of(this.fetchUpdatedTicketsList(sourceEvent)),

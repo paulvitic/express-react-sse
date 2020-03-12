@@ -40,7 +40,7 @@ describe("save",  () => {
             PRODUCT_DEV_ID_FIXTURE,
             true,
             PRODUCT_DEV_NAME_FIXTURE,
-            PRODUCT_DEV_STARTED_ON_FIXTURE,
+            new Date(PRODUCT_DEV_STARTED_ON_FIXTURE),
             new TicketBoard(
                 TICKET_BOARD_ID_FIXTURE,
                 TICKET_BOARD_KEY_FIXTURE,
@@ -59,7 +59,7 @@ describe("save",  () => {
             PRODUCT_DEV_ID_FIXTURE,
             true,
             PRODUCT_DEV_NAME_FIXTURE,
-            PRODUCT_DEV_STARTED_ON_FIXTURE);
+            new Date(PRODUCT_DEV_STARTED_ON_FIXTURE));
         let saved = await repo.save(devProjectFicture).run();
         expect(saved.isRight()).toBeTruthy();
         let result = saved.value as ProductDevelopment;

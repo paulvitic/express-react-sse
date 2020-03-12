@@ -79,8 +79,6 @@ const changelogFilter = {
     }
 };
 
-
-
 export function toGetUpdatedTicketsUrl(baseUrl:string, key:string, from, to):
     E.Either<Error, string>{
     return E.tryCatch2v(() =>
@@ -88,6 +86,19 @@ export function toGetUpdatedTicketsUrl(baseUrl:string, key:string, from, to):
     , err => new Error(`error while translating to get updated tickets url: ${(err as Error).message}`))
 }
 
+export function toAssertProjectUrl(baseUrl:string, key:string):
+    E.Either<Error, string>{
+    return E.tryCatch2v(() =>
+            `${baseUrl}/rest/api/3/search?jql=project%3D${key}+ORDER+BY+created+asc&fields=project%2Ccreated&maxResults=1`
+        , err => new Error(`error while translating to get updated tickets url: ${(err as Error).message}`))
+}
+
+export function toReadTicketChangeLogUrl(baseUrl:string, key:string, ticketFields: string[]):
+    E.Either<Error, string>{
+    return E.tryCatch2v(() =>
+            `${baseUrl}/rest/api/3/issue/${key}?expand=changelog&fields=${ticketFields}`
+        , err => new Error(`error while translating to get updated tickets url: ${(err as Error).message}`))
+}
 
 export function toProjectInfo({ data }: AxiosResponse<any>):
     E.Either<TicketBoardIntegrationFailure, TicketBoardInfo> {
