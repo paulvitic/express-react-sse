@@ -8,10 +8,9 @@ import * as O from "fp-ts/lib/Option";
 
 export function toFindByIdQuery(id: string): E.Either<Error, string> {
     let query = `
-        SELECT * FROM ticket_update_collection AS c 
-        LEFT JOIN ticket_update as u ON c.collection_id = u.collection_fk  
-        WHERE c.collection_id=$ID;`;
-
+        SELECT * FROM ticket_update_collection AS tuc
+        LEFT JOIN ticket_update as tu ON tuc.collection_id = tu.collection_fk
+        WHERE tuc.collection_id=$ID;`;
     return E.tryCatch2v(() => {
         query = query.replace(/\$ID/, `'${id}'`);
         return query;
@@ -20,8 +19,8 @@ export function toFindByIdQuery(id: string): E.Either<Error, string> {
 
 export function toFindByStatusQuery(status: TicketUpdateCollectionStatus): E.Either<Error, string> {
     let query = `
-        SELECT * FROM ticket_update_collection AS tuc 
-        LEFT JOIN ticket_update as tu ON tu.collection_fk = tuc.collection_id  
+        SELECT * FROM ticket_update_collection AS tuc
+        LEFT JOIN ticket_update as tu ON tuc.collection_id = tu.collection_fk
         WHERE tuc.status=$STATUS;`;
 
     return E.tryCatch2v(() => {
@@ -33,7 +32,7 @@ export function toFindByStatusQuery(status: TicketUpdateCollectionStatus): E.Eit
 export function toFindLatestByProjectQuery(productDevId: string): E.Either<Error, string> {
     let query = `
         SELECT * FROM ticket_update_collection AS tuc 
-        LEFT JOIN ticket_update as tu ON tu.collection_fk = tuc.collection_id  
+        LEFT JOIN ticket_update as tu ON tuc.collection_id = tu.collection_fk   
         WHERE tuc.product_dev_fk=$PROD_DEV_ID 
         ORDER BY tuc.started_at DESC 
         LIMIT 1;`;
@@ -51,7 +50,6 @@ export function toInsertCollectionQuery(collection: TicketUpdateCollection):
         INSERT INTO ticket_update_collection(collection_id, active, status, product_dev_fk, ticket_board_key, from_day, to_day)
         VALUES ($ID, $ACTIVE, $STATUS, $PRODUCT_DEV_ID, $TICKET_BOARD_KEY, $FROM, $TO);
         `;
-
     return pipe(
         E.tryCatch2v(() => {
             query = query.replace(/\$ID/, `'${collection.id}'`);
@@ -77,7 +75,6 @@ export function toUpdateCollectionQuery(id: string, collection: TicketUpdateColl
         status=$STATUS, from_day=$FROM, to_day=$TO, started_at=$STARTED_AT, ended_at=$ENDED_AT 
         WHERE collection_id=$ID;
         `;
-
     return pipe(
         E.tryCatch2v(() => {
             query = query.replace(/\$ID/, `'${collection.id}'`);
@@ -87,9 +84,25 @@ export function toUpdateCollectionQuery(id: string, collection: TicketUpdateColl
             query = query.replace(/\$STARTED_AT/, collection.startedAt ? `'${toSqlDate(collection.startedAt)}'` : `NULL`);
             query = query.replace(/\$ENDED_AT/, collection.endedAt ? `'${toSqlDate(collection.endedAt)}'` : `NULL`);
             return  query;
-        }, err => err as Error)
+        }, err => err as Error),
+        E.chain(query => array.reduce(collection.ticketUpdates, E.either.of(query), (previous, current) => {
+            return previous.fold( err => E.left(err), res =>
+                toDeleteTicketUpdateQuery(current, res).chain(deleteQuery => toInsertTicketUpdateQuery(current, collection.id, deleteQuery)))
+        }))
     )
 }
+
+function toDeleteTicketUpdateQuery(ticketUpdate: TicketUpdate, query: string):
+    E.Either<Error, string> {
+    let insertQuery = `
+        DELETE FROM ticket_update WHERE ticket_update_id=$ID;
+    `;
+    return E.tryCatch2v(() => {
+        insertQuery = insertQuery.replace(/\$ID/, `'${ticketUpdate.id}'`);
+        return query + insertQuery;
+    }, err => err as Error)
+}
+
 
 function toInsertTicketUpdateQuery(ticketUpdate: TicketUpdate, collectionId: string, query: string):
     E.Either<Error, string> {
@@ -97,7 +110,6 @@ function toInsertTicketUpdateQuery(ticketUpdate: TicketUpdate, collectionId: str
         INSERT INTO ticket_update(ticket_update_id, ticket_ref, ticket_key, collected, collection_fk)
         VALUES ($ID, $EXTERNAL_REF, $KEY, $COLLECTED, $COLLECTION_FK);
     `;
-
     return E.tryCatch2v(() => {
         insertQuery = insertQuery.replace(/\$ID/, `'${ticketUpdate.id}'`);
         insertQuery = insertQuery.replace(/\$EXTERNAL_REF/, `${ticketUpdate.ref}`);
@@ -158,19 +170,23 @@ export function fromFindCollectionsResult(results: QueryResultRow):
     let {rows} = results;
     return pipe(
         E.tryCatch2v(() => {
-            let groupedRows: Map<string, any[]> = rows.reduce(function (map: Map<string, any[]>, row: any) {
-                if (!map.get(row.collection_id)) map.set(row.collection_id, []);
-                map.get(row.collection_id).push(row);
-                return map;
-            }, new Map<string, any[]>());
+            let groupedRows: Map<string, any[]> = rows.reduce(groupRows, new Map<string, any[]>());
             return Array.from(groupedRows.values());
         }, err => err as Error),
         E.chain( groupedRows => array.sequence(E.either)((groupedRows as Array<any>).map(rows => fromQueryResultRows(rows))))
     )
 }
 
+function groupRows(map: Map<string, any[]>, row: any) {
+    if (!map.get(row.collection_id)) map.set(row.collection_id, []);
+    map.get(row.collection_id).push(row);
+    return map;
+}
+
 
 function toSqlDate(date: Date) {
-    return date.toISOString().slice(0, 19).replace('T', ' ')
+    let tzOffset = (new Date()).getTimezoneOffset() * 60000;
+    return new Date(date.getTime() - tzOffset).toISOString().slice(0, 19).replace('T', ' ');
+    //return date.toISOString().slice(0, 19).replace('T', ' ')
 }
 

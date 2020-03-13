@@ -1,3 +1,4 @@
+ALTER DATABASE postgres SET timezone TO 'Europe/Berlin';
 SET ROLE TO 'jira';
 
 CREATE TABLE jira.event_log
@@ -36,8 +37,8 @@ CREATE TABLE jira.ticket_update_collection
     status           VARCHAR(31) NOT NULL,
     product_dev_fk   VARCHAR(31) NOT NULL,
     ticket_board_key VARCHAR(31) NOT NULL,
-    from_day         TIMESTAMP   NOT NULL,
-    to_day           TIMESTAMP   NOT NULL,
+    from_day         DATE   NOT NULL,
+    to_day           DATE   NOT NULL,
     started_at       TIMESTAMP,
     ended_at         TIMESTAMP,
     FOREIGN KEY (product_dev_fk) REFERENCES product_development (product_dev_id)

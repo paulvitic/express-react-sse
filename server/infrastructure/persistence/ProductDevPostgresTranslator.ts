@@ -102,5 +102,7 @@ function toCollection(pd: any, ticketBoard: TicketBoard) {
 }
 
 function toSqlDate(date: Date) {
-    return date.toISOString().slice(0, 19).replace('T', ' ')
+    let tzOffset = (new Date()).getTimezoneOffset() * 60000;
+    return new Date(date.getTime() - tzOffset).toISOString().slice(0, 19).replace('T', ' ');
+    //return date.toISOString().slice(0, 19).replace('T', ' ')
 }

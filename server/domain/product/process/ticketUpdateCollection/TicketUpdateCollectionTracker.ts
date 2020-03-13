@@ -43,7 +43,7 @@ export class TicketUpdateCollectionTracker extends TicketUpdateCollectionProcess
                 TE.right2v(collection.value) :
                 this.create(prodDevId, ticketBoardKey, prodDevStart, defaultFrom)),
             TE.chain(collection => collection.status === TicketUpdateCollectionStatus.COMPLETED ?
-                this.create(prodDevId, ticketBoardKey, collection.period.to) :
+                this.create(prodDevId, ticketBoardKey, collection.startedAt, collection.period.to) :
                 TE.right2v(collection)),
             TE.chainFirst(collection => TE.fromEither(collection.startCollection())),
             TE.chainFirst(collection => this.repo.update(collection.id, collection)),
