@@ -5,7 +5,7 @@ import EventBus from "../../domain/EventBus";
 import TicketBoard from "../../domain/product/TicketBoard";
 import TicketBoardIntegration from "../../domain/product/service/TicketBoardIntegration";
 import ProductDevelopment, {ProductDevelopmentError} from "../../domain/product/ProductDevelopment";
-import ProductDevelopmentRepository from "../../domain/product/repository/ProductDevelopmentRepository";
+import {ProductDevelopmentRepository} from "../../domain/product/repository";
 import {CreateProjectFromTicketBoard} from "./commands";
 
 export default class ProductDevelopmentService {

@@ -39,9 +39,6 @@ definitions:
     properties:
       productDevId:
         type: string
-      defaultFrom:
-        type: string
-        format: date
 
 paths:
   /users:

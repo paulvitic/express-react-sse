@@ -1,8 +1,7 @@
 import * as TE from 'fp-ts/lib/TaskEither'
-import * as T from 'fp-ts/lib/Task'
 import * as O from 'fp-ts/lib/Option'
 import ProductDevelopment from "../../domain/product/ProductDevelopment";
-import ProductDevelopmentRepository from "../../domain/product/repository/ProductDevelopmentRepository";
+import {ProductDevelopmentRepository} from "../../domain/product/repository";
 import LogFactory from "../../domain/LogFactory";
 import PostgresClient from "../clients/PostgresClient";
 import {pipe} from "fp-ts/lib/pipeable";

@@ -2,7 +2,7 @@ import EventListener from "../../../EventListener";
 import DomainEvent from "../../../DomainEvent";
 import {Either} from "fp-ts/lib/Either";
 import EventBus from "../../../EventBus";
-import TicketUpdateCollectionRepository from "../../repository/TicketUpdateCollectionRepository";
+import {TicketUpdateCollectionRepository} from "../../repository";
 
 export abstract class TicketUpdateCollectionProcess implements EventListener {
     protected constructor(protected readonly repo: TicketUpdateCollectionRepository,

@@ -1,7 +1,7 @@
 import * as TE from "fp-ts/lib/TaskEither";
-import {TicketUpdateCollectionTracker} from "../../domain/product/process/ticketUpdateCollection/TicketUpdateCollectionTracker";
+import {TicketUpdateCollectionExecutive} from "../../domain/product/process/ticketUpdateCollection/TicketUpdateCollectionExecutive";
 import {CollectTicketUpdates} from "./commands";
-import ProductDevelopmentRepository from "../../domain/product/repository/ProductDevelopmentRepository";
+import {ProductDevelopmentRepository} from "../../domain/product/repository";
 import {pipe} from "fp-ts/lib/pipeable";
 
 class TicketUpdateCollectionServiceError extends Error {
@@ -12,8 +12,7 @@ class TicketUpdateCollectionServiceError extends Error {
 }
 
 export class TicketUpdateCollectionService {
-
-    constructor(private readonly executive: TicketUpdateCollectionTracker,
+    constructor(private readonly executive: TicketUpdateCollectionExecutive,
                 private readonly prodDevRepo: ProductDevelopmentRepository) {}
 
     collectTicketUpdates(command: CollectTicketUpdates):TE.TaskEither<Error, boolean>{
@@ -22,7 +21,7 @@ export class TicketUpdateCollectionService {
             TE.chain(productDev => productDev.isSome() && productDev.value.ticketBoard ?
                 TE.right2v(productDev.value) :
                 TE.left2v(new TicketUpdateCollectionServiceError(`product development ${command.prodDevId} does not exists`))),
-            TE.chain( prodDev => this.executive.start(prodDev.id, prodDev.ticketBoard.key, prodDev.startedOn, command.defaultFrom))
+            TE.chain( prodDev => this.executive.start(prodDev.id, prodDev.ticketBoard.key, prodDev.startedOn))
         )
     }
 }

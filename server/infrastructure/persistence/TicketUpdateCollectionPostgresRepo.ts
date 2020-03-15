@@ -1,6 +1,6 @@
 import * as TE from 'fp-ts/lib/TaskEither'
 import * as O from 'fp-ts/lib/Option'
-import TicketUpdateCollectionRepository from "../../domain/product/repository/TicketUpdateCollectionRepository";
+import {TicketUpdateCollectionRepository} from "../../domain/product/repository";
 import TicketUpdateCollection, {TicketUpdateCollectionStatus} from "../../domain/product/TicketUpdateCollection";
 import PostgresClient from "../clients/PostgresClient";
 import {pipe} from "fp-ts/lib/pipeable";

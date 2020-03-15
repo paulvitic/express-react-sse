@@ -4,7 +4,7 @@ import * as translate from "./ProductDevelopmentReqTranslator";
 import {CreateProjectFromTicketBoard} from "../../../application/product/commands";
 import LogFactory from "../../../domain/LogFactory";
 import * as O from "fp-ts/lib/Option";
-import ProductDevelopmentRepository from "../../../domain/product/repository/ProductDevelopmentRepository";
+import {ProductDevelopmentRepository} from "../../../domain/product/repository";
 
 export const ProductDevelopmentEndpoints = {
     byId: "FindProductDevelopmentById",

@@ -1,6 +1,6 @@
 import EventBus from "../../../../../server/domain/EventBus";
 import TicketUpdateCollectionRepository from "../../../../../server/domain/product/repository/TicketUpdateCollectionRepository";
-import {TicketUpdateCollectionTracker} from "../../../../../server/domain/product/process/ticketUpdateCollection/TicketUpdateCollectionTracker";
+import {TicketUpdateCollectionExecutive} from "../../../../../server/domain/product/process/ticketUpdateCollection/TicketUpdateCollectionExecutive";
 import {
     PRODUCT_DEV_STARTED_ON_FIXTURE,
     NEXT_COLLECTION_PERIOD_FIXTURE,
@@ -36,7 +36,7 @@ describe("start", () => {
             return TE.taskEither.of(true)
         });
 
-        let executive = new TicketUpdateCollectionTracker(mockCollectionRepo, mockEventBus);
+        let executive = new TicketUpdateCollectionExecutive(mockCollectionRepo, mockEventBus);
         executive.start(NEXT_COLLECTION_PERIOD_FIXTURE).run()
             .then(result => {
                 expect(result.isRight()).toBeTruthy();
@@ -61,7 +61,7 @@ describe("start", () => {
             return TE.taskEither.of([{}])
         });
 
-        let executive = new TicketUpdateCollectionTracker(mockCollectionRepo, mockEventBus);
+        let executive = new TicketUpdateCollectionExecutive(mockCollectionRepo, mockEventBus);
         executive.start(NEXT_COLLECTION_PERIOD_FIXTURE).run()
             .then(result => {
                 expect(result.isLeft()).toBeTruthy();
@@ -100,7 +100,7 @@ describe("on event", () => {
             return TE.taskEither.of(O.some(mockCollection))
         });
 
-        let executive = new TicketUpdateCollectionTracker(mockCollectionRepo, mockEventBus);
+        let executive = new TicketUpdateCollectionExecutive(mockCollectionRepo, mockEventBus);
         executive.onEvent(UPDATED_TICKETS_LIST_FETCHED_FIXTURE)
             .then(result => {
                 expect(result).not.toBeNull();

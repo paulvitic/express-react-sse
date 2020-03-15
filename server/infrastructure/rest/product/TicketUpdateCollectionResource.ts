@@ -3,7 +3,7 @@ import {Request, Response} from "express";
 import * as translate from "./TicketUpdateCollectionReqTranslator";
 import {CollectTicketUpdates} from "../../../application/product/commands";
 import {TicketUpdateCollectionService} from "../../../application/product/TicketUpdateCollectionService";
-import TicketUpdateCollectionRepository from "../../../domain/product/repository/TicketUpdateCollectionRepository";
+import {TicketUpdateCollectionRepository} from "../../../domain/product/repository/";
 import * as O from "fp-ts/lib/Option";
 
 export const TicketUpdateCollectionEndpoints = {
@@ -13,14 +13,12 @@ export const TicketUpdateCollectionEndpoints = {
 
 export class TicketUpdateCollectionResource {
     private readonly log = LogFactory.get(TicketUpdateCollectionResource.name);
-
     constructor(private service: TicketUpdateCollectionService,
                 private repo: TicketUpdateCollectionRepository) {
     }
 
     search = (req: Request, res: Response, next): void => {
         this.log.info(`search ticket update collections request received: ${JSON.stringify(req.body)}`);
-        // FIXME improve this code
         translate.toSearchMethod(req).fold(
             err => {
                 res.status(400);
@@ -28,9 +26,10 @@ export class TicketUpdateCollectionResource {
             },
             method => {
                 switch (method.name) {
-                    case "findLatestByProductId":
-                        this.repo.findLatestByProject(method.params.get("productDevId")).run()
-                            .then(ret => {
+                    case translate.searchMethod.findLatestByProductId:
+                        this.repo.findLatestByProject(
+                            method.params.get(translate.searchParam.productDevId))
+                            .run().then(ret => {
                                 ret.fold(
                                     err => {
                                         res.status(400);

@@ -25,18 +25,20 @@ import {
 } from "../../domain/product/event";
 import JiraIntegration from "../integration/JiraIntegration";
 import LogFactory from "../../domain/LogFactory";
-import ProductDevelopmentRepository from "../../domain/product/repository/ProductDevelopmentRepository";
+import {
+    ProductDevelopmentRepository, TicketRepository,
+    TicketUpdateCollectionRepository
+} from "../../domain/product/repository";
 import ProductDevPostgresRepo from "../persistence/ProductDevPostgresRepo";
 import {
     TicketUpdateCollectionEndpoints,
     TicketUpdateCollectionResource
 } from "../rest/product/TicketUpdateCollectionResource";
 import {TicketUpdateCollectionService} from "../../application/product/TicketUpdateCollectionService";
-import {TicketUpdateCollectionTracker} from "../../domain/product/process/ticketUpdateCollection/TicketUpdateCollectionTracker";
+import {TicketUpdateCollectionExecutive} from "../../domain/product/process/ticketUpdateCollection/TicketUpdateCollectionExecutive";
 import TicketUpdateCollectionPostgresRepo from "../persistence/TicketUpdateCollectionPostgresRepo";
 import UpdatedTicketsListCollector
     from "../../domain/product/process/ticketUpdateCollection/UpdatedTicketsListCollector";
-import TicketUpdateCollectionRepository from "../../domain/product/repository/TicketUpdateCollectionRepository";
 import TicketBoardIntegration from "../../domain/product/service/TicketBoardIntegration";
 import TicketChangeLogReader from "../../domain/product/process/ticketUpdateCollection/TicketChangeLogReader";
 import {TicketHandler} from "../../domain/product/policy/TicketHandler";
@@ -57,7 +59,8 @@ type Context = {
         domain: {
             repositories: {
                 productDevelopmentRepo?: ProductDevelopmentRepository,
-                ticketUpdateCollectionRepo?: TicketUpdateCollectionRepository
+                ticketUpdateCollectionRepo?: TicketUpdateCollectionRepository,
+                ticketRepo?: TicketRepository
             },
             services: {
                 ticketBoardIntegration?: TicketBoardIntegration
@@ -66,7 +69,7 @@ type Context = {
                 ticketHandler?: TicketHandler
             },
             processors:{
-                ticketUpdateCollectionTracker?: TicketUpdateCollectionTracker,
+                ticketUpdateCollectionTracker?: TicketUpdateCollectionExecutive,
                 updatedTicketsListCollector?: UpdatedTicketsListCollector
                 ticketChangeLogReader?: TicketChangeLogReader
             },
@@ -234,7 +237,7 @@ export default class App {
         return new Promise<void>((resolve, reject) => {
             try {
                 this.context.product.domain.processors.ticketUpdateCollectionTracker =
-                    new TicketUpdateCollectionTracker(
+                    new TicketUpdateCollectionExecutive(
                         this.context.product.domain.repositories.ticketUpdateCollectionRepo,
                         this.context.common.eventBus);
                 this.context.product.domain.processors.updatedTicketsListCollector =
@@ -261,7 +264,7 @@ export default class App {
             try {
                 this.context.product.domain.policy.ticketHandler =
                     new TicketHandler(
-                        this.context.product.domain.repositories.ticketUpdateCollectionRepo,
+                        this.context.product.domain.repositories.ticketRepo,
                         this.context.common.eventBus);
                 resolve()
             } catch (e) {

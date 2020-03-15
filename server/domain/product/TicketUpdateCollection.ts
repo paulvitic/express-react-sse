@@ -35,7 +35,6 @@ export class TicketUpdateCollectionPeriod {
     }
 }
 
-
 export default class TicketUpdateCollection extends AggregateRoot {
     private readonly log = LogFactory.get(TicketUpdateCollection.name);
     private readonly _period: TicketUpdateCollectionPeriod;

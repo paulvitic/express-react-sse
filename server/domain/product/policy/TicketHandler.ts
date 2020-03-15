@@ -1,52 +1,40 @@
 import EventListener from "../../EventListener";
 import * as E from "fp-ts/lib/Either";
-import TicketUpdateCollectionRepository from "../repository/TicketUpdateCollectionRepository";
 import EventBus from "../../EventBus";
 import {pipe} from "fp-ts/lib/pipeable";
 import * as TE from "fp-ts/lib/TaskEither";
-import TicketUpdateCollection from "../TicketUpdateCollection";
 import LogFactory from "../../LogFactory";
 import {TicketChanged} from "../event";
+import {TicketRepository} from "../repository/TicketRepository";
+import Ticket from "../Ticket";
 
-type TicketEvents = TicketChanged;
-
-export class TicketHandler implements EventListener<TicketEvents> {
+export class TicketHandler implements EventListener<TicketChanged> {
     private readonly log = LogFactory.get(TicketHandler.name);
 
-    constructor(private readonly repo: TicketUpdateCollectionRepository,
+    constructor(private readonly repo: TicketRepository,
                 private readonly eventBus: EventBus){}
 
-    onEvent(event: TicketEvents): Promise<E.Either<Error, boolean>> {
-            // latest collection state can only be pending, failed or blocked
-        return new Promise<E.Either<Error,boolean>>((resolve, reject) => {
-            switch (event.eventType) {
-                case TicketChanged.name:
-                    this.handleTicketChanged(event as TicketChanged)
-                        .run().then(res => res ? resolve() : reject());
-                    return;
-            }
-        })
+    onEvent(event: TicketChanged): Promise<E.Either<Error, boolean>> {
+        return pipe(
+            this.repo.findOneByRef(event.ticketRef),
+            TE.chain(ticket => ticket.isSome() ?
+                TE.right2v(ticket.value) :
+                this.create(event.ticketKey, event.ticketRef, event.prodDevId)),
+            TE.chainFirst(ticket => TE.fromEither(ticket.recordHistory(event.changeLog))),
+            TE.chainFirst(ticket => this.repo.update(ticket.id, ticket)),
+            TE.chain(ticket => this.eventBus.publishEventsOf(ticket))
+        ).run()
     }
 
     private handleTicketChanged = (event: TicketChanged): TE.TaskEither<Error, void> => {
         this.log.info(`Handling ${event.eventType}`);
         return TE.taskEither.of(null);
-        /*return pipe(
-            this.repo.findLatestByProject(event.aggregateId),
-            TE.chain(optional => optional.isSome() ?
-                TE.right2v(optional.value) :
-                this.create(event.aggregateId, event.ticketBoardKey, new Date(event.prodDevStartDate))),
-            TE.chainFirst(collection => TE.fromEither(collection.unBlock())),
-            TE.chainFirst(coll => this.repo.update(coll.id, coll)),
-            TE.chainFirst(this.eventBus.publishEventsOf),
-            TE.chain(collection => TE.rightIO(this.log.io.info(`Pending ticket update collection ${collection} created.`)))
-        )*/
     };
 
-    private create = (prodDevId: string, ticketBoardKey: string, from: Date):
-        TE.TaskEither<Error, TicketUpdateCollection> => {
+    private create = (ticketKey: string, ticketRef: number, prodDevId: string):
+        TE.TaskEither<Error, Ticket> => {
         return pipe(
-            TE.fromEither(TicketUpdateCollection.create(prodDevId, ticketBoardKey, from)),
+            TE.fromEither(Ticket.create(ticketKey, ticketRef, prodDevId)),
             TE.chainFirst(this.eventBus.publishEventsOf),
             TE.chainFirst(this.repo.save)
         )

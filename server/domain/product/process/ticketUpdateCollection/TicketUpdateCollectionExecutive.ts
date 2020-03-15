@@ -1,32 +1,31 @@
 import * as TE from "fp-ts/lib/TaskEither";
-import * as E from "fp-ts/lib/Either";
 import TicketUpdateCollection, {TicketUpdateCollectionStatus} from "../../TicketUpdateCollection";
-import TicketUpdateCollectionRepository from "../../repository/TicketUpdateCollectionRepository";
+import {TicketUpdateCollectionRepository} from "../../repository";
 import {pipe} from "fp-ts/lib/pipeable";
 import EventBus from "../../../EventBus";
 import LogFactory from "../../../LogFactory";
 
-class TicketUpdateCollectionTrackerError extends Error {
+class TicketUpdateCollectionExecutiveError extends Error {
     constructor(message) {
         super(message);
-        this.name = TicketUpdateCollectionTrackerError.name;
+        this.name = TicketUpdateCollectionExecutiveError.name;
     }
 }
 
-export class TicketUpdateCollectionTracker {
-    private readonly log = LogFactory.get(TicketUpdateCollectionTracker.name);
+export class TicketUpdateCollectionExecutive {
+    private readonly log = LogFactory.get(TicketUpdateCollectionExecutive.name);
     constructor(private readonly repo: TicketUpdateCollectionRepository,
                 private readonly eventBus: EventBus) {}
 
-    start(prodDevId: string, ticketBoardKey: string, prodDevStart: Date, defaultFrom: Date):
+    start(prodDevId: string, ticketBoardKey: string, prodDevStart: Date):
         TE.TaskEither<Error, boolean> {
         return pipe(
             this.repo.findLatestByProject(prodDevId),
             TE.chain(collection => collection.isSome() ?
                 TE.right2v(collection.value) :
-                this.create(prodDevId, ticketBoardKey, prodDevStart, defaultFrom)),
+                this.create(prodDevId, ticketBoardKey, prodDevStart)),
             TE.chain(collection => collection.status === TicketUpdateCollectionStatus.COMPLETED ?
-                this.create(prodDevId, ticketBoardKey, collection.startedAt, collection.period.to) :
+                this.create(prodDevId, ticketBoardKey, collection.period.to) :
                 TE.right2v(collection)),
             TE.chainFirst(collection => TE.fromEither(collection.startCollection())),
             TE.chainFirst(collection => this.repo.update(collection.id, collection)),
@@ -34,9 +33,8 @@ export class TicketUpdateCollectionTracker {
         )
     }
 
-    private create = (prodDevId: string, ticketBoardKey: string, prodDevStart: Date, defaultFrom?: Date):
+    private create = (prodDevId: string, ticketBoardKey: string, from: Date):
         TE.TaskEither<Error, TicketUpdateCollection> => {
-        let from = defaultFrom ? defaultFrom : prodDevStart;
         return pipe(
             TE.fromEither(TicketUpdateCollection.create(prodDevId, ticketBoardKey, from)),
             TE.chainFirst(this.eventBus.publishEventsOf),

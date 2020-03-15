@@ -9,7 +9,7 @@ import * as TE from "fp-ts/lib/TaskEither";
 import * as E from "fp-ts/lib/Either";
 import {array} from "fp-ts/lib/Array";
 import {TicketUpdateCollectionProcess} from "./TicketUpdateCollectionProcess";
-import TicketUpdateCollectionRepository from "../../repository/TicketUpdateCollectionRepository";
+import {TicketUpdateCollectionRepository} from "../../repository";
 import TicketUpdateCollection from "../../TicketUpdateCollection";
 
 export default class TicketChangeLogReader extends TicketUpdateCollectionProcess {

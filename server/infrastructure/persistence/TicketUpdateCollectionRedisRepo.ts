@@ -2,7 +2,7 @@ import RedisClient from "../clients/RedisClient";
 import * as TE from "fp-ts/lib/TaskEither";
 import * as E from "fp-ts/lib/Either";
 import * as O from "fp-ts/lib/Option";
-import TicketUpdateCollectionRepository from "../../domain/product/repository/TicketUpdateCollectionRepository";
+import {TicketUpdateCollectionRepository} from "../../domain/product/repository";
 import TicketUpdateCollection, {TicketUpdateCollectionStatus} from "../../domain/product/TicketUpdateCollection";
 import {QueryResultRow} from "pg";
 

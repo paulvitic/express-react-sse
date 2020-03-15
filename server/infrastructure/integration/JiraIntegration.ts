@@ -62,6 +62,8 @@ export default class JiraIntegration implements TicketBoardIntegration {
 
     readTicketChangeLog(key: string, from: Date, to: Date):
         TE.TaskEither<TicketBoardIntegrationFailure, O.Option<TicketChangeLog>> {
+        // if ticket does not exist read change logs between project start day and collection period to date
+        // if ticket exists read between last history entry date and collection period to date
         return pipe(
             TE.fromEither(translate.toReadTicketChangeLogUrl(this.url, key, this.ticketFields)),
             TE.chain(this.executeGetRequest),

@@ -7,7 +7,7 @@ import {
     TicketUpdateCollectionStarted} from "../../event";
 import LogFactory from "../../../LogFactory";
 import {TicketUpdateCollectionProcess} from "./TicketUpdateCollectionProcess";
-import TicketUpdateCollectionRepository from "../../repository/TicketUpdateCollectionRepository";
+import {TicketUpdateCollectionRepository} from "../../repository";
 import TicketUpdateCollection from "../../TicketUpdateCollection";
 
 export default class UpdatedTicketsListCollector extends TicketUpdateCollectionProcess {
