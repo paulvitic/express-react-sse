@@ -146,7 +146,7 @@ export default class TicketUpdateCollection extends AggregateRoot {
     };
 
     failCollection = (atProcessor: string, reson: string): E.Either<Error, void> => {
-        this.log.debug("failing");
+        this.log.info("failing");
         return E.tryCatch2v(() => {
             this._endedAt = new Date();
             this._status = TicketUpdateCollectionStatus.FAILED;
@@ -156,27 +156,31 @@ export default class TicketUpdateCollection extends AggregateRoot {
                 this.productDevId,
                 this.ticketBoardKey,
                 atProcessor,
-                reson)
-            );
+                reson));
+            return;
         }, err => err as Error)
     };
 
     willReadTickets(updatedTickets: UpdatedTicket[]):
         E.Either<Error, void> {
-        return E.tryCatch2v(() => {
-            updatedTickets.map(ticket =>
-                this._ticketUpdates.set(
-                    ticket.key,
-                    new TicketUpdate(Identity.generate(), ticket.id, ticket.key)));
-            this.recordEvent(new UpdatedTicketsListFetched(
-                TicketUpdateCollection.name,
-                this.id,
-                this.productDevId,
-                this.ticketBoardKey,
-                this.period.from.toISOString(),
-                this.period.to.toISOString(),
-                updatedTickets))
-        }, err => err as Error)
+        return pipe(
+            E.tryCatch2v(() => {
+                updatedTickets.map(ticket =>
+                    this._ticketUpdates.set(
+                        ticket.key,
+                        new TicketUpdate(Identity.generate(), ticket.id, ticket.key)));
+                this.recordEvent(new UpdatedTicketsListFetched(
+                    TicketUpdateCollection.name,
+                    this.id,
+                    this.productDevId,
+                    this.ticketBoardKey,
+                    this.period.from.toISOString(),
+                    this.period.to.toISOString(),
+                    updatedTickets));
+                return;
+            }, err => err as Error),
+            E.chain(() => this.checkCompleted())
+        )
     }
 
     completedForTicket(ticketExternalRef: number, ticketKey: string, changeLog: ChangeLog[]):
@@ -185,26 +189,31 @@ export default class TicketUpdateCollection extends AggregateRoot {
             this.log.info(`current ${update.key} is ${update.collected}`);
         }
         this.log.info(`completing for ${ticketKey}`);
-        return E.tryCatch2v(() => {
-            this._ticketUpdates.get(ticketKey).complete();
-            changeLog.length > 0 ?
-                this.recordEvent(new TicketChanged(
-                    TicketUpdateCollection.name,
-                    this.id,
-                    this.productDevId,
-                    ticketExternalRef,
-                    ticketKey,
-                    changeLog)) :
-                this.recordEvent(new TicketRemainedUnchanged(
-                    TicketUpdateCollection.name,
-                    this.id,
-                    this.productDevId,
-                    ticketExternalRef,
-                    ticketKey))
-        }, err => err as Error)
+        return pipe(
+            E.tryCatch2v(() => {
+                this._ticketUpdates.get(ticketKey).complete();
+                changeLog.length > 0 ?
+                    this.recordEvent(new TicketChanged(
+                        TicketUpdateCollection.name,
+                        this.id,
+                        this.productDevId,
+                        ticketExternalRef,
+                        ticketKey,
+                        changeLog)) :
+                    this.recordEvent(new TicketRemainedUnchanged(
+                        TicketUpdateCollection.name,
+                        this.id,
+                        this.productDevId,
+                        ticketExternalRef,
+                        ticketKey));
+                return;
+            }, err => err as Error),
+            E.chain(() => this.checkCompleted())
+        )
     }
 
-    checkCompleted(): E.Either<Error, void> {
+    private checkCompleted(): E.Either<Error, void> {
+        this.log.info("checking complete");
         return E.tryCatch2v(() => {
             if (this._status !== TicketUpdateCollectionStatus.COMPLETED) {
                 let allCollected = true;
@@ -212,6 +221,7 @@ export default class TicketUpdateCollection extends AggregateRoot {
                     allCollected = allCollected && update.collected;
                 }
                 if (allCollected) {
+                    this.log.info("completed");
                     this._status = TicketUpdateCollectionStatus.COMPLETED;
                     this._endedAt = new Date();
                     this.recordEvent(new TicketUpdateCollectionCompleted(
@@ -222,6 +232,7 @@ export default class TicketUpdateCollection extends AggregateRoot {
                         this.endedAt.toISOString()));
                 }
             }
+            return;
         }, err => err as Error)
     }
 

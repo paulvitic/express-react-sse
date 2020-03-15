@@ -348,13 +348,6 @@ export default class App {
                     this.context.product.domain.policy.ticketHandler, [
                         TicketChanged.name
                     ]);
-                // IMPORTANT put this listener at the end so that it processes event latest!!!
-                this.context.common.eventBus.subscribe(
-                    this.context.product.domain.processors.ticketUpdateCollectionTracker, [
-                        UpdatedTicketsListFetched.name,
-                        TicketChanged.name,
-                        TicketRemainedUnchanged.name
-                    ]);
                 resolve();
             } catch (e) {
                 reject(new Error("error while initializing event store: " + e.message ))

@@ -4,18 +4,7 @@ import TicketUpdateCollection, {TicketUpdateCollectionStatus} from "../../Ticket
 import TicketUpdateCollectionRepository from "../../repository/TicketUpdateCollectionRepository";
 import {pipe} from "fp-ts/lib/pipeable";
 import EventBus from "../../../EventBus";
-import {
-    TicketChanged,
-    TicketRemainedUnchanged,
-    UpdatedTicketsListFetched
-} from "../../event";
 import LogFactory from "../../../LogFactory";
-import {TicketUpdateCollectionProcess} from "./TicketUpdateCollectionProcess";
-
-type TicketUpdateCollectionTrackerEvent =
-    UpdatedTicketsListFetched |
-    TicketChanged |
-    TicketRemainedUnchanged;
 
 class TicketUpdateCollectionTrackerError extends Error {
     constructor(message) {
@@ -24,12 +13,10 @@ class TicketUpdateCollectionTrackerError extends Error {
     }
 }
 
-export class TicketUpdateCollectionTracker extends TicketUpdateCollectionProcess {
+export class TicketUpdateCollectionTracker {
     private readonly log = LogFactory.get(TicketUpdateCollectionTracker.name);
-    constructor(repo: TicketUpdateCollectionRepository,
-                eventBus: EventBus) {
-        super(repo, eventBus)
-    }
+    constructor(private readonly repo: TicketUpdateCollectionRepository,
+                private readonly eventBus: EventBus) {}
 
     start(prodDevId: string, ticketBoardKey: string, prodDevStart: Date, defaultFrom: Date):
         TE.TaskEither<Error, boolean> {
@@ -43,23 +30,9 @@ export class TicketUpdateCollectionTracker extends TicketUpdateCollectionProcess
                 TE.right2v(collection)),
             TE.chainFirst(collection => TE.fromEither(collection.startCollection())),
             TE.chainFirst(collection => this.repo.update(collection.id, collection)),
-            TE.chainFirst(collection => TE.rightIO(this.log.io.debug(`ticket update collection updated ${collection}`))),
             TE.chain(collection => this.eventBus.publishEventsOf(collection))
         )
     }
-
-    onEvent = (sourceEvent: TicketUpdateCollectionTrackerEvent): Promise<E.Either<Error, boolean>> => {
-        this.log.info(`Processing event ${sourceEvent.eventType}`);
-        return pipe(
-                this.repo.findLatestByProject(sourceEvent.prodDevId),
-                TE.chain(collection => collection.isNone() ?
-                    TE.left2v(new Error('collection does not exists')) :
-                    TE.right2v(collection.value)),
-                TE.chainFirst( collection => TE.fromEither(collection.checkCompleted())),
-                TE.chainFirst( collection => this.repo.update(collection.id, collection)),
-                TE.chain(collection => this.eventBus.publishEventsOf(collection))
-            ).run()
-    };
 
     private create = (prodDevId: string, ticketBoardKey: string, prodDevStart: Date, defaultFrom?: Date):
         TE.TaskEither<Error, TicketUpdateCollection> => {

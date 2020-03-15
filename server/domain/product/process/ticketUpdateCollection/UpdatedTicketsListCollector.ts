@@ -21,7 +21,7 @@ export default class UpdatedTicketsListCollector extends TicketUpdateCollectionP
     onEvent(sourceEvent: TicketUpdateCollectionStarted): Promise<E.Either<Error, boolean>> {
         this.log.info(`Processing event ${sourceEvent.eventType}`);
         return pipe(
-            this.repo.findLatestByProject(sourceEvent.prodDevId),
+            this.repo.findById(sourceEvent.aggregateId),
             TE.chain(collection => collection.isNone() ?
                 TE.left2v(new Error('collection does not exists')) :
                 TE.right2v(collection.value)),

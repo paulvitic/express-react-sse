@@ -23,20 +23,25 @@ export default class TicketChangeLogReader extends TicketUpdateCollectionProcess
     onEvent(sourceEvent: UpdatedTicketsListFetched): Promise<E.Either<Error, boolean>> {
         this.log.info(`Processing ${UpdatedTicketsListFetched.name} event`);
         return pipe(
-            this.repo.findLatestByProject(sourceEvent.prodDevId),
+            this.repo.findById(sourceEvent.aggregateId),
             TE.chain(collection => collection.isNone() ?
                 TE.left2v(new Error('collection does not exists')) :
                 TE.right2v(collection.value)),
-            TE.chainFirst(collection => this.readUpdatedTicketsChangeLogs(sourceEvent, collection)),
-            TE.chain(collection => this.repo.update(collection.id, collection)),
-            TE.chain(collection => this.eventBus.publishEventsOf(collection)),
+            TE.chainFirst(collection =>
+                this.readUpdatedTicketsChangeLogs(sourceEvent, collection)),
+            TE.chain(collection =>
+                this.repo.update(collection.id, collection)),
+            TE.chain(collection =>
+                this.eventBus.publishEventsOf(collection)),
         ).run();
     }
 
     readUpdatedTicketsChangeLogs(sourceEvent: UpdatedTicketsListFetched, collection: TicketUpdateCollection):
         TE.TaskEither<Error,void> {
         return array.reduce(sourceEvent.updatedTickets, TE.taskEither.of(null), (previous, current) => {
-            return previous.foldTaskEither( err => TE.left2v(err), () => this.readTicketChangeLog(sourceEvent, collection, current))
+            return previous.foldTaskEither(
+                err => TE.left2v(err),
+                () => this.readTicketChangeLog(sourceEvent, collection, current))
         });
     }
 
