@@ -14,7 +14,6 @@ import LogFactory from "../../../LogFactory";
 import {TicketUpdateCollectionProcess} from "./TicketUpdateCollectionProcess";
 
 type TicketUpdateCollectionTrackerEvent =
-    TicketUpdateCollectionFailed |
     UpdatedTicketsListFetched |
     TicketChanged |
     TicketRemainedUnchanged;
@@ -28,9 +27,9 @@ class TicketUpdateCollectionTrackerError extends Error {
 
 export class TicketUpdateCollectionTracker extends TicketUpdateCollectionProcess {
     private readonly log = LogFactory.get(TicketUpdateCollectionTracker.name);
-    constructor(private readonly repo: TicketUpdateCollectionRepository,
+    constructor(repo: TicketUpdateCollectionRepository,
                 eventBus: EventBus) {
-        super(eventBus)
+        super(repo, eventBus)
     }
 
     start(prodDevId: string, ticketBoardKey: string, prodDevStart: Date, defaultFrom: Date):
@@ -50,58 +49,18 @@ export class TicketUpdateCollectionTracker extends TicketUpdateCollectionProcess
         )
     }
 
-    onEvent = (sourceEvent: TicketUpdateCollectionTrackerEvent): Promise<E.Either<Error, void>> => {
+    onEvent = (sourceEvent: TicketUpdateCollectionTrackerEvent): Promise<E.Either<Error, boolean>> => {
         this.log.info(`Processing event ${sourceEvent.eventType}`);
-        /*return pipe(
+        return pipe(
                 this.repo.findLatestByProject(sourceEvent.prodDevId),
                 TE.chain(collection => collection.isNone() ?
-                    TE.leftTask(T.task.of(new Error('collection does not exists'))) :
+                    TE.left2v(new Error('collection does not exists')) :
                     TE.right2v(collection.value)),
-                TE.chainFirst(collection => TE.fromEither(this.handleEvent(sourceEvent, collection))),
                 TE.chainFirst( collection => TE.fromEither(collection.checkCompleted())),
                 TE.chainFirst( collection => this.repo.update(collection.id, collection)),
-                TE.chain(collection => this.eventBus.publishEventsOf(collection)),
-                TE.chain(() => TE.taskEither.of(null))
-            ).run()*/
-        return this.repo.updatec(sourceEvent.aggregateId, this.handle(sourceEvent)).run()
+                TE.chain(collection => this.eventBus.publishEventsOf(collection))
+            ).run()
     };
-
-    handleEvent(event: TicketUpdateCollectionTrackerEvent, collection: TicketUpdateCollection):
-        E.Either<Error, void> {
-        switch (event.eventType) {
-            case UpdatedTicketsListFetched.name:
-                return collection.willReadTickets(
-                    (event as UpdatedTicketsListFetched).updatedTickets);
-            case TicketChanged.name:
-                return collection.completedForTicket(
-                    (event as TicketChanged).ticketRef,
-                    (event as TicketChanged).ticketKey);
-            case TicketRemainedUnchanged.name:
-                return collection.completedForTicket(
-                    (event as TicketRemainedUnchanged).ticketRef,
-                    (event as TicketRemainedUnchanged).ticketKey);
-            case TicketUpdateCollectionFailed.name:
-                return collection.failed();
-        }
-    }
-
-    handle(event: TicketUpdateCollectionTrackerEvent): (collection: TicketUpdateCollection) => E.Either<Error, void> {
-        switch (event.eventType) {
-            case UpdatedTicketsListFetched.name:
-                return (collection: TicketUpdateCollection) => collection.willReadTickets(
-                    (event as UpdatedTicketsListFetched).updatedTickets);
-            case TicketChanged.name:
-                return (collection: TicketUpdateCollection) => collection.completedForTicket(
-                    (event as TicketChanged).ticketRef,
-                    (event as TicketChanged).ticketKey);
-            case TicketRemainedUnchanged.name:
-                return (collection: TicketUpdateCollection) => collection.completedForTicket(
-                    (event as TicketRemainedUnchanged).ticketRef,
-                    (event as TicketRemainedUnchanged).ticketKey);
-            case TicketUpdateCollectionFailed.name:
-                return (collection: TicketUpdateCollection) => collection.failed();
-        }
-    }
 
     private create = (prodDevId: string, ticketBoardKey: string, prodDevStart: Date, defaultFrom?: Date):
         TE.TaskEither<Error, TicketUpdateCollection> => {

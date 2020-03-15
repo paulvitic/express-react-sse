@@ -9,7 +9,7 @@ export default interface TicketUpdateCollectionRepository extends Repository<Tic
     findByStatus(status: TicketUpdateCollectionStatus): TE.TaskEither<Error, TicketUpdateCollection[]>
     findLatestByProject(prodDevId: string): TE.TaskEither<Error, O.Option<TicketUpdateCollection>>
     findByProject(prodDevId: string, limit:number): TE.TaskEither<Error, TicketUpdateCollection[]>
-    updatec(id: string, update: (collection: TicketUpdateCollection) => E.Either<Error, void>):
-        TE.TaskEither<Error, void>;
+    /*updatec(id: string, update: (collection: TicketUpdateCollection) => E.Either<Error, void>):
+        TE.TaskEither<Error, void>;*/
 }
 

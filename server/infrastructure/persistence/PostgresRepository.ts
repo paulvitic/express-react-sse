@@ -9,9 +9,10 @@ import {pipe} from "fp-ts/lib/pipeable";
 import LogFactory from "../../domain/LogFactory";
 
 export default abstract class PostgresRepository<A> implements Repository<A> {
-    protected readonly begin = 'BEGIN';
-    protected readonly commitQuery = 'COMMIT';
-    protected readonly rollBackQuery = 'ROLLBACK';
+    protected readonly commitQuery = `
+        COMMIT;`;
+    protected readonly rollBackQuery = `
+        ROLLBACK;`;
 
     protected constructor(protected readonly client: PostgresClient) {}
 

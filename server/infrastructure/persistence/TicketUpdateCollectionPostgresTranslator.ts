@@ -5,12 +5,19 @@ import TicketUpdate from "../../domain/product/TicketUpdate";
 import {pipe} from "fp-ts/lib/pipeable";
 import {array} from "fp-ts/lib/Array";
 import * as O from "fp-ts/lib/Option";
+import DomainEvent from "../../domain/DomainEvent";
+import {
+    TicketChanged,
+    TicketRemainedUnchanged, TicketUpdateCollectionCompleted,
+    TicketUpdateCollectionFailed, TicketUpdateCollectionStarted,
+    UpdatedTicketsListFetched
+} from "../../domain/product/event";
 
 export function toFindByIdQuery(id: string): E.Either<Error, string> {
     let query = `
         SELECT * FROM ticket_update_collection AS tuc
-        LEFT JOIN ticket_update AS tu ON tuc.collection_id = tu.collection_fk
-        WHERE tuc.collection_id=$ID;`;
+            LEFT JOIN ticket_update AS tu ON tuc.collection_id = tu.collection_fk
+            WHERE tuc.collection_id=$ID;`;
     return E.tryCatch2v(() => {
         query = query.replace(/\$ID/, `'${id}'`);
         return query;
@@ -20,8 +27,8 @@ export function toFindByIdQuery(id: string): E.Either<Error, string> {
 export function toFindByStatusQuery(status: TicketUpdateCollectionStatus): E.Either<Error, string> {
     let query = `
         SELECT * FROM ticket_update_collection AS tuc
-        LEFT JOIN ticket_update AS tu ON tuc.collection_id = tu.collection_fk
-        WHERE tuc.status=$STATUS;`;
+            LEFT JOIN ticket_update AS tu ON tuc.collection_id = tu.collection_fk
+            WHERE tuc.status=$STATUS;`;
     return E.tryCatch2v(() => {
         query = query.replace(/\$STATUS/, `'${TicketUpdateCollectionStatus[status]}'`);
         return query;
@@ -31,8 +38,8 @@ export function toFindByStatusQuery(status: TicketUpdateCollectionStatus): E.Eit
 export function toFindLatestByProjectQuery(productDevId: string): E.Either<Error, string> {
     let query = `
         SELECT * FROM ticket_update_collection AS tuc 
-        LEFT JOIN ticket_update AS tu ON tuc.collection_id = tu.collection_fk   
-        WHERE tuc.product_dev_fk=$PROD_DEV_ID AND tuc.status!='COMPLETED';`;
+            LEFT JOIN ticket_update AS tu ON tuc.collection_id = tu.collection_fk   
+            WHERE tuc.product_dev_fk=$PROD_DEV_ID AND tuc.status!='COMPLETED';`;
     return E.tryCatch2v(() => {
         query = query.replace(/\$PROD_DEV_ID/, `'${productDevId}'`);
         return query;
@@ -43,9 +50,9 @@ export function toSelectForUpdateQuery(id: string): E.Either<Error, string> {
     let query = `
         BEGIN;
         SELECT * FROM ticket_update_collection AS tuc 
-        LEFT JOIN ticket_update AS tu ON tuc.collection_id = tu.collection_fk 
-        WHERE tuc.collection_id=$ID 
-        FOR UPDATE OF tuc;
+            LEFT JOIN ticket_update AS tu ON tuc.collection_id = tu.collection_fk 
+            WHERE tuc.collection_id=$ID 
+            FOR UPDATE OF tuc;
     `;
     return E.tryCatch2v(() => {
         query = query.replace(/\$ID/, `'${id}'`);
@@ -57,8 +64,8 @@ export function toInsertCollectionQuery(collection: TicketUpdateCollection):
     E.Either<Error, string> {
     let query = `
         BEGIN;
-        INSERT INTO ticket_update_collection(collection_id, active, status, product_dev_fk, ticket_board_key, from_day, to_day)
-        VALUES ($ID, $ACTIVE, $STATUS, $PRODUCT_DEV_ID, $TICKET_BOARD_KEY, $FROM, $TO);
+            INSERT INTO ticket_update_collection(collection_id, active, status, product_dev_fk, ticket_board_key, from_day, to_day)
+            VALUES ($ID, $ACTIVE, $STATUS, $PRODUCT_DEV_ID, $TICKET_BOARD_KEY, $FROM, $TO);
         `;
     return pipe(
         E.tryCatch2v(() => {
@@ -77,28 +84,51 @@ export function toInsertCollectionQuery(collection: TicketUpdateCollection):
     )
 }
 
-export function toUpdateCollectionQuery(collection: TicketUpdateCollection):
+export function toUpdateCollectionQuery(id: string, collection: TicketUpdateCollection):
     E.Either<Error, string> {
     let query = `
-        UPDATE ticket_update_collection SET 
-        status=$STATUS, from_day=$FROM, to_day=$TO, started_at=$STARTED_AT, ended_at=$ENDED_AT 
-        WHERE collection_id=$ID;
+        BEGIN;
+        SELECT * FROM ticket_update_collection AS tuc 
+            LEFT JOIN ticket_update AS tu ON tuc.collection_id = tu.collection_fk 
+            WHERE tuc.collection_id=$ID FOR UPDATE OF tuc;
+        UPDATE ticket_update_collection 
+            SET status=$STATUS, ended_at=$ENDED_AT 
+            WHERE collection_id=$ID;
         `;
     return pipe(
         E.tryCatch2v(() => {
-            query = query.replace(/\$ID/, `'${collection.id}'`);
+            query = query.replace(/\$ID/, `'${id}'`);
             query = query.replace(/\$STATUS/, `'${TicketUpdateCollectionStatus[collection.status]}'`);
-            query = query.replace(/\$FROM/, `'${toSqlDate(collection.period.from)}'`);
-            query = query.replace(/\$TO/, `'${toSqlDate(collection.period.to)}'`);
-            query = query.replace(/\$STARTED_AT/, collection.startedAt ? `'${toSqlDate(collection.startedAt)}'` : `NULL`);
             query = query.replace(/\$ENDED_AT/, collection.endedAt ? `'${toSqlDate(collection.endedAt)}'` : `NULL`);
+            query = query.replace(/\$ID/, `'${id}'`);
             return  query;
         }, err => err as Error),
-        E.chain(query => array.reduce(collection.ticketUpdates, E.either.of(query), (previous, current) => {
-            return previous.fold( err => E.left(err), res =>
-                toDeleteTicketUpdateQuery(current, res).chain(deleteQuery => toInsertTicketUpdateQuery(current, collection.id, deleteQuery)))
+        E.chain(query => array.reduce(collection.domainEvents, E.either.of(query), (previous, current) => {
+            return previous.fold(
+                err => E.left(err),
+                    res =>  appendToUpdateQuery(collection, current, res))
         }))
     )
+}
+
+function appendToUpdateQuery(collection: TicketUpdateCollection, event:DomainEvent, query: string):
+    E.Either<Error, string> {
+    switch (event.eventType) {
+        case UpdatedTicketsListFetched.name:
+            return array.reduce(collection.ticketUpdates, E.either.of(query), (previous, current) => {
+                return previous.fold(
+                    err => E.left(err),
+                        res => toInsertTicketUpdateQuery(current, collection.id, res))
+            });
+        case TicketChanged.name:
+            return toUpdateTicketUpdateQuery(collection.ticketUpdateOfKey(
+                (event as TicketChanged).ticketKey), query);
+        case TicketRemainedUnchanged.name:
+            return toUpdateTicketUpdateQuery(collection.ticketUpdateOfKey(
+                (event as TicketRemainedUnchanged).ticketKey), query);
+        default:
+            return E.right(query);
+    }
 }
 
 function toDeleteTicketUpdateQuery(ticketUpdate: TicketUpdate, query: string):
@@ -112,12 +142,11 @@ function toDeleteTicketUpdateQuery(ticketUpdate: TicketUpdate, query: string):
     }, err => err as Error)
 }
 
-
 function toInsertTicketUpdateQuery(ticketUpdate: TicketUpdate, collectionId: string, query: string):
     E.Either<Error, string> {
     let insertQuery = `
         INSERT INTO ticket_update(ticket_update_id, ticket_ref, ticket_key, collected, collection_fk)
-        VALUES ($ID, $EXTERNAL_REF, $KEY, $COLLECTED, $COLLECTION_FK);
+            VALUES ($ID, $EXTERNAL_REF, $KEY, $COLLECTED, $COLLECTION_FK);
     `;
     return E.tryCatch2v(() => {
         insertQuery = insertQuery.replace(/\$ID/, `'${ticketUpdate.id}'`);
@@ -128,6 +157,20 @@ function toInsertTicketUpdateQuery(ticketUpdate: TicketUpdate, collectionId: str
         return query + insertQuery;
     }, err => err as Error)
 }
+
+function toUpdateTicketUpdateQuery(ticketUpdate: TicketUpdate, query: string):
+    E.Either<Error, string> {
+    let updateQuery = `
+        UPDATE ticket_update SET collected=$COLLECTED 
+            WHERE ticket_update_id=$ID;
+    `;
+    return E.tryCatch2v(() => {
+        updateQuery = updateQuery.replace(/\$ID/, `'${ticketUpdate.id}'`);
+        updateQuery = updateQuery.replace(/\$COLLECTED/, `${ticketUpdate.collected}`);
+        return query + updateQuery;
+    }, err => err as Error)
+}
+
 
 function toTicketUpdate(u: any):
     E.Either<Error, TicketUpdate> {

@@ -60,11 +60,6 @@ export class TicketUpdateCollectionRedisRepo implements TicketUpdateCollectionRe
     delete(id: string): TE.TaskEither<Error, boolean> {
         throw new Error("Method not implemented.");
     }
-
-    updatec(id: string, update: (collection: TicketUpdateCollection) => E.Either<Error, void>): TE.TaskEither<Error, void> {
-        return undefined;
-    }
-
 }
 
 

@@ -239,11 +239,13 @@ export default class App {
                         this.context.common.eventBus);
                 this.context.product.domain.processors.updatedTicketsListCollector =
                     new UpdatedTicketsListCollector(
+                        this.context.product.domain.repositories.ticketUpdateCollectionRepo,
                         this.context.common.eventBus,
                         this.context.product.domain.services.ticketBoardIntegration
                     );
                 this.context.product.domain.processors.ticketChangeLogReader =
                     new TicketChangeLogReader(
+                        this.context.product.domain.repositories.ticketUpdateCollectionRepo,
                         this.context.common.eventBus,
                         this.context.product.domain.services.ticketBoardIntegration
                     );
@@ -306,8 +308,6 @@ export default class App {
         })
     };
 
-
-
     private initResources = (): Promise<void> => {
         return new Promise<void>(async (resolve, reject) => {
             try {
@@ -336,7 +336,6 @@ export default class App {
             try {
                 this.context.common.eventBus.subscribe(
                     this.context.product.domain.processors.ticketUpdateCollectionTracker, [
-                        TicketUpdateCollectionFailed.name,
                         UpdatedTicketsListFetched.name,
                         TicketChanged.name,
                         TicketRemainedUnchanged.name

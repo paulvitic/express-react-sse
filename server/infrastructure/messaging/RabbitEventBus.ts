@@ -179,7 +179,11 @@ export default class RabbitEventBus implements EventBus {
     private deliver(listener: EventListener, event: DomainEvent): E.Either<Error, void> {
         this.log.debug(`delivering ${event.eventType} to ${listener}`);
         return E.tryCatch2v(() => {
-                listener.onEvent(event).catch(e => {throw e as Error});
+                listener.onEvent(event)
+                    // .then( processed => {
+                    //     if (!processed) throw new Error("could not process")
+                    // })
+                    .catch(e => {throw e as Error});
             }, err => err as Error)
     }
 

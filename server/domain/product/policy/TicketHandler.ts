@@ -16,9 +16,9 @@ export class TicketHandler implements EventListener<TicketEvents> {
     constructor(private readonly repo: TicketUpdateCollectionRepository,
                 private readonly eventBus: EventBus){}
 
-    onEvent(event: TicketEvents): Promise<E.Either<Error, void>> {
+    onEvent(event: TicketEvents): Promise<E.Either<Error, boolean>> {
             // latest collection state can only be pending, failed or blocked
-        return new Promise<E.Either<Error,void>>((resolve, reject) => {
+        return new Promise<E.Either<Error,boolean>>((resolve, reject) => {
             switch (event.eventType) {
                 case TicketChanged.name:
                     this.handleTicketChanged(event as TicketChanged)

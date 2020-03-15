@@ -2,9 +2,16 @@ import AggregateRoot from "../AggregateRoot";
 import Identity from "../Identity";
 import * as E from "fp-ts/lib/Either";
 import {pipe} from "fp-ts/lib/pipeable";
-import {UpdatedTicket} from "./service/TicketBoardIntegration";
+import {ChangeLog, UpdatedTicket} from "./service/TicketBoardIntegration";
 import TicketUpdate from "./TicketUpdate";
-import {TicketUpdateCollectionCompleted, TicketUpdateCollectionCreated, TicketUpdateCollectionStarted} from "./event";
+import {
+    TicketChanged,
+    TicketRemainedUnchanged,
+    TicketUpdateCollectionCompleted,
+    TicketUpdateCollectionCreated,
+    TicketUpdateCollectionFailed,
+    TicketUpdateCollectionStarted, UpdatedTicketsListFetched
+} from "./event";
 import LogFactory from "../LogFactory";
 
 
@@ -24,7 +31,7 @@ export enum TicketUpdateCollectionStatus {
 
 export class TicketUpdateCollectionPeriod {
     constructor(readonly from: Date,
-                readonly to: Date){
+                readonly to: Date) {
     }
 }
 
@@ -42,13 +49,13 @@ export default class TicketUpdateCollection extends AggregateRoot {
                 from: Date,
                 to?: Date,
                 private _startedAt?: Date,
-                private _endedAt? : Date,
+                private _endedAt?: Date,
                 ticketUpdates?: TicketUpdate[]) {
         super(id, active);
         this._period = this._period =
             new TicketUpdateCollectionPeriod(
                 from, to ? to : TicketUpdateCollection.getPeriodEnd(from)
-        );
+            );
         this._ticketUpdates = ticketUpdates ?
             ticketUpdates.reduce(
                 (previous: Map<string, TicketUpdate>, current: TicketUpdate) => previous.set(current.key, current),
@@ -56,7 +63,7 @@ export default class TicketUpdateCollection extends AggregateRoot {
             new Map<string, TicketUpdate>()
     }
 
-    static create(productDevId: string, ticketBoardKey:string, from: Date)
+    static create(productDevId: string, ticketBoardKey: string, from: Date)
         : E.Either<Error, TicketUpdateCollection> {
         return pipe(
             E.tryCatch2v(
@@ -84,15 +91,15 @@ export default class TicketUpdateCollection extends AggregateRoot {
         return this._productDevId
     }
 
-    get period(){
+    get period() {
         return this._period
     }
 
-    get status(){
+    get status() {
         return this._status
     }
 
-    get ticketBoardKey(){
+    get ticketBoardKey() {
         return this._ticketBoardKey
     }
 
@@ -106,70 +113,103 @@ export default class TicketUpdateCollection extends AggregateRoot {
 
     get ticketUpdates(): TicketUpdate[] {
         let updates: TicketUpdate[] = [];
-        if (this._ticketUpdates && this._ticketUpdates.size !== 0 ) {
-            for (let update of this._ticketUpdates.values()){
+        if (this._ticketUpdates && this._ticketUpdates.size !== 0) {
+            for (let update of this._ticketUpdates.values()) {
                 updates.push(update)
             }
         }
         return updates;
     }
 
+    ticketUpdateOfKey(key: string) {
+        return this._ticketUpdates.get(key);
+    }
+
     startCollection = (): E.Either<Error, void> => {
         this.log.debug("starting");
-        if (this._status === TicketUpdateCollectionStatus.FAILED || this._status === TicketUpdateCollectionStatus.PENDING) {
-            // FIXME also check period end date can not be larger then now
-            this._startedAt = new Date();
-            this._status = TicketUpdateCollectionStatus.RUNNING;
-            this.recordEvent(new TicketUpdateCollectionStarted(
+        return E.tryCatch2v(() => {
+            if (this._status === TicketUpdateCollectionStatus.FAILED ||
+                this._status === TicketUpdateCollectionStatus.PENDING) {
+                // FIXME also check period end date can not be larger then now
+                this._startedAt = new Date();
+                this._status = TicketUpdateCollectionStatus.RUNNING;
+                this.recordEvent(new TicketUpdateCollectionStarted(
+                    TicketUpdateCollection.name,
+                    this.id,
+                    this.productDevId,
+                    this.ticketBoardKey,
+                    this.period.from.toISOString(),
+                    this.period.to.toISOString()))
+            } else {
+                throw new Error(`collection in status ${TicketUpdateCollectionStatus[this.status]} can not start`);
+            }
+        }, err => err as Error)
+    };
+
+    failCollection = (atProcessor: string, reson: string): E.Either<Error, void> => {
+        this.log.debug("failing");
+        return E.tryCatch2v(() => {
+            this._endedAt = new Date();
+            this._status = TicketUpdateCollectionStatus.FAILED;
+            this.recordEvent(new TicketUpdateCollectionFailed(
+                TicketUpdateCollection.name,
+                this.id,
+                this.productDevId,
+                this.ticketBoardKey,
+                atProcessor,
+                reson)
+            );
+        }, err => err as Error)
+    };
+
+    willReadTickets(updatedTickets: UpdatedTicket[]):
+        E.Either<Error, void> {
+        return E.tryCatch2v(() => {
+            updatedTickets.map(ticket =>
+                this._ticketUpdates.set(
+                    ticket.key,
+                    new TicketUpdate(Identity.generate(), ticket.id, ticket.key)));
+            this.recordEvent(new UpdatedTicketsListFetched(
                 TicketUpdateCollection.name,
                 this.id,
                 this.productDevId,
                 this.ticketBoardKey,
                 this.period.from.toISOString(),
-                this.period.to.toISOString()));
-            return E.right(null)
-        } else {
-            return E.left(new Error(`collection in status ${TicketUpdateCollectionStatus[this.status]} can not start`));
-        }
-    };
-
-     willReadTickets(updatedTickets: UpdatedTicket[]): E.Either<Error, void> {
-        return pipe(
-            E.tryCatch2v(() => {
-                updatedTickets.map(ticket => this._ticketUpdates.set(ticket.key, new TicketUpdate(Identity.generate(), ticket.id, ticket.key)));
-                return;
-            }, err => err as Error),
-            E.chain(() => this.checkCompleted())
-        )
+                this.period.to.toISOString(),
+                updatedTickets))
+        }, err => err as Error)
     }
 
-     completedForTicket(ticketExternalRef: number, ticketKey: string)
-        :E.Either<Error, void> {
-        for (let update of this.ticketUpdates.values()){
+    completedForTicket(ticketExternalRef: number, ticketKey: string, changeLog: ChangeLog[]):
+        E.Either<Error, void> {
+        for (let update of this.ticketUpdates.values()) {
             this.log.info(`current ${update.key} is ${update.collected}`);
         }
         this.log.info(`completing for ${ticketKey}`);
-        return pipe (
-            E.tryCatch2v(() => this._ticketUpdates.get(ticketKey).complete(),
-                    err => err as Error),
-            E.chain(() => this.checkCompleted())
-        )
-    }
-
-    failed():E.Either<Error, void> {
-        return E.tryCatch2v(
-            () => {
-                this._status = TicketUpdateCollectionStatus.FAILED;
-                this._endedAt = new Date();
-            },
-            err => err as Error
-        )
+        return E.tryCatch2v(() => {
+            this._ticketUpdates.get(ticketKey).complete();
+            changeLog.length > 0 ?
+                this.recordEvent(new TicketChanged(
+                    TicketUpdateCollection.name,
+                    this.id,
+                    this.productDevId,
+                    ticketExternalRef,
+                    ticketKey,
+                    changeLog)) :
+                this.recordEvent(new TicketRemainedUnchanged(
+                    TicketUpdateCollection.name,
+                    this.id,
+                    this.productDevId,
+                    ticketExternalRef,
+                    ticketKey))
+        }, err => err as Error)
     }
 
     checkCompleted(): E.Either<Error, void> {
-        return E.tryCatch2v( () => {
+        return E.tryCatch2v(() => {
+            if (this._status !== TicketUpdateCollectionStatus.COMPLETED) {
                 let allCollected = true;
-                for (let update of this.ticketUpdates.values()){
+                for (let update of this.ticketUpdates.values()) {
                     allCollected = allCollected && update.collected;
                 }
                 if (allCollected) {
@@ -182,9 +222,8 @@ export default class TicketUpdateCollection extends AggregateRoot {
                         this.ticketBoardKey,
                         this.endedAt.toISOString()));
                 }
-            },
-            err => err as Error
-        )
+            }
+        }, err => err as Error)
     }
 
     private static getPeriodEnd(from: Date): Date {

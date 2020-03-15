@@ -1,75 +1,41 @@
 import EventBus from "../../../EventBus";
-import TicketBoardIntegration, {UpdatedTicket} from "../../service/TicketBoardIntegration";
+import TicketBoardIntegration from "../../service/TicketBoardIntegration";
 import {pipe} from "fp-ts/lib/pipeable";
 import * as TE from "fp-ts/lib/TaskEither";
 import * as E from "fp-ts/lib/Either";
-import * as T from "fp-ts/lib/Task";
 import {
-    TicketUpdateCollectionFailed,
-    UpdatedTicketsListFetched,
     TicketUpdateCollectionStarted} from "../../event";
 import LogFactory from "../../../LogFactory";
 import {TicketUpdateCollectionProcess} from "./TicketUpdateCollectionProcess";
-
-type UpdatedTicketsListCollectorEvent =
-    TicketUpdateCollectionFailed |
-    UpdatedTicketsListFetched;
+import TicketUpdateCollectionRepository from "../../repository/TicketUpdateCollectionRepository";
+import TicketUpdateCollection from "../../TicketUpdateCollection";
 
 export default class UpdatedTicketsListCollector extends TicketUpdateCollectionProcess {
     private readonly log = LogFactory.get(UpdatedTicketsListCollector.name);
-
-    constructor(eventBus: EventBus,
+    constructor(repo: TicketUpdateCollectionRepository,
+                eventBus: EventBus,
                 private readonly integration: TicketBoardIntegration) {
-        super(eventBus)
+        super(repo, eventBus)
     }
 
-    onEvent(sourceEvent: TicketUpdateCollectionStarted): Promise<E.Either<Error, void>> {
+    onEvent(sourceEvent: TicketUpdateCollectionStarted): Promise<E.Either<Error, boolean>> {
         this.log.info(`Processing event ${sourceEvent.eventType}`);
-        return new Promise<E.Either<Error,void>>(resolve => {
-            pipe(
-                TE.taskEither.of(this.fetchUpdatedTicketsList(sourceEvent)),
-                TE.chain(event => TE.rightTask(event)),
-                TE.chain(this.eventBus.publishEvent),
-                TE.chain(published => published ?
-                    TE.rightTask(T.task.of(null)):
-                    TE.leftTask(T.task.of(new Error("event not published"))))
-            ).run().then(res => resolve(res))
-        })
-    }
-
-    fetchUpdatedTicketsList(sourceEvent: TicketUpdateCollectionStarted):
-        T.Task<UpdatedTicketsListCollectorEvent> {
         return pipe(
-                this.integration.getUpdatedTickets(sourceEvent.ticketBoardKey, new Date(sourceEvent.fromDate), new Date(sourceEvent.toDate)),
-                TE.fold<Error, UpdatedTicket[], UpdatedTicketsListCollectorEvent>(
-                    error => this.onFetchError(sourceEvent, error),
-                    updatedTickets => this.onFetchSuccess(sourceEvent, updatedTickets)
-            )
-        )
+            this.repo.findLatestByProject(sourceEvent.prodDevId),
+            TE.chain(collection => collection.isNone() ?
+                TE.left2v(new Error('collection does not exists')) :
+                TE.right2v(collection.value)),
+            TE.chainFirst(collection => this.fetchUpdatedTicketsList(sourceEvent, collection)),
+            TE.chain(collection => this.repo.update(collection.id, collection)),
+            TE.chain(collection => this.eventBus.publishEventsOf(collection)),
+        ).run();
     }
 
-    onFetchError(sourceEvent: TicketUpdateCollectionStarted, error: Error ):
-        T.Task<TicketUpdateCollectionFailed> {
-        return T.task.of(new TicketUpdateCollectionFailed(
-            sourceEvent.aggregate,
-            sourceEvent.aggregateId,
-            sourceEvent.prodDevId,
-            sourceEvent.ticketBoardKey,
-            UpdatedTicketsListCollector.name,
-            error.message)
-        )
-    }
-
-    onFetchSuccess(sourceEvent: TicketUpdateCollectionStarted, updatedTickets: UpdatedTicket[]):
-        T.Task<UpdatedTicketsListFetched> {
-        return T.task.of(new UpdatedTicketsListFetched(
-            sourceEvent.aggregate,
-            sourceEvent.aggregateId,
-            sourceEvent.prodDevId,
-            sourceEvent.ticketBoardKey,
-            sourceEvent.fromDate,
-            sourceEvent.toDate,
-            updatedTickets
-        ))
+    fetchUpdatedTicketsList(sourceEvent: TicketUpdateCollectionStarted, collection: TicketUpdateCollection):
+        TE.TaskEither<Error,void> {
+        return this.integration.getUpdatedTickets(sourceEvent.ticketBoardKey, new Date(sourceEvent.fromDate), new Date(sourceEvent.toDate))
+            .foldTaskEither(
+                err => TE.fromEither(collection.failCollection(UpdatedTicketsListCollector.name, err.message)),
+                updatedTickets => TE.fromEither(collection.willReadTickets(updatedTickets)))
     }
 }
