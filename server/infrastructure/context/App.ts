@@ -335,12 +335,6 @@ export default class App {
         return new Promise<void>(async (resolve, reject) => {
             try {
                 this.context.common.eventBus.subscribe(
-                    this.context.product.domain.processors.ticketUpdateCollectionTracker, [
-                        UpdatedTicketsListFetched.name,
-                        TicketChanged.name,
-                        TicketRemainedUnchanged.name
-                    ]);
-                this.context.common.eventBus.subscribe(
                     this.context.product.domain.processors.updatedTicketsListCollector, [
                         TicketUpdateCollectionStarted.name
                     ]);
@@ -353,6 +347,13 @@ export default class App {
                 this.context.common.eventBus.subscribe(
                     this.context.product.domain.policy.ticketHandler, [
                         TicketChanged.name
+                    ]);
+                // IMPORTANT put this listener at the end so that it processes event latest!!!
+                this.context.common.eventBus.subscribe(
+                    this.context.product.domain.processors.ticketUpdateCollectionTracker, [
+                        UpdatedTicketsListFetched.name,
+                        TicketChanged.name,
+                        TicketRemainedUnchanged.name
                     ]);
                 resolve();
             } catch (e) {

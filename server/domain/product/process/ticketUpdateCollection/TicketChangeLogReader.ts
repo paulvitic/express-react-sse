@@ -1,6 +1,6 @@
 import LogFactory from "../../../LogFactory";
 import EventBus from "../../../EventBus";
-import TicketBoardIntegration, {TicketChangeLog, UpdatedTicket} from "../../service/TicketBoardIntegration";
+import TicketBoardIntegration, {UpdatedTicket} from "../../service/TicketBoardIntegration";
 import {
     UpdatedTicketsListFetched
 } from "../../event";
@@ -28,30 +28,16 @@ export default class TicketChangeLogReader extends TicketUpdateCollectionProcess
                 TE.left2v(new Error('collection does not exists')) :
                 TE.right2v(collection.value)),
             TE.chainFirst(collection => this.readUpdatedTicketsChangeLogs(sourceEvent, collection)),
-            TE.chain(collection =>
-                this.repo.update(collection.id, collection)),
+            TE.chain(collection => this.repo.update(collection.id, collection)),
             TE.chain(collection => this.eventBus.publishEventsOf(collection)),
         ).run();
-/*
-        let allPublished = array.map(events,async (event) => {
-            let published =  await this.eventBus.publishEvent(event).run();
-            return published.isRight() && published.value ? E.right(null) : E.left(new Error("event not published"));
-        });
-        return array.reduce(await Promise.all(allPublished) as E.Either<Error, void>[],
-            E.right<Error, void>(null),
-            (previous, current) => {return previous.chain(() => current)});*/
     }
 
     readUpdatedTicketsChangeLogs(sourceEvent: UpdatedTicketsListFetched, collection: TicketUpdateCollection):
         TE.TaskEither<Error,void> {
-        //array.sequence(E.either)(rows.map(row =>  toTicketUpdate(row))).fold(() => E.right(null), r => E.right(r))
-        /*return array.sequence(
-            sourceEvent.updatedTickets.map( updatedTicket => this.readTicketChangeLog(sourceEvent, collection, updatedTicket)));*/
         return array.reduce(sourceEvent.updatedTickets, TE.taskEither.of(null), (previous, current) => {
             return previous.foldTaskEither( err => TE.left2v(err), () => this.readTicketChangeLog(sourceEvent, collection, current))
         });
-        /*return array.traverse(TE.taskEither)(
-            sourceEvent.updatedTickets,updatedTicket => this.readTicketChangeLog(sourceEvent, collection, updatedTicket));*/
     }
 
     private readTicketChangeLog(sourceEvent: UpdatedTicketsListFetched, collection: TicketUpdateCollection, updatedTicket: UpdatedTicket):

@@ -47,15 +47,12 @@ export default class TicketUpdateCollection extends AggregateRoot {
                 private readonly _productDevId: string,
                 private readonly _ticketBoardKey,
                 from: Date,
-                to?: Date,
-                private _startedAt?: Date,
+                to: Date,
+                private _startedAt: Date,
                 private _endedAt?: Date,
                 ticketUpdates?: TicketUpdate[]) {
         super(id, active);
-        this._period = this._period =
-            new TicketUpdateCollectionPeriod(
-                from, to ? to : TicketUpdateCollection.getPeriodEnd(from)
-            );
+        this._period = new TicketUpdateCollectionPeriod(from, to);
         this._ticketUpdates = ticketUpdates ?
             ticketUpdates.reduce(
                 (previous: Map<string, TicketUpdate>, current: TicketUpdate) => previous.set(current.key, current),
@@ -73,7 +70,9 @@ export default class TicketUpdateCollection extends AggregateRoot {
                     TicketUpdateCollectionStatus.PENDING,
                     productDevId,
                     ticketBoardKey,
-                    from),
+                    from,
+                    TicketUpdateCollection.getPeriodEnd(from),
+                    new Date()),
                 err => new TicketUpdateCollectionError(`error while creating pending ticket update collection: ${(err as Error).message}`)),
             E.chainFirst(collection =>
                 collection.recordEvent(new TicketUpdateCollectionCreated(

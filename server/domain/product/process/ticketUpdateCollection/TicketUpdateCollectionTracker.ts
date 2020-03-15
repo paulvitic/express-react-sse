@@ -7,7 +7,6 @@ import EventBus from "../../../EventBus";
 import {
     TicketChanged,
     TicketRemainedUnchanged,
-    TicketUpdateCollectionFailed,
     UpdatedTicketsListFetched
 } from "../../event";
 import LogFactory from "../../../LogFactory";

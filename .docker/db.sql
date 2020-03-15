@@ -52,5 +52,5 @@ CREATE TABLE jira.ticket_update
     collected        BOOLEAN     NOT NULL,
     collection_fk    VARCHAR(31) NOT NULL,
     FOREIGN KEY (collection_fk) REFERENCES ticket_update_collection (collection_id),
-    CONSTRAINT unique_ticket_update_ref UNIQUE (ticket_ref, ticket_key)
+    CONSTRAINT unique_ticket_update_ref UNIQUE (ticket_ref, ticket_key, collection_fk)
 );

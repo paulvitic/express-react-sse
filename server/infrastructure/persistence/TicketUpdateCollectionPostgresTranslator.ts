@@ -39,7 +39,9 @@ export function toFindLatestByProjectQuery(productDevId: string): E.Either<Error
     let query = `
         SELECT * FROM ticket_update_collection AS tuc 
             LEFT JOIN ticket_update AS tu ON tuc.collection_id = tu.collection_fk   
-            WHERE tuc.product_dev_fk=$PROD_DEV_ID AND tuc.status!='COMPLETED';`;
+            WHERE tuc.product_dev_fk=$PROD_DEV_ID 
+            ORDER BY tuc.started_at DESC
+            LIMIT 1;`;
     return E.tryCatch2v(() => {
         query = query.replace(/\$PROD_DEV_ID/, `'${productDevId}'`);
         return query;
@@ -64,8 +66,8 @@ export function toInsertCollectionQuery(collection: TicketUpdateCollection):
     E.Either<Error, string> {
     let query = `
         BEGIN;
-            INSERT INTO ticket_update_collection(collection_id, active, status, product_dev_fk, ticket_board_key, from_day, to_day)
-            VALUES ($ID, $ACTIVE, $STATUS, $PRODUCT_DEV_ID, $TICKET_BOARD_KEY, $FROM, $TO);
+            INSERT INTO ticket_update_collection(collection_id, active, status, product_dev_fk, ticket_board_key, from_day, to_day, started_at)
+            VALUES ($ID, $ACTIVE, $STATUS, $PRODUCT_DEV_ID, $TICKET_BOARD_KEY, $FROM, $TO, $STARTED_AT);
         `;
     return pipe(
         E.tryCatch2v(() => {
@@ -76,6 +78,7 @@ export function toInsertCollectionQuery(collection: TicketUpdateCollection):
             query = query.replace(/\$TICKET_BOARD_KEY/, `'${collection.ticketBoardKey}'`);
             query = query.replace(/\$FROM/, `'${toSqlDate(collection.period.from)}'`);
             query = query.replace(/\$TO/, `'${toSqlDate(collection.period.to)}'`);
+            query = query.replace(/\$STARTED_AT/, `'${toSqlDate(collection.startedAt)}'`);
             return  query;
         }, err => err as Error),
         E.chain(query => array.reduce(collection.ticketUpdates, E.either.of(query), (previous, current) => {
