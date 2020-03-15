@@ -6,6 +6,7 @@ import * as O from "fp-ts/lib/Option";
 import * as E from "fp-ts/lib/Either";
 import TicketBoard from "./product/TicketBoard";
 import {QueryResultRow} from "pg";
+import TicketUpdateCollection from "./product/TicketUpdateCollection";
 
 export interface Repository<A> {
     findById(id: string): TE.TaskEither<Error, O.Option<A>>;

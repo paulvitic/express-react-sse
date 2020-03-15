@@ -1,8 +1,10 @@
 import RedisClient from "../clients/RedisClient";
 import * as TE from "fp-ts/lib/TaskEither";
+import * as E from "fp-ts/lib/Either";
 import * as O from "fp-ts/lib/Option";
 import TicketUpdateCollectionRepository from "../../domain/product/repository/TicketUpdateCollectionRepository";
 import TicketUpdateCollection, {TicketUpdateCollectionStatus} from "../../domain/product/TicketUpdateCollection";
+import {QueryResultRow} from "pg";
 
 export class TicketUpdateCollectionRedisRepo implements TicketUpdateCollectionRepository {
 
@@ -58,6 +60,11 @@ export class TicketUpdateCollectionRedisRepo implements TicketUpdateCollectionRe
     delete(id: string): TE.TaskEither<Error, boolean> {
         throw new Error("Method not implemented.");
     }
+
+    updatec(id: string, update: (collection: TicketUpdateCollection) => E.Either<Error, void>): TE.TaskEither<Error, void> {
+        return undefined;
+    }
+
 }
 
 

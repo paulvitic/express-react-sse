@@ -1,6 +1,5 @@
 import * as TE from "fp-ts/lib/TaskEither";
 import * as E from "fp-ts/lib/Either";
-import * as T from "fp-ts/lib/Task";
 import TicketUpdateCollection, {TicketUpdateCollectionStatus} from "../../TicketUpdateCollection";
 import TicketUpdateCollectionRepository from "../../repository/TicketUpdateCollectionRepository";
 import {pipe} from "fp-ts/lib/pipeable";
@@ -11,11 +10,10 @@ import {
     TicketUpdateCollectionFailed,
     UpdatedTicketsListFetched
 } from "../../event";
-import {TicketChangeLogEvent} from "./TicketChangeLogReader";
 import LogFactory from "../../../LogFactory";
 import {TicketUpdateCollectionProcess} from "./TicketUpdateCollectionProcess";
 
-type TicketUpdateCollectionExecutiveEvent =
+type TicketUpdateCollectionTrackerEvent =
     TicketUpdateCollectionFailed |
     UpdatedTicketsListFetched |
     TicketChanged |
@@ -52,9 +50,9 @@ export class TicketUpdateCollectionTracker extends TicketUpdateCollectionProcess
         )
     }
 
-    onEvent = (sourceEvent: TicketUpdateCollectionExecutiveEvent): Promise<E.Either<Error, void>> => {
+    onEvent = (sourceEvent: TicketUpdateCollectionTrackerEvent): Promise<E.Either<Error, void>> => {
         this.log.info(`Processing event ${sourceEvent.eventType}`);
-        return pipe(
+        /*return pipe(
                 this.repo.findLatestByProject(sourceEvent.prodDevId),
                 TE.chain(collection => collection.isNone() ?
                     TE.leftTask(T.task.of(new Error('collection does not exists'))) :
@@ -64,10 +62,11 @@ export class TicketUpdateCollectionTracker extends TicketUpdateCollectionProcess
                 TE.chainFirst( collection => this.repo.update(collection.id, collection)),
                 TE.chain(collection => this.eventBus.publishEventsOf(collection)),
                 TE.chain(() => TE.taskEither.of(null))
-            ).run()
+            ).run()*/
+        return this.repo.updatec(sourceEvent.aggregateId, this.handle(sourceEvent)).run()
     };
 
-    handleEvent(event: TicketUpdateCollectionExecutiveEvent, collection: TicketUpdateCollection):
+    handleEvent(event: TicketUpdateCollectionTrackerEvent, collection: TicketUpdateCollection):
         E.Either<Error, void> {
         switch (event.eventType) {
             case UpdatedTicketsListFetched.name:
@@ -83,6 +82,24 @@ export class TicketUpdateCollectionTracker extends TicketUpdateCollectionProcess
                     (event as TicketRemainedUnchanged).ticketKey);
             case TicketUpdateCollectionFailed.name:
                 return collection.failed();
+        }
+    }
+
+    handle(event: TicketUpdateCollectionTrackerEvent): (collection: TicketUpdateCollection) => E.Either<Error, void> {
+        switch (event.eventType) {
+            case UpdatedTicketsListFetched.name:
+                return (collection: TicketUpdateCollection) => collection.willReadTickets(
+                    (event as UpdatedTicketsListFetched).updatedTickets);
+            case TicketChanged.name:
+                return (collection: TicketUpdateCollection) => collection.completedForTicket(
+                    (event as TicketChanged).ticketRef,
+                    (event as TicketChanged).ticketKey);
+            case TicketRemainedUnchanged.name:
+                return (collection: TicketUpdateCollection) => collection.completedForTicket(
+                    (event as TicketRemainedUnchanged).ticketRef,
+                    (event as TicketRemainedUnchanged).ticketKey);
+            case TicketUpdateCollectionFailed.name:
+                return (collection: TicketUpdateCollection) => collection.failed();
         }
     }
 

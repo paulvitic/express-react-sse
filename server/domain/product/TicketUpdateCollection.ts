@@ -133,21 +133,26 @@ export default class TicketUpdateCollection extends AggregateRoot {
         }
     };
 
-    willReadTickets(updatedTickets: UpdatedTicket[]): E.Either<Error, void> {
-        return E.tryCatch2v(
-            () => {
+     willReadTickets(updatedTickets: UpdatedTicket[]): E.Either<Error, void> {
+        return pipe(
+            E.tryCatch2v(() => {
                 updatedTickets.map(ticket => this._ticketUpdates.set(ticket.key, new TicketUpdate(Identity.generate(), ticket.id, ticket.key)));
                 return;
-            },
-        err => err as Error
+            }, err => err as Error),
+            E.chain(() => this.checkCompleted())
         )
     }
 
-    completedForTicket(ticketExternalRef: number, ticketKey: string)
+     completedForTicket(ticketExternalRef: number, ticketKey: string)
         :E.Either<Error, void> {
-        return E.tryCatch2v(
-            () => this._ticketUpdates.get(ticketKey).collect(),
-            err => err as Error
+        for (let update of this.ticketUpdates.values()){
+            this.log.info(`current ${update.key} is ${update.collected}`);
+        }
+        this.log.info(`completing for ${ticketKey}`);
+        return pipe (
+            E.tryCatch2v(() => this._ticketUpdates.get(ticketKey).complete(),
+                    err => err as Error),
+            E.chain(() => this.checkCompleted())
         )
     }
 
@@ -164,7 +169,7 @@ export default class TicketUpdateCollection extends AggregateRoot {
     checkCompleted(): E.Either<Error, void> {
         return E.tryCatch2v( () => {
                 let allCollected = true;
-                for (let update of this._ticketUpdates.values()){
+                for (let update of this.ticketUpdates.values()){
                     allCollected = allCollected && update.collected;
                 }
                 if (allCollected) {

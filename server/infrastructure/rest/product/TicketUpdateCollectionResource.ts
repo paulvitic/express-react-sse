@@ -37,7 +37,13 @@ export class TicketUpdateCollectionResource {
                                         next(err);
                                     },
                                     (optionalResult: O.Option<any>) => {
-                                        res.status(201).json(optionalResult.isSome() ? optionalResult.value : {})
+                                        res.status(200);
+                                        res.send(optionalResult.isSome() ?
+                                                JSON.stringify(
+                                                    optionalResult.value,
+                                                    (key, value)=> value instanceof Map ?  Object.fromEntries(value.entries()) : value,
+                                                    2) :
+                                            {})
                                     })
                             })
                             .catch((err) => {

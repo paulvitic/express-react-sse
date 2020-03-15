@@ -162,18 +162,18 @@ export default class RabbitEventBus implements EventBus {
 
     private onMessage = (msg: Message) => {
         this.log.debug(`got msg ${JSON.stringify(msg)}`);
-        this.emit(msg);
-    };
-
-    private emit(msg): E.Either<Error, void> {
-        return pipe(
+        pipe(
             translate.toDomainEvent(msg),
             E.chainFirst(event => E.either.of(this.log.io.info(`received ${event.eventType}`))),
-            E.chain(event => array
-                .map(this.subscribersOf(event), subscriber => this.deliver(subscriber, event))
-                .reduceRight((previous, current) => previous.chain(() => current), E.right(null))),
-            E.fold(() => this.ack(msg, false), () => this.ack(msg, false))
-        )
+            E.chain(event => array.map(this.subscribersOf(event), subscriber => this.deliver(subscriber, event))
+                .reduceRight((previous, current) => previous.chain(() => current), E.right(null)))
+        ).fold(err => {
+            this.log.debug(`rejecting the message ${err.message}`);
+            this.receiveChannel.reject(msg, false);
+        }, () => {
+            this.log.debug(`acknowledging the message`);
+            this.receiveChannel.ack(msg);
+        });
     };
 
     private deliver(listener: EventListener, event: DomainEvent): E.Either<Error, void> {
@@ -185,18 +185,6 @@ export default class RabbitEventBus implements EventBus {
 
     private subscribersOf = (event: DomainEvent): EventListener[] => {
         return O.fromNullable(this.subscribers.get(event.eventType)).getOrElse([])
-    };
-
-    private ack(msg: Message, ok: boolean): E.Either<Error, void> {
-        return E.tryCatch2v(() => {
-            if (ok) {
-                this.log.debug('acknowledging the message');
-                this.receiveChannel.ack(msg);
-            } else {
-                this.log.debug('rejecting the message');
-                this.receiveChannel.reject(msg, false);
-            }
-        }, err => err as Error)
     };
 }
 

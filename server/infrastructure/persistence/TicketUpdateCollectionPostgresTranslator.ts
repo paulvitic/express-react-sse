@@ -9,7 +9,7 @@ import * as O from "fp-ts/lib/Option";
 export function toFindByIdQuery(id: string): E.Either<Error, string> {
     let query = `
         SELECT * FROM ticket_update_collection AS tuc
-        LEFT JOIN ticket_update as tu ON tuc.collection_id = tu.collection_fk
+        LEFT JOIN ticket_update AS tu ON tuc.collection_id = tu.collection_fk
         WHERE tuc.collection_id=$ID;`;
     return E.tryCatch2v(() => {
         query = query.replace(/\$ID/, `'${id}'`);
@@ -20,9 +20,8 @@ export function toFindByIdQuery(id: string): E.Either<Error, string> {
 export function toFindByStatusQuery(status: TicketUpdateCollectionStatus): E.Either<Error, string> {
     let query = `
         SELECT * FROM ticket_update_collection AS tuc
-        LEFT JOIN ticket_update as tu ON tuc.collection_id = tu.collection_fk
+        LEFT JOIN ticket_update AS tu ON tuc.collection_id = tu.collection_fk
         WHERE tuc.status=$STATUS;`;
-
     return E.tryCatch2v(() => {
         query = query.replace(/\$STATUS/, `'${TicketUpdateCollectionStatus[status]}'`);
         return query;
@@ -32,13 +31,24 @@ export function toFindByStatusQuery(status: TicketUpdateCollectionStatus): E.Eit
 export function toFindLatestByProjectQuery(productDevId: string): E.Either<Error, string> {
     let query = `
         SELECT * FROM ticket_update_collection AS tuc 
-        LEFT JOIN ticket_update as tu ON tuc.collection_id = tu.collection_fk   
-        WHERE tuc.product_dev_fk=$PROD_DEV_ID 
-        ORDER BY tuc.started_at DESC 
-        LIMIT 1;`;
-
+        LEFT JOIN ticket_update AS tu ON tuc.collection_id = tu.collection_fk   
+        WHERE tuc.product_dev_fk=$PROD_DEV_ID AND tuc.status!='COMPLETED';`;
     return E.tryCatch2v(() => {
         query = query.replace(/\$PROD_DEV_ID/, `'${productDevId}'`);
+        return query;
+    }, err => err as Error)
+}
+
+export function toSelectForUpdateQuery(id: string): E.Either<Error, string> {
+    let query = `
+        BEGIN;
+        SELECT * FROM ticket_update_collection AS tuc 
+        LEFT JOIN ticket_update AS tu ON tuc.collection_id = tu.collection_fk 
+        WHERE tuc.collection_id=$ID 
+        FOR UPDATE OF tuc;
+    `;
+    return E.tryCatch2v(() => {
+        query = query.replace(/\$ID/, `'${id}'`);
         return query;
     }, err => err as Error)
 }
@@ -67,10 +77,9 @@ export function toInsertCollectionQuery(collection: TicketUpdateCollection):
     )
 }
 
-export function toUpdateCollectionQuery(id: string, collection: TicketUpdateCollection):
+export function toUpdateCollectionQuery(collection: TicketUpdateCollection):
     E.Either<Error, string> {
     let query = `
-        BEGIN;
         UPDATE ticket_update_collection SET 
         status=$STATUS, from_day=$FROM, to_day=$TO, started_at=$STARTED_AT, ended_at=$ENDED_AT 
         WHERE collection_id=$ID;
@@ -123,7 +132,7 @@ function toInsertTicketUpdateQuery(ticketUpdate: TicketUpdate, collectionId: str
 function toTicketUpdate(u: any):
     E.Either<Error, TicketUpdate> {
     return E.tryCatch2v(() => {
-        return new TicketUpdate(
+        return new TicketUpdate (
                 u.ticket_update_id,
                 u.ticket_ref,
                 u.ticket_key,
@@ -187,6 +196,5 @@ function groupRows(map: Map<string, any[]>, row: any) {
 function toSqlDate(date: Date) {
     let tzOffset = (new Date()).getTimezoneOffset() * 60000;
     return new Date(date.getTime() - tzOffset).toISOString().slice(0, 19).replace('T', ' ');
-    //return date.toISOString().slice(0, 19).replace('T', ' ')
 }
 
