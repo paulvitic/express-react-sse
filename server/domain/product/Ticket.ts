@@ -1,6 +1,6 @@
 import AggregateRoot from "../AggregateRoot";
 import LogFactory from "../LogFactory";
-import TicketHistory from "./TicketHistory";
+import {TicketHistory} from "./TicketHistory";
 import {ChangeLog} from "./service/TicketBoardIntegration";
 import * as E from "fp-ts/lib/Either";
 

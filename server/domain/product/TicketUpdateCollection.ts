@@ -187,10 +187,7 @@ export default class TicketUpdateCollection extends AggregateRoot {
 
     completedForTicket(ticketExternalRef: number, ticketKey: string, changeLog: ChangeLog[]):
         E.Either<Error, void> {
-        for (let update of this.ticketUpdates.values()) {
-            this.log.info(`current ${update.key} is ${update.collected}`);
-        }
-        this.log.info(`completing for ${ticketKey}`);
+        this.log.debug(`completing for ${ticketKey}`);
         return pipe(
             E.tryCatch2v(() => {
                 this._ticketUpdates.get(ticketKey).complete();
