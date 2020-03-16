@@ -35,7 +35,7 @@ export default class UpdatedTicketsListCollector extends TicketUpdateCollectionP
         TE.TaskEither<Error,void> {
         return this.integration.getUpdatedTickets(sourceEvent.ticketBoardKey, new Date(sourceEvent.fromDate), new Date(sourceEvent.toDate))
             .foldTaskEither(
-                err => TE.fromEither(collection.failCollection(UpdatedTicketsListCollector.name, err.message)),
+                err => TE.fromEither(collection.fail(UpdatedTicketsListCollector.name, err.message)),
                 updatedTickets => TE.fromEither(collection.willReadTickets(updatedTickets)))
     }
 }

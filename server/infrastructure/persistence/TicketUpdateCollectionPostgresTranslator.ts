@@ -8,8 +8,7 @@ import * as O from "fp-ts/lib/Option";
 import DomainEvent from "../../domain/DomainEvent";
 import {
     TicketChanged,
-    TicketRemainedUnchanged, TicketUpdateCollectionCompleted,
-    TicketUpdateCollectionFailed, TicketUpdateCollectionStarted,
+    TicketRemainedUnchanged,
     UpdatedTicketsListFetched
 } from "../../domain/product/event";
 
@@ -35,29 +34,14 @@ export function toFindByStatusQuery(status: TicketUpdateCollectionStatus): E.Eit
     }, err => err as Error)
 }
 
-export function toFindLatestByProjectQuery(productDevId: string): E.Either<Error, string> {
+export function toFindLatestIdByProjectQuery(productDevId: string): E.Either<Error, string> {
     let query = `
-        SELECT * FROM ticket_update_collection AS tuc 
-            LEFT JOIN ticket_update AS tu ON tuc.collection_id = tu.collection_fk   
-            WHERE tuc.product_dev_fk=$PROD_DEV_ID 
-            ORDER BY tuc.started_at DESC
+        SELECT * FROM ticket_update_collection  
+            WHERE product_dev_fk=$PROD_DEV_ID 
+            ORDER BY started_at DESC
             LIMIT 1;`;
     return E.tryCatch2v(() => {
         query = query.replace(/\$PROD_DEV_ID/, `'${productDevId}'`);
-        return query;
-    }, err => err as Error)
-}
-
-export function toSelectForUpdateQuery(id: string): E.Either<Error, string> {
-    let query = `
-        BEGIN;
-        SELECT * FROM ticket_update_collection AS tuc 
-            LEFT JOIN ticket_update AS tu ON tuc.collection_id = tu.collection_fk 
-            WHERE tuc.collection_id=$ID 
-            FOR UPDATE OF tuc;
-    `;
-    return E.tryCatch2v(() => {
-        query = query.replace(/\$ID/, `'${id}'`);
         return query;
     }, err => err as Error)
 }
@@ -239,7 +223,7 @@ function groupRows(map: Map<string, any[]>, row: any) {
 }
 
 
-function toSqlDate(date: Date) {
+function toSqlDate(date: Date): string {
     let tzOffset = (new Date()).getTimezoneOffset() * 60000;
     return new Date(date.getTime() - tzOffset).toISOString().slice(0, 19).replace('T', ' ');
 }

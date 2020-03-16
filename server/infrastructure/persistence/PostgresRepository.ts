@@ -6,7 +6,6 @@ import {TaskEither} from "fp-ts/lib/TaskEither";
 import {Option} from "fp-ts/lib/Option";
 import PostgresClient from "../clients/PostgresClient";
 import {pipe} from "fp-ts/lib/pipeable";
-import LogFactory from "../../domain/LogFactory";
 
 export default abstract class PostgresRepository<A> implements Repository<A> {
     protected readonly commitQuery = `
@@ -33,5 +32,10 @@ export default abstract class PostgresRepository<A> implements Repository<A> {
             this.client.query(this.rollBackQuery),
             TE.chain(() => TE.left(T.task.of(err)))
         )
+    }
+
+    static toSqlDate(date: Date): string {
+        let tzOffset = (new Date()).getTimezoneOffset() * 60000;
+        return new Date(date.getTime() - tzOffset).toISOString().slice(0, 19).replace('T', ' ');
     }
 }

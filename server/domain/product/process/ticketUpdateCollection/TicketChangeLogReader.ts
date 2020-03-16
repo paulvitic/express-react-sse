@@ -49,7 +49,7 @@ export default class TicketChangeLogReader extends TicketUpdateCollectionProcess
         TE.TaskEither<Error,void>{
         return this.integration.readTicketChangeLog(updatedTicket.key, new Date(sourceEvent.fromDate), new Date(sourceEvent.toDate))
             .foldTaskEither(
-                err => TE.fromEither(collection.failCollection(TicketChangeLogReader.name, err.message)),
+                err => TE.fromEither(collection.fail(TicketChangeLogReader.name, err.message)),
                 optionalResponse => TE.fromEither(optionalResponse.foldL(
                     () => collection.completedForTicket(updatedTicket.id, updatedTicket.key, []),
                     response => collection.completedForTicket(updatedTicket.id, updatedTicket.key, response.changeLog)

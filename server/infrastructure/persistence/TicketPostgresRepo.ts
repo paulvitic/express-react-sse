@@ -3,7 +3,7 @@ import * as O from 'fp-ts/lib/Option'
 import {TicketRepository} from "../../domain/product/repository/TicketRepository";
 import Ticket from "../../domain/product/Ticket";
 
-export class TicketPostgresRepo implements TicketRepository{
+export class TicketPostgresRepo implements TicketRepository {
 
     delete(id: string): TE.TaskEither<Error, boolean> {
         return undefined;

@@ -59,32 +59,6 @@ export default class TicketUpdateCollection extends AggregateRoot {
             new Map<string, TicketUpdate>()
     }
 
-    static create(productDevId: string, ticketBoardKey: string, from: Date)
-        : E.Either<Error, TicketUpdateCollection> {
-        return pipe(
-            E.tryCatch2v(
-                () => new TicketUpdateCollection(
-                    Identity.generate(),
-                    true,
-                    TicketUpdateCollectionStatus.PENDING,
-                    productDevId,
-                    ticketBoardKey,
-                    from,
-                    TicketUpdateCollection.getPeriodEnd(from),
-                    new Date()),
-                err => new TicketUpdateCollectionError(`error while creating pending ticket update collection: ${(err as Error).message}`)),
-            E.chainFirst(collection =>
-                collection.recordEvent(new TicketUpdateCollectionCreated(
-                    TicketUpdateCollection.name,
-                    collection.id,
-                    collection.status,
-                    collection.productDevId,
-                    collection.ticketBoardKey,
-                    collection.period.from.toISOString(),
-                    collection.period.to.toISOString())))
-        )
-    }
-
     get productDevId(): string {
         return this._productDevId
     }
@@ -123,12 +97,42 @@ export default class TicketUpdateCollection extends AggregateRoot {
         return this._ticketUpdates.get(key);
     }
 
-    startCollection = (): E.Either<Error, void> => {
+    static create(productDevId: string, ticketBoardKey: string, from: Date)
+        : E.Either<Error, TicketUpdateCollection> {
+        return pipe(
+            E.tryCatch2v(() => {
+                return new TicketUpdateCollection(
+                    Identity.generate(),
+                    true,
+                    TicketUpdateCollectionStatus.PENDING,
+                    productDevId,
+                    ticketBoardKey,
+                    from,
+                    TicketUpdateCollection.periodEnd(from),
+                    new Date())
+            }, err => new TicketUpdateCollectionError(`error while creating pending ticket update collection: ${(err as Error).message}`)),
+            E.chainFirst(collection =>
+                collection.recordEvent(new TicketUpdateCollectionCreated(
+                    TicketUpdateCollection.name,
+                    collection.id,
+                    collection.status,
+                    collection.productDevId,
+                    collection.ticketBoardKey,
+                    collection.period.from.toISOString(),
+                    collection.period.to.toISOString())))
+        )
+    }
+
+    start = (): E.Either<Error, void> => {
         this.log.debug("starting");
         return E.tryCatch2v(() => {
-            if (this._status === TicketUpdateCollectionStatus.FAILED ||
-                this._status === TicketUpdateCollectionStatus.PENDING) {
-                // FIXME also check period end date can not be larger then now
+            if (this._status === TicketUpdateCollectionStatus.RUNNING) {
+                throw new Error(`a collection from ticket board ${this.ticketBoardKey} is already running.`)
+            } else if (this._status === TicketUpdateCollectionStatus.COMPLETED) {
+                throw new Error(`completed collection from ticket board ${this.ticketBoardKey} can not run again.`)
+            } else if (this.period.to.getTime() > new Date().getTime()) {
+                throw new Error(`collection from ticket board ${this.ticketBoardKey} can not run before the day ends`)
+            } else {
                 this._startedAt = new Date();
                 this._status = TicketUpdateCollectionStatus.RUNNING;
                 this.recordEvent(new TicketUpdateCollectionStarted(
@@ -137,15 +141,14 @@ export default class TicketUpdateCollection extends AggregateRoot {
                     this.productDevId,
                     this.ticketBoardKey,
                     this.period.from.toISOString(),
-                    this.period.to.toISOString()))
-            } else {
-                throw new Error(`collection in status ${TicketUpdateCollectionStatus[this.status]} can not start`);
+                    this.period.to.toISOString()));
+                return;
             }
         }, err => err as Error)
     };
 
-    failCollection = (atProcessor: string, reson: string): E.Either<Error, void> => {
-        this.log.info("failing");
+    fail = (atProcessor: string, reson: string): E.Either<Error, void> => {
+        this.log.debug("failing");
         return E.tryCatch2v(() => {
             this._endedAt = new Date();
             this._status = TicketUpdateCollectionStatus.FAILED;
@@ -178,7 +181,7 @@ export default class TicketUpdateCollection extends AggregateRoot {
                     updatedTickets));
                 return;
             }, err => err as Error),
-            E.chain(() => this.checkCompleted())
+            E.chain(() => this.complete())
         )
     }
 
@@ -207,12 +210,12 @@ export default class TicketUpdateCollection extends AggregateRoot {
                         ticketKey));
                 return;
             }, err => err as Error),
-            E.chain(() => this.checkCompleted())
+            E.chain(() => this.complete())
         )
     }
 
-    private checkCompleted(): E.Either<Error, void> {
-        this.log.info("checking complete");
+    private complete(): E.Either<Error, void> {
+        this.log.debug("checking complete");
         return E.tryCatch2v(() => {
             if (this._status !== TicketUpdateCollectionStatus.COMPLETED) {
                 let allCollected = true;
@@ -235,7 +238,7 @@ export default class TicketUpdateCollection extends AggregateRoot {
         }, err => err as Error)
     }
 
-    private static getPeriodEnd(from: Date): Date {
+    private static periodEnd(from: Date): Date {
         let to = new Date(from);
         to.setDate(to.getDate() + 1);
         return to;

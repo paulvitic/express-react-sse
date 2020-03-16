@@ -30,9 +30,11 @@ implements TicketUpdateCollectionRepository {
 
     findLatestByProject(prodDevId: string): TE.TaskEither<Error, O.Option<TicketUpdateCollection>> {
         return pipe(
-            TE.fromEither(translate.toFindLatestByProjectQuery(prodDevId)),
+            TE.fromEither(translate.toFindLatestIdByProjectQuery(prodDevId)),
             TE.chain(query => this.client.query(query)),
-            TE.chain( result => TE.fromEither(translate.fromFindOptionalCollectionResult(result))
+            TE.chain( result => result.rows.length === 0 ?
+                TE.right2v(O.none) :
+                this.findById(result.rows[0].collection_id)
             )
         )
     }

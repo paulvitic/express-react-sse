@@ -46,19 +46,10 @@ export default class PostgresClient {
         })
     };
 
-     executeQuery(query: QueryConfig): TE.TaskEither<Error, QueryResultRow>{
-        return TE.tryCatch(() => this.connPool.query(query),
-                error => new Error(`Error while executing query: ${String(error)}`))
-    }
-
      query = (text: string, values?: any[]): TE.TaskEither<Error, QueryResultRow> => {
          let queryConfig = {text, values};
          this.log.info(text);
          return TE.tryCatch(() => this.connPool.query(queryConfig),
             error => new Error(`Error while executing query: ${String(error)}`))
     };
-
-    client = async () => {
-        return await this.connPool.connect();
-    }
 }

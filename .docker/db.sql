@@ -37,12 +37,14 @@ CREATE TABLE jira.ticket_update_collection
     status           VARCHAR(31) NOT NULL,
     product_dev_fk   VARCHAR(31) NOT NULL,
     ticket_board_key VARCHAR(31) NOT NULL,
-    from_day         DATE   NOT NULL,
-    to_day           DATE   NOT NULL,
+    from_day         DATE        NOT NULL,
+    to_day           DATE        NOT NULL,
     started_at       TIMESTAMP,
     ended_at         TIMESTAMP,
     FOREIGN KEY (product_dev_fk) REFERENCES product_development (product_dev_id)
 );
+
+CREATE INDEX ticket_update_collection_product_dev_fk_idx ON jira.ticket_update_collection (product_dev_fk, started_at DESC);
 
 CREATE TABLE jira.ticket_update
 (
@@ -54,3 +56,25 @@ CREATE TABLE jira.ticket_update
     FOREIGN KEY (collection_fk) REFERENCES ticket_update_collection (collection_id),
     CONSTRAINT unique_ticket_update_ref UNIQUE (ticket_ref, ticket_key, collection_fk)
 );
+
+CREATE TABLE jira.ticket_history
+(
+    current            BOOLEAN     NOT NULL,
+    product_dev_fk     VARCHAR(31) NOT NULL,
+    ticket_ref         INT         NOT NULL,
+    ticket_key         VARCHAR(31) NOT NULL,
+    started_at         TIMESTAMP   NOT NULL,
+    ended_at           TIMESTAMP,
+    duration           INT,
+    sprint             VARCHAR(31),
+    sprint_count       INT,
+    status             VARCHAR(31),
+    issue_type         VARCHAR(31),
+    for_chapter_ticket boolean,
+    chapter            VARCHAR(31),
+    assignee           VARCHAR(31),
+    for_product_dev    boolean,
+    FOREIGN KEY (product_dev_fk) REFERENCES product_development (product_dev_id)
+);
+
+CREATE INDEX ticket_history_idx ON jira.ticket_history (ticket_ref, current, started_at DESC);

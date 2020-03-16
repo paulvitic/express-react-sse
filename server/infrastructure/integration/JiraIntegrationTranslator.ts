@@ -1,5 +1,5 @@
 import {
-    ChangeLog,
+    ChangeLog, ChangelogFilter,
     TicketBoardInfo,
     TicketBoardIntegrationFailure, TicketChangeLog,
     UpdatedTicket
@@ -10,74 +10,6 @@ import {array} from "fp-ts/lib/Array";
 import * as O from "fp-ts/lib/Option";
 import {pipe} from "fp-ts/lib/pipeable";
 import LogFactory from "../../domain/LogFactory";
-
-const changelogFilter = {
-    customfield_10011: {
-        field: "Rank",
-        fieldId: "customfield_10011",
-        use: false
-    },
-    customfield_10010: {
-        field: "Sprint",
-        fieldId: "customfield_10010",
-        use: true
-    },
-    status : {
-        field: "status",
-        fieldId: "status",
-        use: true
-    },
-    issuetype: {
-        field: "issuetype",
-        fieldId: "issuetype",
-        use: true
-    },
-    Workflow: {
-        field: "Workflow",
-        fieldId: undefined,
-        use: false
-    },
-    customfield_10031: {
-        field: "Story point estimate",
-        fieldId: "customfield_10031",
-        use: false
-    },
-    labels: {
-        field: "labels",
-        fieldId: "labels",
-        use: true
-    },
-    assignee: {
-        field: "assignee",
-        fieldId: "assignee",
-        use: true
-    },
-    description: {
-        field: "description",
-        fieldId: "description",
-        use: false
-    },
-    customfield_10017: {
-        field: "Complexity Points",
-        fieldId: "customfield_10017",
-        use: false
-    },
-    project: {
-        field: "project",
-        fieldId: undefined,
-        use: true
-    },
-    Key: {
-        field: "Key",
-        fieldId: undefined,
-        use: true
-    },
-    customfield_10008: {
-        field: "Epic Link",
-        fieldId: "customfield_10008", // check if this can really be used as epic link and therefore product feature
-        use: true
-    }
-};
 
 export function toGetUpdatedTicketsUrl(baseUrl:string, key:string, from, to):
     E.Either<Error, string>{
@@ -171,11 +103,11 @@ function fromHistoryEntries(entries: any[], timeStamp: string): ChangeLog[] {
     return array.filterMap(entries, entry => {
         let {field, fieldId, from, fromString, to, toString} = entry;
         return pipe(
-            O.fromNullable(changelogFilter[field] || changelogFilter[fieldId]),
+            O.fromNullable(ChangelogFilter[field] || ChangelogFilter[fieldId]),
             O.fold(() => warnUnmappedField(field, fieldId),
                     filter => O.some(filter)),
             O.filter(filter => filter.use),
-            O.map(() => {return {field, timeStamp, fieldId, from, fromString, to, toString}})
+            O.map(filter => {return {type: filter.type, timeStamp, from, fromString, to, toString}})
         )
     })
 }

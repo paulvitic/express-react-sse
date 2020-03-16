@@ -5,7 +5,6 @@ import {
     UpdatedTicket
 } from "../../../server/domain/product/service/TicketBoardIntegration";
 import TicketBoard from "../../../server/domain/product/TicketBoard";
-import {NextTicketUpdateCollectionPeriod} from "../../../server/domain/product/view/NextTicketUpdateCollectionPeriod";
 import TicketUpdateCollection, {TicketUpdateCollectionPeriod} from "../../../server/domain/product/TicketUpdateCollection";
 import {UpdatedTicketsListFetched} from "../../../server/domain/product/event";
 
@@ -34,13 +33,6 @@ export const PROJECT_INFO_FIXTURE: TicketBoardInfo = {
         name: TicketBoard.PRODUCT_DEV_PROJECT_CATEGORY,
         description: "",
     }
-};
-
-export const NEXT_COLLECTION_PERIOD_FIXTURE: NextTicketUpdateCollectionPeriod = {
-    prodDevId: PRODUCT_DEV_ID_FIXTURE,
-    ticketBoardKey: TICKET_BOARD_KEY_FIXTURE,
-    devProjectStartedOn: PRODUCT_DEV_STARTED_ON_FIXTURE,
-    lastTicketUpdateCollectionPeriodEnd: null
 };
 
 export const UPDATED_TICKET_FIXTURE_0: UpdatedTicket = {

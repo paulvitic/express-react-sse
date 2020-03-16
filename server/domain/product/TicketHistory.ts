@@ -1,7 +1,6 @@
 import DomainEntity from "../DomainEntity";
 
-export default class TicketHistory extends DomainEntity {
+export default class TicketHistory {
     constructor(id: string) {
-        super(id);
     }
 }

@@ -27,7 +27,7 @@ export class TicketUpdateCollectionExecutive {
             TE.chain(collection => collection.status === TicketUpdateCollectionStatus.COMPLETED ?
                 this.create(prodDevId, ticketBoardKey, collection.period.to) :
                 TE.right2v(collection)),
-            TE.chainFirst(collection => TE.fromEither(collection.startCollection())),
+            TE.chainFirst(collection => TE.fromEither(collection.start())),
             TE.chainFirst(collection => this.repo.update(collection.id, collection)),
             TE.chain(collection => this.eventBus.publishEventsOf(collection))
         )

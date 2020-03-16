@@ -42,6 +42,7 @@ import UpdatedTicketsListCollector
 import TicketBoardIntegration from "../../domain/product/service/TicketBoardIntegration";
 import TicketChangeLogReader from "../../domain/product/process/ticketUpdateCollection/TicketChangeLogReader";
 import {TicketHandler} from "../../domain/product/policy/TicketHandler";
+import {TicketHistoryPostgresProjection} from "../persistence/TicketHistoryPostgresProjection";
 
 const exit = process.exit;
 
@@ -84,6 +85,9 @@ type Context = {
             rest: {
                 productDevelopmentResource? : ProductDevelopmentResource,
                 ticketUpdateCollectionResource?: TicketUpdateCollectionResource
+            },
+            projection: {
+                ticketHistoryPostgresProjection?: TicketHistoryPostgresProjection
             }
         }
     },
@@ -124,7 +128,8 @@ export default class App {
                 services: {}
             },
             infrastructure: {
-                rest: {}
+                rest: {},
+                projection: {}
             }
         },
         team: {
@@ -170,6 +175,7 @@ export default class App {
 
                 await this.initApplicationServices();
                 await this.initResources();
+                await this.initProjections();
 
                 await this.registerEvents();
                 await this.initDomainEventListeners();
@@ -334,6 +340,19 @@ export default class App {
         })
     };
 
+    private initProjections = (): Promise<void> => {
+        return new Promise<void>(async (resolve, reject) => {
+            try {
+                this.context.product.infrastructure.projection.ticketHistoryPostgresProjection =
+                    new TicketHistoryPostgresProjection(this.context.common.clients.postgresClient);
+
+                resolve();
+            }catch (e) {
+                reject(new Error("error while initializing projections: " + e.message ))
+            }
+        })
+    };
+
     private initDomainEventListeners = (): Promise<void> => {
         return new Promise<void>(async (resolve, reject) => {
             try {
@@ -348,12 +367,13 @@ export default class App {
                     ]);
 
                 this.context.common.eventBus.subscribe(
-                    this.context.product.domain.policy.ticketHandler, [
+                    this.context.product.infrastructure.projection.ticketHistoryPostgresProjection, [
                         TicketChanged.name
                     ]);
+
                 resolve();
             } catch (e) {
-                reject(new Error("error while initializing event store: " + e.message ))
+                reject(new Error("error while initializing event listeners: " + e.message ))
             }
         })
     };

@@ -5,7 +5,7 @@ import {pipe} from "fp-ts/lib/pipeable";
 import * as TE from "fp-ts/lib/TaskEither";
 import LogFactory from "../../LogFactory";
 import {TicketChanged} from "../event";
-import {TicketRepository} from "../repository/TicketRepository";
+import {TicketRepository} from "../repository";
 import Ticket from "../Ticket";
 
 export class TicketHandler implements EventListener<TicketChanged> {
