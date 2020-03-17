@@ -59,7 +59,7 @@ CREATE TABLE jira.ticket_update
 
 CREATE TABLE jira.ticket_history
 (
-    current         BOOLEAN     NOT NULL,
+    latest         BOOLEAN     NOT NULL,
     product_dev_fk  VARCHAR(31) NOT NULL,
     ticket_ref      INT         NOT NULL,
     ticket_key      VARCHAR(31) NOT NULL,
@@ -77,4 +77,4 @@ CREATE TABLE jira.ticket_history
     FOREIGN KEY (product_dev_fk) REFERENCES product_development (product_dev_id)
 );
 
-CREATE INDEX ticket_history_idx ON jira.ticket_history (ticket_ref, current, started_at DESC);
+CREATE INDEX ticket_history_idx ON jira.ticket_history (ticket_ref, latest, started_at DESC);

@@ -18,24 +18,24 @@ export default class UpdatedTicketsListCollector extends TicketUpdateCollectionP
         super(repo, eventBus)
     }
 
-    onEvent(sourceEvent: TicketUpdateCollectionStarted): Promise<E.Either<Error, boolean>> {
-        this.log.info(`Processing event ${sourceEvent.eventType}`);
+    onEvent(event: TicketUpdateCollectionStarted): Promise<E.Either<Error, boolean>> {
+        this.log.info(`Processing event ${event.eventType}`);
         return pipe(
-            this.repo.findById(sourceEvent.aggregateId),
+            this.repo.findById(event.aggregateId),
             TE.chain(collection => collection.isNone() ?
                 TE.left2v(new Error('collection does not exists')) :
                 TE.right2v(collection.value)),
-            TE.chainFirst(collection => this.fetchUpdatedTicketsList(sourceEvent, collection)),
+            TE.chainFirst(collection => this.fetchUpdatedTicketsList(event, collection)),
             TE.chain(collection => this.repo.update(collection.id, collection)),
             TE.chain(collection => this.eventBus.publishEventsOf(collection)),
         ).run();
     }
 
-    fetchUpdatedTicketsList(sourceEvent: TicketUpdateCollectionStarted, collection: TicketUpdateCollection):
+    fetchUpdatedTicketsList(event: TicketUpdateCollectionStarted, collection: TicketUpdateCollection):
         TE.TaskEither<Error,void> {
-        return this.integration.getUpdatedTickets(sourceEvent.ticketBoardKey, new Date(sourceEvent.fromDate), new Date(sourceEvent.toDate))
+        return this.integration.getUpdatedTickets(event.ticketBoardKey, new Date(event.fromDate), new Date(event.toDate))
             .foldTaskEither(
                 err => TE.fromEither(collection.fail(UpdatedTicketsListCollector.name, err.message)),
-                updatedTickets => TE.fromEither(collection.willReadTickets(sourceEvent.prodDevStartedOn, updatedTickets)))
+                updatedTickets => TE.fromEither(collection.willReadTickets(event.prodDevStartedOn, updatedTickets)))
     }
 }

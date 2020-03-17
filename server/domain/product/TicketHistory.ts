@@ -1,18 +1,18 @@
 
 export type TicketHistory = {
-    current: boolean
-    productDevId: string
+    latest: boolean
+    prodDevId: string
     ticketRef: number,
     ticketKey: string,
     startedAt: Date,
-    endedAt: Date,
-    duration: number,
-    sprint: string,
-    sprintCount: number,
-    status: string,
-    issueType: string,
-    forChapter: boolean,
-    chapter: string,
-    assignee: string,
-    forProductDev: boolean
+    endedAt: Date | null,
+    duration: number | null,
+    sprint: string | null,
+    sprintCount: number | null,
+    status: string | null,
+    issueType: string | null,
+    forChapter: boolean | null,
+    chapter: string | null,
+    assignee: string | null,
+    forProductDev: boolean | null
 }

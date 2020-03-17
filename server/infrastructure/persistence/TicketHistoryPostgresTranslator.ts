@@ -18,12 +18,13 @@ function dateValueOrNull(value: Date): string {
 function toRow(history: TicketHistory): E.Either<Error, any> {
     return E.tryCatch2v(() => {
         return {
-            current: valueOrNull(history.current),
-            product_dev_fk: stringValueOrNull(history.productDevId),
+            latest: valueOrNull(history.latest),
+            product_dev_fk: stringValueOrNull(history.prodDevId),
             ticket_ref: valueOrNull(history.ticketRef),
             ticket_key: stringValueOrNull(history.ticketKey),
             started_at: dateValueOrNull(history.startedAt),
             ended_at: dateValueOrNull(history.endedAt),
+            assignee: stringValueOrNull(history.assignee),
             duration: valueOrNull(history.duration),
             sprint: stringValueOrNull(history.sprint),
             sprint_count: valueOrNull(history.sprintCount),
@@ -31,16 +32,15 @@ function toRow(history: TicketHistory): E.Either<Error, any> {
             issue_type: stringValueOrNull(history.sprint),
             for_chapter: valueOrNull(history.forChapter),
             chapter: stringValueOrNull(history.chapter),
-            assignee: stringValueOrNull(history.assignee),
             for_product_dev: valueOrNull(history.forProductDev)
-        }
+        };
     }, err => err as Error)
 }
 
 export function toHistory(row: any): TicketHistory {
     return {
-        current: row.current,
-        productDevId: row.product_dev_fk,
+        latest: row.latest,
+        prodDevId: row.product_dev_fk,
         ticketRef: row.ticket_ref,
         ticketKey: row.ticket_key,
         startedAt: new Date(row.started_at),
@@ -62,11 +62,11 @@ export function toInsertQuery(history: TicketHistory, query: string): E.Either<E
         toRow(history),
         E.chain(row => E.tryCatch2v(() => {
             let insertQuery = `
-             INSERT INTO ticket_history (current, product_dev_fk, ticket_ref, ticket_key, 
+             INSERT INTO ticket_history (latest, product_dev_fk, ticket_ref, ticket_key, 
                                          started_at, ended_at, duration, 
                                          sprint, sprint_count, status, issue_type, 
                                          for_chapter, chapter, assignee, for_product_dev)
-                VALUES (${row.current}, ${row.product_dev_fk}, ${row.ticket_ref}, ${row.ticket_key}, 
+                VALUES (${row.latest}, ${row.product_dev_fk}, ${row.ticket_ref}, ${row.ticket_key}, 
                         ${row.started_at}, ${row.ended_at}, ${row.duration},
                         ${row.sprint}, ${row.sprint_count}, ${row.status}, ${row.issue_type}, 
                         ${row.for_chapter}, ${row.chapter}, ${row.assignee}, ${row.for_product_dev});
@@ -82,13 +82,13 @@ export function toUpdateQuery(history: TicketHistory, query: string): E.Either<E
         E.chain(row => E.tryCatch2v(() => {
             let updateQuery = `
              UPDATE ticket_history 
-                SET current=${row.current}, ticket_key=${row.ticket_key}, 
+                SET latest=${row.latest}, ticket_key=${row.ticket_key}, 
                     ended_at=${row.ended_at}, duration=${row.duration},
                     sprint=${row.sprint}, sprint_count=${row.sprint_count}, 
                     status=${row.status}, issue_type=${row.issue_type}, 
                     for_chapter=${row.for_chapter}, chapter=${row.chapter}, 
                     assignee=${row.assignee}, for_product_dev=${row.for_product_dev}
-                WHERE current=true AND ticket_ref='${row.ticket_ref}';
+                WHERE latest=true AND ticket_ref='${row.ticket_ref}';
                 `;
             return query + updateQuery;
         }, err => err as Error))

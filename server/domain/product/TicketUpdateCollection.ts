@@ -187,7 +187,7 @@ export default class TicketUpdateCollection extends AggregateRoot {
         )
     }
 
-    completedForTicket(ticketExternalRef: number, ticketKey: string, changeLog: ChangeLog[]):
+    completedForTicket(prodDevStart:string, ticketExternalRef: number, ticketKey: string, changeLog: ChangeLog[]):
         E.Either<Error, void> {
         this.log.debug(`completing for ${ticketKey}`);
         return pipe(
@@ -198,6 +198,7 @@ export default class TicketUpdateCollection extends AggregateRoot {
                         TicketUpdateCollection.name,
                         this.id,
                         this.productDevId,
+                        prodDevStart,
                         ticketExternalRef,
                         ticketKey,
                         changeLog)) :
@@ -222,7 +223,7 @@ export default class TicketUpdateCollection extends AggregateRoot {
                     allCollected = allCollected && update.collected;
                 }
                 if (allCollected) {
-                    this.log.info("completed");
+                    this.log.debug("completed");
                     this._status = TicketUpdateCollectionStatus.COMPLETED;
                     this._endedAt = new Date();
                     this.recordEvent(new TicketUpdateCollectionCompleted(
