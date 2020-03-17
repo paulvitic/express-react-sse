@@ -6,17 +6,12 @@ import LogFactory from "../../domain/LogFactory";
 import PostgresClient from "../clients/PostgresClient";
 import {pipe} from "fp-ts/lib/pipeable";
 import * as translate  from "./ProductDevPostgresTranslator";
-import PostgresRepository from "./PostgresRepository";
 
-export default class ProductDevPostgresRepo
-    extends PostgresRepository<ProductDevelopment>
-    implements ProductDevelopmentRepository {
+export default class ProductDevPostgresRepo implements ProductDevelopmentRepository {
 
     private readonly log = LogFactory.get(ProductDevPostgresRepo.name);
 
-    constructor(client: PostgresClient) {
-        super(client)
-    }
+    constructor(private readonly client: PostgresClient) {}
 
     delete(id: string): TE.TaskEither<Error, boolean> {
         throw new Error("Method not implemented.");
@@ -47,11 +42,12 @@ export default class ProductDevPostgresRepo
             TE.fromEither(translate.toInsertProductDevQuery(productDev)),
             TE.chainFirst(query => TE.rightIO(this.log.io.debug(`Executing insert query: ${query}`))),
             TE.chain(query => this.client.query(query).foldTaskEither(
-                err => this.rollBack(err),
-                result => this.commit(result))),
+                err => this.client.rollBack(err),
+                result => this.client.commit(result))),
             TE.chain( () => TE.taskEither.of(productDev)),
         )
     };
+
 
     update = (id: string, item: ProductDevelopment)
         : TE.TaskEither<Error, ProductDevelopment> => {

@@ -123,7 +123,7 @@ export default class TicketUpdateCollection extends AggregateRoot {
         )
     }
 
-    start = (): E.Either<Error, void> => {
+    start = (prodDevStart:Date): E.Either<Error, void> => {
         this.log.debug("starting");
         return E.tryCatch2v(() => {
             if (this._status === TicketUpdateCollectionStatus.RUNNING) {
@@ -139,6 +139,7 @@ export default class TicketUpdateCollection extends AggregateRoot {
                     TicketUpdateCollection.name,
                     this.id,
                     this.productDevId,
+                    prodDevStart.toISOString(),
                     this.ticketBoardKey,
                     this.period.from.toISOString(),
                     this.period.to.toISOString()));
@@ -163,18 +164,19 @@ export default class TicketUpdateCollection extends AggregateRoot {
         }, err => err as Error)
     };
 
-    willReadTickets(updatedTickets: UpdatedTicket[]):
+    willReadTickets(prodDevStart:string, updatedTickets: UpdatedTicket[]):
         E.Either<Error, void> {
         return pipe(
             E.tryCatch2v(() => {
                 updatedTickets.map(ticket =>
                     this._ticketUpdates.set(
                         ticket.key,
-                        new TicketUpdate(Identity.generate(), ticket.id, ticket.key)));
+                        new TicketUpdate(Identity.generate(), ticket.ref, ticket.key)));
                 this.recordEvent(new UpdatedTicketsListFetched(
                     TicketUpdateCollection.name,
                     this.id,
                     this.productDevId,
+                    prodDevStart,
                     this.ticketBoardKey,
                     this.period.from.toISOString(),
                     this.period.to.toISOString(),

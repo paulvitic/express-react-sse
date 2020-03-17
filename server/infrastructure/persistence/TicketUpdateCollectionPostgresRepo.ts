@@ -4,17 +4,10 @@ import {TicketUpdateCollectionRepository} from "../../domain/product/repository"
 import TicketUpdateCollection, {TicketUpdateCollectionStatus} from "../../domain/product/TicketUpdateCollection";
 import PostgresClient from "../clients/PostgresClient";
 import {pipe} from "fp-ts/lib/pipeable";
-import PostgresRepository from "./PostgresRepository";
 import * as translate from "./TicketUpdateCollectionPostgresTranslator";
-import LogFactory from "../../domain/LogFactory";
 
-export default class TicketUpdateCollectionPostgresRepo extends PostgresRepository<TicketUpdateCollection>
-implements TicketUpdateCollectionRepository {
-    private readonly log = LogFactory.get(TicketUpdateCollectionPostgresRepo.name);
-
-    constructor(client: PostgresClient) {
-        super(client)
-    }
+export default class TicketUpdateCollectionPostgresRepo implements TicketUpdateCollectionRepository {
+    constructor(private readonly client: PostgresClient) {}
 
     findById(id: string): TE.TaskEither<Error, O.Option<TicketUpdateCollection>> {
         return pipe(
@@ -51,8 +44,8 @@ implements TicketUpdateCollectionRepository {
         return  pipe(
             TE.fromEither(translate.toInsertCollectionQuery(collection)),
             TE.chain(query => this.client.query(query).foldTaskEither(
-                err => this.rollBack(err),
-                result => this.commit(result))),
+                err => this.client.rollBack(err),
+                result => this.client.commit(result))),
             TE.chain(() => TE.taskEither.of(collection))
         )
     };
@@ -61,8 +54,8 @@ implements TicketUpdateCollectionRepository {
         return  pipe(
             TE.fromEither(translate.toUpdateCollectionQuery(id, collection)),
             TE.chain(query => this.client.query(query).foldTaskEither(
-                err => this.rollBack(err),
-                result => this.commit(result))),
+                err => this.client.rollBack(err),
+                result => this.client.commit(result))),
             TE.chain(() => TE.taskEither.of(collection))
         )
     }

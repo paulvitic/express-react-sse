@@ -11,6 +11,7 @@ import {
     TicketRemainedUnchanged,
     UpdatedTicketsListFetched
 } from "../../domain/product/event";
+import PostgresClient from "../clients/PostgresClient";
 
 export function toFindByIdQuery(id: string): E.Either<Error, string> {
     let query = `
@@ -60,9 +61,9 @@ export function toInsertCollectionQuery(collection: TicketUpdateCollection):
             query = query.replace(/\$STATUS/, `'${TicketUpdateCollectionStatus[collection.status]}'`);
             query = query.replace(/\$PRODUCT_DEV_ID/, `'${collection.productDevId}'`);
             query = query.replace(/\$TICKET_BOARD_KEY/, `'${collection.ticketBoardKey}'`);
-            query = query.replace(/\$FROM/, `'${toSqlDate(collection.period.from)}'`);
-            query = query.replace(/\$TO/, `'${toSqlDate(collection.period.to)}'`);
-            query = query.replace(/\$STARTED_AT/, `'${toSqlDate(collection.startedAt)}'`);
+            query = query.replace(/\$FROM/, `'${PostgresClient.toSqlDate(collection.period.from)}'`);
+            query = query.replace(/\$TO/, `'${PostgresClient.toSqlDate(collection.period.to)}'`);
+            query = query.replace(/\$STARTED_AT/, `'${PostgresClient.toSqlDate(collection.startedAt)}'`);
             return  query;
         }, err => err as Error),
         E.chain(query => array.reduce(collection.ticketUpdates, E.either.of(query), (previous, current) => {
@@ -86,7 +87,7 @@ export function toUpdateCollectionQuery(id: string, collection: TicketUpdateColl
         E.tryCatch2v(() => {
             query = query.replace(/\$ID/, `'${id}'`);
             query = query.replace(/\$STATUS/, `'${TicketUpdateCollectionStatus[collection.status]}'`);
-            query = query.replace(/\$ENDED_AT/, collection.endedAt ? `'${toSqlDate(collection.endedAt)}'` : `NULL`);
+            query = query.replace(/\$ENDED_AT/, collection.endedAt ? `'${PostgresClient.toSqlDate(collection.endedAt)}'` : `NULL`);
             query = query.replace(/\$ID/, `'${id}'`);
             return  query;
         }, err => err as Error),
@@ -118,6 +119,7 @@ function appendToUpdateQuery(collection: TicketUpdateCollection, event:DomainEve
     }
 }
 
+// noinspection JSUnusedLocalSymbols
 function toDeleteTicketUpdateQuery(ticketUpdate: TicketUpdate, query: string):
     E.Either<Error, string> {
     let insertQuery = `
@@ -220,11 +222,5 @@ function groupRows(map: Map<string, any[]>, row: any) {
     if (!map.get(row.collection_id)) map.set(row.collection_id, []);
     map.get(row.collection_id).push(row);
     return map;
-}
-
-
-function toSqlDate(date: Date): string {
-    let tzOffset = (new Date()).getTimezoneOffset() * 60000;
-    return new Date(date.getTime() - tzOffset).toISOString().slice(0, 19).replace('T', ' ');
 }
 

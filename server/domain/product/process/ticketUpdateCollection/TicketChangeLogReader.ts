@@ -11,12 +11,14 @@ import {array} from "fp-ts/lib/Array";
 import {TicketUpdateCollectionProcess} from "./TicketUpdateCollectionProcess";
 import {TicketUpdateCollectionRepository} from "../../repository";
 import TicketUpdateCollection from "../../TicketUpdateCollection";
+import {TicketHistoryQueryService} from "../../service/TicketHistoryQueryService";
 
 export default class TicketChangeLogReader extends TicketUpdateCollectionProcess {
     private readonly log = LogFactory.get(TicketChangeLogReader.name);
     constructor(repo: TicketUpdateCollectionRepository,
                 eventBus: EventBus,
-                private readonly integration: TicketBoardIntegration) {
+                private readonly integration: TicketBoardIntegration,
+                private readonly ticketHistory: TicketHistoryQueryService) {
         super(repo, eventBus)
     }
 
@@ -47,13 +49,21 @@ export default class TicketChangeLogReader extends TicketUpdateCollectionProcess
 
     private readTicketChangeLog(sourceEvent: UpdatedTicketsListFetched, collection: TicketUpdateCollection, updatedTicket: UpdatedTicket):
         TE.TaskEither<Error,void>{
-        return this.integration.readTicketChangeLog(updatedTicket.key, new Date(sourceEvent.fromDate), new Date(sourceEvent.toDate))
-            .foldTaskEither(
-                err => TE.fromEither(collection.fail(TicketChangeLogReader.name, err.message)),
-                optionalResponse => TE.fromEither(optionalResponse.foldL(
-                    () => collection.completedForTicket(updatedTicket.id, updatedTicket.key, []),
-                    response => collection.completedForTicket(updatedTicket.id, updatedTicket.key, response.changeLog)
-                ))
+        return pipe(
+            this.ticketHistory.findLatestByTicketRef(updatedTicket.ref),
+            TE.chain(optionalTicketHistory => optionalTicketHistory.foldL(
+                () => TE.right2v(new Date(sourceEvent.prodDevStartedOn)),
+                history => TE.right2v(history.startedAt)
+            )),
+            TE.chain(fromDate => this.integration.readTicketChangeLog(updatedTicket.key, fromDate, new Date(sourceEvent.toDate))
+                .foldTaskEither(
+                    err => TE.fromEither(collection.fail(TicketChangeLogReader.name, err.message)),
+                    optionalResponse => TE.fromEither(optionalResponse.foldL(
+                        () => collection.completedForTicket(updatedTicket.ref, updatedTicket.key, []),
+                        response => collection.completedForTicket(updatedTicket.ref, updatedTicket.key, response.changeLog)
+                    ))
+                )
+            )
         )
     }
 }

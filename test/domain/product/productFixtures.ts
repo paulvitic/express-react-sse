@@ -36,12 +36,12 @@ export const PROJECT_INFO_FIXTURE: TicketBoardInfo = {
 };
 
 export const UPDATED_TICKET_FIXTURE_0: UpdatedTicket = {
-    id:1001,
+    ref:1001,
     key:TICKET_KEY_FIXTURE_0
 };
 
 export const UPDATED_TICKET_FIXTURE_1: UpdatedTicket = {
-    id:1002,
+    ref:1002,
     key:TICKET_KEY_FIXTURE_1
 };
 

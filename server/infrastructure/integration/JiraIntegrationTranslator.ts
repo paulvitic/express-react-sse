@@ -53,7 +53,7 @@ export function toUpdatedTickets({ data }: AxiosResponse<any>):
             let {issues} = data;
             for (let issue of issues) {
                 let {id, key} = issue;
-                updates.push({id, key})
+                updates.push({ref: id, key})
             }
             return updates;
         },

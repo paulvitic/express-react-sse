@@ -2,76 +2,23 @@ import EventListener from "../../domain/EventListener";
 import {TicketChanged} from "../../domain/product/event";
 import * as E from "fp-ts/lib/Either";
 import * as TE from "fp-ts/lib/TaskEither";
-import * as O from "fp-ts/lib/Option";
 import {pipe} from "fp-ts/lib/pipeable";
 import PostgresClient from "../clients/PostgresClient";
 import {ChangeLog, ChangelogFilter} from "../../domain/product/service/TicketBoardIntegration";
-import PostgresRepository from "./PostgresRepository";
 import LogFactory from "../../domain/LogFactory";
 import {array} from "fp-ts/lib/Array";
 import {TicketHistory} from "../../domain/product/TicketHistory";
-
-function mapToHistory(row: any): TicketHistory {
-    return {
-        current: row.current,
-        productDevId: row.product_dev_fk,
-        ticketRef: row.ticket_ref,
-        ticketKey: row.ticket_key,
-        startedAt: new Date(row.started_at),
-        endedAt: row.ended_at === null ? null : new Date(row.ended_at),
-        duration: row.duration,
-        sprint: row.sprint,
-        sprintCount: row.sprint_count,
-        status: row.status,
-        issueType: row.issue_type,
-        forChapter: row.for_chapter,
-        chapter: row.chapter,
-        assignee: row.assignee,
-        forProductDev: row.for_product_dev
-    }
-}
-
-function mapToRow(history: TicketHistory): any {
-    return {
-        current: valueOrNull(history.current),
-        product_dev_fk: stringValueOrNull(history.productDevId),
-        ticket_ref: valueOrNull(history.ticketRef),
-        ticket_key: stringValueOrNull(history.ticketKey),
-        started_at: dateValueOrNull(history.startedAt),
-        ended_at: dateValueOrNull(history.endedAt),
-        duration: valueOrNull(history.duration),
-        sprint: stringValueOrNull(history.sprint),
-        sprint_count: valueOrNull(history.sprintCount),
-        status: stringValueOrNull(history.status),
-        issue_type: stringValueOrNull(history.sprint),
-        for_chapter: valueOrNull(history.forChapter),
-        chapter: stringValueOrNull(history.chapter),
-        assignee: stringValueOrNull(history.assignee),
-        for_product_dev: valueOrNull(history.forProductDev)
-    }
-}
-
-function stringValueOrNull(value: string): string {
-    return value === null ? `NULL` : `'${value}'`;
-}
-
-function valueOrNull(value: boolean | number): string {
-    return value === null ? `NULL` : `${value}`;
-}
-
-function dateValueOrNull(value: Date): string {
-    return value === null ? `NULL` : `'${PostgresRepository.toSqlDate(value)}'`;
-}
+import * as translate from "./TicketHistoryPostgresTranslator";
+import {TicketHistoryQueryService} from "../../domain/product/service/TicketHistoryQueryService";
 
 export class TicketHistoryPostgresProjection implements EventListener<TicketChanged> {
     private readonly log = LogFactory.get(TicketHistoryPostgresProjection.name);
-
-    constructor(private readonly client: PostgresClient) {
-    }
+    constructor(private readonly client: PostgresClient,
+                private readonly ticketHistory: TicketHistoryQueryService) {}
 
     onEvent(event: TicketChanged): Promise<E.Either<Error, boolean>> {
         return pipe(
-            this.current(event.ticketRef),
+            this.ticketHistory.findLatestByTicketRef(event.ticketRef),
             TE.chain(optionalCurrentHistory => optionalCurrentHistory.foldL(
                 () => this.insert(event.prodDevId, event.ticketRef, event.ticketKey),
                 history => TE.right2v(history))),
@@ -83,30 +30,21 @@ export class TicketHistoryPostgresProjection implements EventListener<TicketChan
         ).run();
     }
 
-    private current(ticketRef: number): TE.TaskEither<Error, O.Option<TicketHistory>> {
-        let query = `
-        SELECT * FROM ticket_history WHERE ticket_ref=${ticketRef} AND current=true;
-        `;
+    private insert(productDevId: string, ticketRef: number, ticketKey: string): TE.TaskEither<Error, TicketHistory> {
+        let history = {current: true, productDevId, ticketRef, ticketKey,
+            startedAt: new Date(), endedAt: null, duration: null,
+            sprint: null, sprintCount: null,
+            status: null, issueType: null,
+            forChapter: null, chapter: null,
+            assignee: null, forProductDev: null
+        };
         return pipe(
-            this.client.query(query),
-            TE.map(queryResult => O.fromNullable(queryResult.rows[0])),
-            TE.map(row => row.foldL(
-                () => O.none,
-                row => O.some(mapToHistory(row)))
-            ));
-    }
-
-    private insert(prodDevId: string, ticketRef: number, ticketKey: string): TE.TaskEither<Error, TicketHistory> {
-        let query = `
-        INSERT INTO ticket_history(current, product_dev_fk, ticket_ref, ticket_key, started_at) 
-            VALUES (true, '${prodDevId}', ${ticketRef}, '${ticketKey}', '${PostgresRepository.toSqlDate(new Date())}')
-            RETURNING *;
-        `;
-        return pipe(
-            this.client.query(query),
-            TE.map(queryResult => queryResult.rows[0]),
-            TE.map(mapToHistory)
-        );
+            TE.fromEither(translate.toInsertQuery(history, "BEGIN;")),
+            TE.chain(query => this.client.query(query).foldTaskEither(
+                err => this.client.rollBack(err),
+                result => this.client.commit(result))),
+            TE.chain(() => TE.right2v(history))
+        )
     }
 
     private handleChange(current: TicketHistory, changeLog: ChangeLog):
@@ -142,58 +80,27 @@ export class TicketHistoryPostgresProjection implements EventListener<TicketChan
     }
 
     private handleStatusChange(current: TicketHistory, changeLog: ChangeLog): TE.TaskEither<Error, boolean> {
-        this.log.info(`${current.ticketKey}: status/${changeLog.type}: from: ${changeLog.from}:${changeLog.fromString}, to: ${changeLog.to}:${changeLog.toString}`);
+        this.log.info(`${current.ticketKey} ${changeLog.type} change: from: ${changeLog.from}:${changeLog.fromString}, to: ${changeLog.to}:${changeLog.toString}`);
+        let currentEntry = {
+            ...current,
+            current: false,
+            endedAt: new Date(changeLog.timeStamp),
+            duration: current.startedAt.getTime() - new Date(changeLog.timeStamp).getTime(),
+            status: current.status === null ? changeLog.fromString : current.status
+        };
+        let newEntry = {
+            ...current,
+            current: true,
+            startedAt: new Date(changeLog.timeStamp),
+            status: changeLog.toString
+        };
         return pipe(
-            TE.fromEither(pipe(
-                this.toUpdateQuery(mapToRow({
-                    ...current,
-                    current: false,
-                    endedAt: new Date(changeLog.timeStamp),
-                    duration: current.startedAt.getTime() - new Date(changeLog.timeStamp).getTime(),
-                    status: current.status === null ? changeLog.fromString : current.status
-                }), "BEGIN;"),
-                E.chain(query => this.toInsertQuery(mapToRow({
-                    ...current,
-                    current: true,
-                    startedAt: new Date(changeLog.timeStamp),
-                    status: changeLog.toString
-                }), query)),
-                E.chain(query => E.right(query + "COMMIT;")) // FIXME commit if first execution is correct or rollback;
-            )),
-            TE.chain(query => this.client.query(query)),
-            TE.map(res => res.rows>0)
+            TE.fromEither(translate.toUpdateQuery(currentEntry, "BEGIN;")),
+            TE.chain(query => TE.fromEither(translate.toInsertQuery(newEntry, query))),
+            TE.chain(query => this.client.query(query).foldTaskEither(
+                err => this.client.rollBack(err),
+                insertResult => this.client.commit(insertResult))),
+            TE.map(insertResult => insertResult.length === 3)
         )
-    }
-
-    private toInsertQuery(row: any, query: string): E.Either<Error, string> {
-        return E.tryCatch2v(() => {
-            let insertQuery = `
-             INSERT INTO ticket_history (current, product_dev_fk, ticket_ref, ticket_key, 
-                                         started_at, ended_at, duration, 
-                                         sprint, sprint_count, status, issue_type, 
-                                         for_chapter, chapter, assignee, for_product_dev)
-                VALUES (${row.current}, ${row.product_dev_fk}, ${row.ticket_ref}, ${row.ticket_key}, 
-                        ${row.started_at}, ${row.ended_at}, ${row.duration},
-                        ${row.sprint}, ${row.sprint_count}, ${row.status}, ${row.issue_type}, 
-                        ${row.for_chapter}, ${row.chapter}, ${row.assignee}, ${row.for_product_dev});
-             `;
-            return query + insertQuery;
-        }, err => err as Error)
-    }
-
-    private toUpdateQuery(row: any, query: string): E.Either<Error, string> {
-        return E.tryCatch2v(() => {
-            let updateQuery = `
-             UPDATE ticket_history 
-                SET current=${row.current}, ticket_key=${row.ticket_key}, 
-                    ended_at=${row.ended_at}, duration=${row.duration},
-                    sprint=${row.sprint}, sprint_count=${row.sprint_count}, 
-                    status=${row.status}, issue_type=${row.issue_type}, 
-                    for_chapter=${row.for_chapter}, chapter=${row.chapter}, 
-                    assignee=${row.assignee}, for_product_dev=${row.for_product_dev}
-                WHERE current=true AND ticket_ref='${row.ticket_ref}';
-                `;
-            return query + updateQuery;
-        }, err => err as Error)
     }
 }

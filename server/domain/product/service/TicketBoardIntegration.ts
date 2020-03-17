@@ -15,7 +15,7 @@ export type TicketBoardInfo = {
 }
 
 export type UpdatedTicket = {
-    id: number,
+    ref: number,
     key: string
 }
 

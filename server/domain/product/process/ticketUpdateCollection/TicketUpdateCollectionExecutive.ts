@@ -3,7 +3,6 @@ import TicketUpdateCollection, {TicketUpdateCollectionStatus} from "../../Ticket
 import {TicketUpdateCollectionRepository} from "../../repository";
 import {pipe} from "fp-ts/lib/pipeable";
 import EventBus from "../../../EventBus";
-import LogFactory from "../../../LogFactory";
 
 class TicketUpdateCollectionExecutiveError extends Error {
     constructor(message) {
@@ -13,7 +12,6 @@ class TicketUpdateCollectionExecutiveError extends Error {
 }
 
 export class TicketUpdateCollectionExecutive {
-    private readonly log = LogFactory.get(TicketUpdateCollectionExecutive.name);
     constructor(private readonly repo: TicketUpdateCollectionRepository,
                 private readonly eventBus: EventBus) {}
 
@@ -27,7 +25,7 @@ export class TicketUpdateCollectionExecutive {
             TE.chain(collection => collection.status === TicketUpdateCollectionStatus.COMPLETED ?
                 this.create(prodDevId, ticketBoardKey, collection.period.to) :
                 TE.right2v(collection)),
-            TE.chainFirst(collection => TE.fromEither(collection.start())),
+            TE.chainFirst(collection => TE.fromEither(collection.start(prodDevStart))),
             TE.chainFirst(collection => this.repo.update(collection.id, collection)),
             TE.chain(collection => this.eventBus.publishEventsOf(collection))
         )

@@ -26,7 +26,7 @@ import {
 import JiraIntegration from "../integration/JiraIntegration";
 import LogFactory from "../../domain/LogFactory";
 import {
-    ProductDevelopmentRepository, TicketRepository,
+    ProductDevelopmentRepository,
     TicketUpdateCollectionRepository
 } from "../../domain/product/repository";
 import ProductDevPostgresRepo from "../persistence/ProductDevPostgresRepo";
@@ -41,8 +41,9 @@ import UpdatedTicketsListCollector
     from "../../domain/product/process/ticketUpdateCollection/UpdatedTicketsListCollector";
 import TicketBoardIntegration from "../../domain/product/service/TicketBoardIntegration";
 import TicketChangeLogReader from "../../domain/product/process/ticketUpdateCollection/TicketChangeLogReader";
-import {TicketHandler} from "../../domain/product/policy/TicketHandler";
 import {TicketHistoryPostgresProjection} from "../persistence/TicketHistoryPostgresProjection";
+import {TicketHistoryQueryService} from "../../domain/product/service/TicketHistoryQueryService";
+import {TicketHistoryPostgresQuery} from "../persistence/TicketHistoryPostgresQuery";
 
 const exit = process.exit;
 
@@ -60,15 +61,13 @@ type Context = {
         domain: {
             repositories: {
                 productDevelopmentRepo?: ProductDevelopmentRepository,
-                ticketUpdateCollectionRepo?: TicketUpdateCollectionRepository,
-                ticketRepo?: TicketRepository
+                ticketUpdateCollectionRepo?: TicketUpdateCollectionRepository
             },
             services: {
                 ticketBoardIntegration?: TicketBoardIntegration
+                ticketHistoryQueryService? : TicketHistoryQueryService
             },
-            policy: {
-                ticketHandler?: TicketHandler
-            },
+            policy: {},
             processors:{
                 ticketUpdateCollectionTracker?: TicketUpdateCollectionExecutive,
                 updatedTicketsListCollector?: UpdatedTicketsListCollector
@@ -232,6 +231,8 @@ export default class App {
             try {
                 this.context.product.domain.services.ticketBoardIntegration =
                     new JiraIntegration(this.env.JIRA_PARAMS);
+                this.context.product.domain.services.ticketHistoryQueryService =
+                    new TicketHistoryPostgresQuery(this.context.common.clients.postgresClient);
                 resolve();
             } catch (e) {
                 reject(new Error("error while initializing domain services: " + e.message ))
@@ -256,7 +257,8 @@ export default class App {
                     new TicketChangeLogReader(
                         this.context.product.domain.repositories.ticketUpdateCollectionRepo,
                         this.context.common.eventBus,
-                        this.context.product.domain.services.ticketBoardIntegration
+                        this.context.product.domain.services.ticketBoardIntegration,
+                        this.context.product.domain.services.ticketHistoryQueryService
                     );
                 resolve()
             } catch (e) {
@@ -266,16 +268,8 @@ export default class App {
     };
 
     private initPolicies = (): Promise<void> => {
-        return new Promise<void>((resolve, reject) => {
-            try {
-                this.context.product.domain.policy.ticketHandler =
-                    new TicketHandler(
-                        this.context.product.domain.repositories.ticketRepo,
-                        this.context.common.eventBus);
+        return new Promise<void>((resolve) => {
                 resolve()
-            } catch (e) {
-                reject(new Error("error while initializing processors: " + e.message ))
-            }
         })
     };
 
@@ -344,7 +338,10 @@ export default class App {
         return new Promise<void>(async (resolve, reject) => {
             try {
                 this.context.product.infrastructure.projection.ticketHistoryPostgresProjection =
-                    new TicketHistoryPostgresProjection(this.context.common.clients.postgresClient);
+                    new TicketHistoryPostgresProjection(
+                        this.context.common.clients.postgresClient,
+                        this.context.product.domain.services.ticketHistoryQueryService
+                        );
 
                 resolve();
             }catch (e) {
