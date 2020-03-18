@@ -29,7 +29,7 @@ function toRow(history: TicketHistory): E.Either<Error, any> {
             sprint: stringValueOrNull(history.sprint),
             sprint_count: valueOrNull(history.sprintCount),
             status: stringValueOrNull(history.status),
-            issue_type: stringValueOrNull(history.sprint),
+            issue_type: stringValueOrNull(history.issueType),
             for_chapter: valueOrNull(history.forChapter),
             chapter: stringValueOrNull(history.chapter),
             for_product_dev: valueOrNull(history.forProductDev)
@@ -57,11 +57,11 @@ export function toHistory(row: any): TicketHistory {
     }
 }
 
-export function toInsertQuery(history: TicketHistory, query: string): E.Either<Error, string> {
+export function toInsertQuery(history: TicketHistory): E.Either<Error, string> {
     return pipe(
         toRow(history),
         E.chain(row => E.tryCatch2v(() => {
-            let insertQuery = `
+            return `
              INSERT INTO ticket_history (latest, product_dev_fk, ticket_ref, ticket_key, 
                                          started_at, ended_at, duration, 
                                          sprint, sprint_count, status, issue_type, 
@@ -71,16 +71,15 @@ export function toInsertQuery(history: TicketHistory, query: string): E.Either<E
                         ${row.sprint}, ${row.sprint_count}, ${row.status}, ${row.issue_type}, 
                         ${row.for_chapter}, ${row.chapter}, ${row.assignee}, ${row.for_product_dev});
              `;
-            return query + insertQuery;
         }, err => err as Error))
     )
 }
 
-export function toUpdateQuery(history: TicketHistory, query: string): E.Either<Error, string> {
+export function toUpdateQuery(history: TicketHistory): E.Either<Error, string> {
     return pipe(
         toRow(history),
         E.chain(row => E.tryCatch2v(() => {
-            let updateQuery = `
+            return `
              UPDATE ticket_history 
                 SET latest=${row.latest}, ticket_key=${row.ticket_key}, 
                     ended_at=${row.ended_at}, duration=${row.duration},
@@ -90,7 +89,6 @@ export function toUpdateQuery(history: TicketHistory, query: string): E.Either<E
                     assignee=${row.assignee}, for_product_dev=${row.for_product_dev}
                 WHERE latest=true AND ticket_ref='${row.ticket_ref}';
                 `;
-            return query + updateQuery;
         }, err => err as Error))
     )
 }

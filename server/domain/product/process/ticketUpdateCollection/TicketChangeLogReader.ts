@@ -59,8 +59,8 @@ export default class TicketChangeLogReader extends TicketUpdateCollectionProcess
                 .foldTaskEither(
                     err => TE.fromEither(collection.fail(TicketChangeLogReader.name, err.message)),
                     optionalResponse => TE.fromEither(optionalResponse.foldL(
-                        () => collection.completedForTicket(event.prodDevStartedOn, updatedTicket.ref, updatedTicket.key, []),
-                        response => collection.completedForTicket(event.prodDevStartedOn, updatedTicket.ref, updatedTicket.key, response.changeLog)
+                        () => collection.completedForTicket(event.prodDevStartedOn, updatedTicket.ref, updatedTicket.key),
+                        response => collection.completedForTicket(event.prodDevStartedOn, updatedTicket.ref, updatedTicket.key, response)
                     ))
                 )
             )

@@ -1,5 +1,5 @@
 import {
-    ChangeLog, ChangelogFilter,
+    ChangeLog, ChangeFilter,
     TicketBoardInfo,
     TicketBoardIntegrationFailure, TicketChangeLog,
     UpdatedTicket
@@ -81,35 +81,36 @@ export function toTicketInfoAssertionFailure({response}: AxiosError): TicketBoar
 
 export function toChangeLog({ data }: AxiosResponse<any>, from: Date, to: Date):
     O.Option<TicketChangeLog>{
-    let {id, key, changelog: { histories } } = data;
+    let {id, key, fields: { issuetype }, changelog: { histories } } = data;
     return pipe(
         O.option.of(array
-            .filterMap(histories, history => fromHistory(history, from, to)) // filters Option.none's
+            .filterMap(histories, ({created, items}) => fromHistory(created, items, from, to)) // filters Option.none's
             .reduceRight((previous, current) => previous.concat(current), [])), // flattens change log arrays from multiple history entries
         O.filter(logs => logs.length !== 0), // if there are any change logs, then passes Option.some of change logs array
-        O.map(changeLog => {return {id, key, changeLog}})
+        O.map(changeLog => {return {id, key, issueType: issuetype.name , changeLog}})
     )
 }
 
-function fromHistory(history:any, from: Date, to:Date): O.Option<ChangeLog[]>  {
+function fromHistory(created: string, items: any[], from: Date, to:Date): O.Option<ChangeLog>  {
     return pipe(
-        O.option.of(history),
-        O.filter(history => isDuring(new Date(history.created), from, to)), // if history is not created during update collection period than passes Option.none
-        O.map(history => fromHistoryEntries(history.items, history.created))
+        O.option.of(items),
+        O.filter(() => isDuring(new Date(created), from, to)), // if history is not created during update collection period than passes Option.none
+        O.chain(items => fromHistoryEntries(created, items))
     )
 }
 
-function fromHistoryEntries(entries: any[], timeStamp: string): ChangeLog[] {
-    return array.filterMap(entries, entry => {
-        let {field, fieldId, from, fromString, to, toString} = entry;
+function fromHistoryEntries(created: string, items: any[]): O.Option<ChangeLog> {
+    let changes = array.filterMap(items, item => {
+        let {field, fieldId, from, fromString, to, toString} = item;
         return pipe(
-            O.fromNullable(ChangelogFilter[field] || ChangelogFilter[fieldId]),
+            O.fromNullable(ChangeFilter[field] || ChangeFilter[fieldId]),
             O.fold(() => warnUnmappedField(field, fieldId),
                     filter => O.some(filter)),
             O.filter(filter => filter.use),
-            O.map(filter => {return {type: filter.type, timeStamp, from, fromString, to, toString}})
+            O.map(({type}) => {return {type, from, fromString, to, toString}})
         )
-    })
+    });
+    return changes.length===0 ? O.none : O.some({created, changes})
 }
 
 function toBeginningOfDay(dateString: string): Date {

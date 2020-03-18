@@ -19,22 +19,27 @@ export type UpdatedTicket = {
     key: string
 }
 
-export type ChangeLog = {
+export type Change = {
     type: string,
-    timeStamp: string,
     from: string,
     fromString: string,
     to: string,
     toString: string,
 }
 
+export type ChangeLog = {
+    created: string,
+    changes: Change[]
+}
+
 export type TicketChangeLog = {
     id: number,
     key: string,
+    issueType: string,
     changeLog: ChangeLog[]
 }
 
-export const ChangelogFilter = {
+export const ChangeFilter = {
     customfield_10011: {
         field: "Rank",
         fieldId: "customfield_10011",

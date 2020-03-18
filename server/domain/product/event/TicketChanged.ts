@@ -1,5 +1,5 @@
 import {AbstractDomainEvent} from "../../DomainEvent";
-import {ChangeLog} from "../service/TicketBoardIntegration";
+import {TicketChangeLog} from "../service/TicketBoardIntegration";
 
 export class TicketChanged extends AbstractDomainEvent {
     constructor(
@@ -9,7 +9,7 @@ export class TicketChanged extends AbstractDomainEvent {
         readonly prodDevStartedOn: string,
         readonly ticketRef: number,
         readonly ticketKey: string,
-        readonly changeLog: ChangeLog[]){
+        readonly ticketChangeLog: TicketChangeLog){
             super(aggregate, aggregateId);
     }
 }

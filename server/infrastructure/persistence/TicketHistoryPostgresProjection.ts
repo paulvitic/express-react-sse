@@ -4,7 +4,7 @@ import * as E from "fp-ts/lib/Either";
 import * as TE from "fp-ts/lib/TaskEither";
 import {pipe} from "fp-ts/lib/pipeable";
 import PostgresClient from "../clients/PostgresClient";
-import {ChangeLog, ChangelogFilter} from "../../domain/product/service/TicketBoardIntegration";
+import {ChangeLog, ChangeFilter, Change} from "../../domain/product/service/TicketBoardIntegration";
 import LogFactory from "../../domain/LogFactory";
 import {array} from "fp-ts/lib/Array";
 import {TicketHistory} from "../../domain/product/TicketHistory";
@@ -19,25 +19,25 @@ export class TicketHistoryPostgresProjection implements EventListener<TicketChan
     onEvent(event: TicketChanged): Promise<E.Either<Error, boolean>> {
         return pipe(
             this.ticketHistory.findLatestByTicketRef(event.ticketRef),
-            TE.chain(optionalCurrentHistory => optionalCurrentHistory.foldL(
+            TE.chain(optionalLatestHistory => optionalLatestHistory.foldL(
                 () => this.insertFirstEntry(event),
-                history => TE.right2v(history))),
-            TE.chain(history => array.reduce(event.changeLog, TE.taskEither.of(true), (previous, current) => {
-                return previous.foldTaskEither(
-                    err => TE.left2v(err),
-                    () => this.handleChange(history, current))
-            }))
+                latestHistory => TE.right2v(latestHistory))),
+            TE.chain(latestHistory => array.reduce(event.ticketChangeLog.changeLog, TE.taskEither.of(latestHistory), // FIXME: need to sort
+                (previousHistory, changeLog) => previousHistory.chain(history => this.handleChangeLog(history, changeLog))
+            )),
+            TE.chain(() => TE.right2v(true))
         ).run();
     }
 
     private insertFirstEntry(event: TicketChanged):
         TE.TaskEither<Error, TicketHistory> {
-        let {prodDevId, ticketRef, ticketKey, prodDevStartedOn} = event;
-        let history: TicketHistory = {
+        let {prodDevId, ticketRef, ticketKey, prodDevStartedOn, ticketChangeLog} = event;
+        return this.executeInsert({
             latest: true,
             prodDevId,
             ticketRef,
             ticketKey,
+            issueType: ticketChangeLog.issueType,
             startedAt: new Date(prodDevStartedOn),
             endedAt: null,
             assignee: null,
@@ -47,106 +47,119 @@ export class TicketHistoryPostgresProjection implements EventListener<TicketChan
             chapter: null,
             forChapter: null,
             sprintCount: null,
-            sprint: null,
-            issueType: null
-        };
+            sprint: null
+        });
+    }
+
+    private handleChangeLog(previousHistory: TicketHistory, changeLog: ChangeLog):
+    TE.TaskEither<Error, TicketHistory> {
         return pipe(
-            TE.fromEither(translate.toInsertQuery(history, "BEGIN;")),
-            TE.chain(query => this.client.query(query).foldTaskEither(
-                err => this.client.rollBack(err),
-                result => this.client.commit(result))),
+            TE.fromEither(this.updatePreviousHistory(previousHistory, changeLog)),
+            TE.chain(previousHistory => this.executeUpdate(previousHistory)),
+            TE.chain( previousHistory => TE.fromEither(this.createNewHistory(previousHistory, changeLog))),
+            TE.chain( newHistory => this.executeInsert(newHistory))
+        )
+    }
+
+    private updatePreviousHistory(previousHistory: TicketHistory, changeLog: ChangeLog):
+        E.Either<Error, TicketHistory> {
+        return pipe(
+            E.tryCatch2v(() => {
+                return {...previousHistory,
+                    latest: false,
+                    endedAt: new Date(changeLog.created),
+                    duration: new Date(changeLog.created).getTime() - previousHistory.startedAt.getTime()
+                }
+            }, err => err as Error),
+            E.chain(previousHistory => array.reduce(changeLog.changes, E.right(previousHistory),
+                    (previous, change) => previous.chain( history => this.applyChangeOnUpdate(history, change)))
+            )
+        )
+    }
+
+    private createNewHistory(previousHistory: TicketHistory, changeLog: ChangeLog):
+        E.Either<Error, TicketHistory> {
+        return pipe(
+            E.tryCatch2v(() => {
+                return {
+                    ...previousHistory,
+                    latest: true,
+                    startedAt: new Date(changeLog.created),
+                    endedAt: null,
+                    duration: null
+                }
+            }, err => err as Error),
+            E.chain(previousHistory => array.reduce(changeLog.changes, E.right(previousHistory),
+                (previous, change) => previous.chain( history => this.applyChangeToNew(history, change)))
+            )
+        )
+    }
+
+    private applyChangeOnUpdate(previousHistory: TicketHistory, change: Change): E.Either<Error, TicketHistory> {
+        return E.tryCatch2v(() => {
+            switch (change.type) {
+                case ChangeFilter.status.type:
+                    return {
+                        ...previousHistory,
+                        status: previousHistory.status === null ? change.fromString : previousHistory.status
+                    };
+                case ChangeFilter.assignee.type:
+                    return {
+                        ...previousHistory,
+                        assignee: previousHistory.assignee === null ? change.fromString : previousHistory.assignee
+                    };
+                case ChangeFilter.issuetype.type:
+                    return {
+                        ...previousHistory,
+                        issueType: previousHistory.issueType === null ? change.fromString : previousHistory.issueType
+                    };
+                default:
+                    this.log.info(`${previousHistory.ticketKey} ${change.type} update 
+                    from: ${change.from}:${change.fromString}, to ${change.to}:${change.toString}`);
+                    return previousHistory
+            }
+        }, err => err as Error)
+    }
+
+    private applyChangeToNew(newHistory: TicketHistory, change: Change): E.Either<Error, TicketHistory> {
+        return E.tryCatch2v(() => {
+            switch (change.type) {
+                case ChangeFilter.status.type:
+                    return {
+                        ...newHistory,
+                        status: change.toString
+                    };
+                case ChangeFilter.assignee.type:
+                    return {
+                        ...newHistory,
+                        assignee: change.toString
+                    };
+                case ChangeFilter.issuetype.type:
+                    return {
+                        ...newHistory,
+                        issueType: change.toString
+                    };
+                default:
+                    this.log.info(`${newHistory.ticketKey} ${change.type} update 
+                    from: ${change.from}:${change.fromString}, to ${change.to}:${change.toString}`);
+                    return newHistory
+            }
+        }, err => err as Error)
+    }
+
+    private executeUpdate(previousHistory: TicketHistory): TE.TaskEither<Error, TicketHistory> {
+        return pipe(
+            TE.fromEither(translate.toUpdateQuery(previousHistory)),
+            TE.chain(query => this.client.query(query)),
+            TE.chain(() => TE.right2v(previousHistory))
+        )
+    }
+
+    private executeInsert(history: TicketHistory): TE.TaskEither<Error, TicketHistory> {
+        return pipe(
+            TE.fromEither(translate.toInsertQuery(history)),
+            TE.chain(query => this.client.query(query)),
             TE.chain(() => TE.right2v(history))
-        )
-    }
-
-    private handleChange(history: TicketHistory, changeLog: ChangeLog):
-        TE.TaskEither<Error, boolean> {
-        switch (changeLog.type) {
-            case ChangelogFilter.customfield_10010.type:
-                this.log.info(`${history.ticketKey}: sprint/${changeLog.type}: from: ${changeLog.from}:${changeLog.fromString}, to: ${changeLog.to}:${changeLog.toString}`);
-                return TE.taskEither.of(true);
-            case ChangelogFilter.assignee.type:
-                return this.handleAssigneeChange(history, changeLog);
-            case ChangelogFilter.issuetype.type:
-                this.log.info(`${history.ticketKey}: issueType/${changeLog.type}: from: ${changeLog.from}:${changeLog.fromString}, to: ${changeLog.to}:${changeLog.toString}`);
-                return TE.taskEither.of(true);
-            case ChangelogFilter.status.type:
-                return this.handleStatusChange(history, changeLog);
-            case ChangelogFilter.labels.type:
-                this.log.info(`${history.ticketKey}: labels/${changeLog.type}: from: ${changeLog.from}:${changeLog.fromString}, to: ${changeLog.to}:${changeLog.toString}`);
-                return TE.taskEither.of(true);
-            case ChangelogFilter.project.type:
-                this.log.info(`${history.ticketKey}: project/${changeLog.type}: from: ${changeLog.from}:${changeLog.fromString}, to: ${changeLog.to}:${changeLog.toString}`);
-                return TE.taskEither.of(true);
-            case ChangelogFilter.Key.type:
-                this.log.info(`${history.ticketKey}: key/${changeLog.type}: from: ${changeLog.from}:${changeLog.fromString}, to: ${changeLog.to}:${changeLog.toString}`);
-                return TE.taskEither.of(true);
-            case ChangelogFilter.customfield_10008.type:
-                this.log.info(`${history.ticketKey}: epicLink/${changeLog.type}: from: ${changeLog.from}:${changeLog.fromString}, to: ${changeLog.to}:${changeLog.toString}`);
-                return TE.taskEither.of(true);
-            default:
-                this.log.info(`${history.ticketKey}: default/${changeLog.type}, from: ${changeLog.from}:${changeLog.fromString}, to: ${changeLog.to}:${changeLog.toString}`);
-                return TE.taskEither.of(true)
-        }
-    }
-
-    private handleStatusChange(history: TicketHistory, changeLog: ChangeLog): TE.TaskEither<Error, boolean> {
-        this.log.debug(`${history.ticketKey} ${changeLog.type} change: from: ${changeLog.from}:${changeLog.fromString}, to: ${changeLog.to}:${changeLog.toString}`);
-        return pipe(
-            TE.fromEither(
-                E.tryCatch2v(() => {
-                    let currentEntry = {
-                        ...history,
-                        latest: false,
-                        endedAt: new Date(changeLog.timeStamp),
-                        duration: new Date(changeLog.timeStamp).getTime() - history.startedAt.getTime(),
-                        status: history.status === null ? changeLog.fromString : history.status
-                    };
-                    let newEntry = {
-                        ...history,
-                        latest: true,
-                        startedAt: new Date(changeLog.timeStamp),
-                        status: changeLog.toString
-                    };
-                    return {currentEntry, newEntry}
-                }, err => err as Error)),
-            TE.chain(entries => this.updateCurrentAndInsertNew(entries.currentEntry, entries.newEntry))
-        )
-    }
-
-    private handleAssigneeChange(history: TicketHistory, changeLog: ChangeLog): TE.TaskEither<Error, boolean> {
-        this.log.debug(`${history.ticketKey}: assignee/${changeLog.type}: from: ${changeLog.from}:${changeLog.fromString}, to: ${changeLog.to}:${changeLog.toString}`);
-        return pipe(
-            TE.fromEither(
-                E.tryCatch2v(() => {
-                    let currentEntry = {
-                        ...history,
-                        latest: false,
-                        endedAt: new Date(changeLog.timeStamp),
-                        duration: new Date(changeLog.timeStamp).getTime() - history.startedAt.getTime(),
-                        assignee: history.assignee === null ? changeLog.fromString : history.assignee
-                    };
-                    let newEntry = {
-                        ...history,
-                        latest: true,
-                        startedAt: new Date(changeLog.timeStamp),
-                        assignee: changeLog.toString
-                    };
-                    return {currentEntry, newEntry}
-                }, err => err as Error)),
-            TE.chain(entries => this.updateCurrentAndInsertNew(entries.currentEntry, entries.newEntry))
-        );
-    }
-
-    private updateCurrentAndInsertNew(currentEntry: TicketHistory, newEntry: TicketHistory):
-        TE.TaskEither<Error, boolean> {
-        return pipe(
-            TE.fromEither(translate.toUpdateQuery(currentEntry, "BEGIN;")),
-            TE.chain(query => TE.fromEither(translate.toInsertQuery(newEntry, query))),
-            TE.chain(query => this.client.query(query).foldTaskEither(
-                err => this.client.rollBack(err),
-                insertResult => this.client.commit(insertResult))),
-            TE.map(insertResult => insertResult.length === 3)
         )
     }
 }

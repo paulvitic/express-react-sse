@@ -2,7 +2,7 @@ import AggregateRoot from "../AggregateRoot";
 import Identity from "../Identity";
 import * as E from "fp-ts/lib/Either";
 import {pipe} from "fp-ts/lib/pipeable";
-import {ChangeLog, UpdatedTicket} from "./service/TicketBoardIntegration";
+import {ChangeLog, TicketChangeLog, UpdatedTicket} from "./service/TicketBoardIntegration";
 import TicketUpdate from "./TicketUpdate";
 import {
     TicketChanged,
@@ -187,13 +187,13 @@ export default class TicketUpdateCollection extends AggregateRoot {
         )
     }
 
-    completedForTicket(prodDevStart:string, ticketExternalRef: number, ticketKey: string, changeLog: ChangeLog[]):
+    completedForTicket(prodDevStart:string, ticketExternalRef: number, ticketKey: string, changeLog?: TicketChangeLog):
         E.Either<Error, void> {
         this.log.debug(`completing for ${ticketKey}`);
         return pipe(
             E.tryCatch2v(() => {
                 this._ticketUpdates.get(ticketKey).complete();
-                changeLog.length > 0 ?
+                changeLog ?
                     this.recordEvent(new TicketChanged(
                         TicketUpdateCollection.name,
                         this.id,
