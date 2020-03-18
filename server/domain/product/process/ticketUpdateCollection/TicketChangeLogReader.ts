@@ -23,7 +23,7 @@ export default class TicketChangeLogReader extends TicketUpdateCollectionProcess
     }
 
     onEvent(event: UpdatedTicketsListFetched): Promise<E.Either<Error, boolean>> {
-        this.log.info(`Processing ${UpdatedTicketsListFetched.name} event`);
+        this.log.debug(`Processing ${UpdatedTicketsListFetched.name} event`);
         return pipe(
             this.repo.findById(event.aggregateId),
             TE.chain(collection => collection.isNone() ?

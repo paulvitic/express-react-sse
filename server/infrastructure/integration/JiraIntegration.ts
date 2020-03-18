@@ -18,17 +18,6 @@ export type JiraIntegrationParams = {
 
 export default class JiraIntegration implements TicketBoardIntegration {
     private readonly log = LogFactory.get(JiraIntegration.name);
-    private readonly ticketFields = [
-        'created',
-        'updated',
-        'statuscategorychangedate',
-        'project',
-        'issuetype',
-        'labels',
-        'assignee',
-        'status',
-        'customfield_10010'
-    ];
     private readonly url: string;
     private readonly basicAuthorization: string;
 
@@ -62,7 +51,7 @@ export default class JiraIntegration implements TicketBoardIntegration {
     readTicketChangeLog(key: string, from: Date, to: Date):
         TE.TaskEither<TicketBoardIntegrationFailure, O.Option<TicketChangeLog>> {
         return pipe(
-            TE.fromEither(translate.toReadTicketChangeLogUrl(this.url, key, this.ticketFields)),
+            TE.fromEither(translate.toReadTicketChangeLogUrl(this.url, key)),
             TE.chain(this.executeGetRequest),
             TE.chainFirst(response => TE.rightIO(this.log.io.debug(`read ticket change log response  response: ${JSON.stringify(response.data)}`))),
             TE.chain(response => TE.right(T.task.of(translate.toChangeLog(response, from, to))))

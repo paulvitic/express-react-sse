@@ -11,6 +11,20 @@ import * as O from "fp-ts/lib/Option";
 import {pipe} from "fp-ts/lib/pipeable";
 import LogFactory from "../../domain/LogFactory";
 
+const ticketFields = [
+    'created',
+    'updated',
+    'statuscategorychangedate',
+    'project',
+    'issuetype',
+    'labels',
+    'assignee',
+    'status',
+    'parent',
+    'customfield_10031',    // Story point
+    'customfield_10010'     // Sprints
+];
+
 export function toGetUpdatedTicketsUrl(baseUrl:string, key:string, from, to):
     E.Either<Error, string>{
     return E.tryCatch2v(() =>
@@ -25,7 +39,7 @@ export function toAssertProjectUrl(baseUrl:string, key:string):
         , err => new Error(`error while translating to get updated tickets url: ${(err as Error).message}`))
 }
 
-export function toReadTicketChangeLogUrl(baseUrl:string, key:string, ticketFields: string[]):
+export function toReadTicketChangeLogUrl(baseUrl:string, key:string):
     E.Either<Error, string>{
     return E.tryCatch2v(() =>
             `${baseUrl}/rest/api/3/issue/${key}?expand=changelog&fields=${ticketFields}`
@@ -81,13 +95,16 @@ export function toTicketInfoAssertionFailure({response}: AxiosError): TicketBoar
 
 export function toChangeLog({ data }: AxiosResponse<any>, from: Date, to: Date):
     O.Option<TicketChangeLog>{
-    let {id, key, fields: { issuetype }, changelog: { histories } } = data;
+    let {id, key, fields: { issuetype, parent, labels, customfield_10031, customfield_10010 }, changelog: { histories } } = data;
+    let parentKey = parent ? parent.key : null;
+    let storyPoints = customfield_10031===null ? 0 : customfield_10031;
+    let sprintCount = customfield_10010===null ? 0 : customfield_10010.length;
     return pipe(
         O.option.of(array
             .filterMap(histories, ({created, items}) => fromHistory(created, items, from, to)) // filters Option.none's
             .reduceRight((previous, current) => previous.concat(current), [])), // flattens change log arrays from multiple history entries
         O.filter(logs => logs.length !== 0), // if there are any change logs, then passes Option.some of change logs array
-        O.map(changeLog => {return {id, key, issueType: issuetype.name , changeLog}})
+        O.map(changeLog => {return {id, key, issueType: issuetype.name, storyPoints, parentKey, sprintCount, labels, changeLog}})
     )
 }
 
@@ -122,7 +139,7 @@ function toBeginningOfDay(dateString: string): Date {
 
 function warnUnmappedField(field: string, fieldId:string): O.Option<void> {
     const log = LogFactory.get("JiraIntegrationTranslator");
-    log.warn(`History item field ${field} or field id ${fieldId} can not be mapped to change log filter`);
+    log.debug(`History item field ${field} or field id ${fieldId} can not be mapped to change log filter`);
     return O.none;
 }
 

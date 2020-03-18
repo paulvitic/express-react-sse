@@ -19,7 +19,7 @@ export default class UpdatedTicketsListCollector extends TicketUpdateCollectionP
     }
 
     onEvent(event: TicketUpdateCollectionStarted): Promise<E.Either<Error, boolean>> {
-        this.log.info(`Processing event ${event.eventType}`);
+        this.log.debug(`Processing event ${event.eventType}`);
         return pipe(
             this.repo.findById(event.aggregateId),
             TE.chain(collection => collection.isNone() ?

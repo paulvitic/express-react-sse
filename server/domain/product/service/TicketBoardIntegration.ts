@@ -36,22 +36,14 @@ export type TicketChangeLog = {
     id: number,
     key: string,
     issueType: string,
+    storyPoints: number,
+    parentKey: string,
+    sprintCount: number,
+    labels: string[],
     changeLog: ChangeLog[]
 }
 
 export const ChangeFilter = {
-    customfield_10011: {
-        field: "Rank",
-        fieldId: "customfield_10011",
-        use: false,
-        type: "rank"
-    },
-    customfield_10010: {
-        field: "Sprint",
-        fieldId: "customfield_10010",
-        use: true,
-        type: "sprint"
-    },
     status : {
         field: "status",
         fieldId: "status",
@@ -64,17 +56,17 @@ export const ChangeFilter = {
         use: true,
         type: "issueType"
     },
-    Workflow: {
-        field: "Workflow",
-        fieldId: undefined,
-        use: false,
-        type: "workFlow"
+    assignee: {
+        field: "assignee",
+        fieldId: "assignee",
+        use: true,
+        type: "assignee"
     },
-    customfield_10031: {
-        field: "Story point estimate",
-        fieldId: "customfield_10031",
-        use: false,
-        type: "storyPointEstimate"
+    IssueParentAssociation: {
+        field: "IssueParentAssociation", // use this for epic link
+        fieldId: undefined,
+        use: true,
+        type: "parentAssociation"
     },
     labels: {
         field: "labels",
@@ -82,41 +74,35 @@ export const ChangeFilter = {
         use: true,
         type: "labels"
     },
-    assignee: {
-        field: "assignee",
-        fieldId: "assignee",
-        use: true,
-        type: "assignee"
-    },
-    description: {
-        field: "description",
-        fieldId: "description",
+    customfield_10010: {
+        field: "Sprint",
+        fieldId: "customfield_10010",
         use: false,
-        type: "description"
+        type: "sprint"
     },
-    customfield_10017: {
-        field: "Complexity Points",
-        fieldId: "customfield_10017",
+    customfield_10031: {
+        field: "Story point estimate",
+        fieldId: "customfield_10031",
         use: false,
-        type: "complexityPoints"
-    },
-    project: {
-        field: "project",
-        fieldId: undefined,
-        use: true,
-        type: "project"
+        type: "storyPointEstimate"
     },
     Key: {
         field: "Key",
         fieldId: undefined,
-        use: true,
+        use: false,
         type: "key"
     },
     customfield_10008: {
         field: "Epic Link",
-        fieldId: "customfield_10008", // check if this can really be used as epic link and therefore product feature
-        use: true,
+        fieldId: "customfield_10008", // it seems this does not work in next gen project
+        use: false,
         type: "epicLink"
+    },
+    resolution: {
+        field: "resolution",
+        fieldId: "resolution",
+        use: false,
+        type: "resolution"
     }
 };
 

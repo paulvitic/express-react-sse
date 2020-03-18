@@ -53,7 +53,7 @@ export default class PostgresClient {
 
      query = (text: string, values?: any[]): TE.TaskEither<Error, QueryResultRow> => {
          let queryConfig = {text, values};
-         this.log.info(text);
+         this.log.debug(text);
          return TE.tryCatch(() => this.connPool.query(queryConfig),
             error => new Error(`Error while executing query: ${String(error)}`))
     };

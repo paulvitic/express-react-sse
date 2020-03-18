@@ -7,8 +7,8 @@ import TicketBoard from "../../domain/product/TicketBoard";
 
 export function toFindByIdQuery(id: string): E.Either<Error, string> {
     let query = `
-        SELECT * FROM product_development AS pd 
-        LEFT JOIN ticket_board as tb ON tb.product_dev_fk = pd.product_dev_id  
+        SELECT * FROM jira.product_development AS pd 
+        LEFT JOIN jira.ticket_board as tb ON tb.product_dev_fk = pd.product_dev_id  
         WHERE pd.product_dev_id=$ID;`;
     return E.tryCatch2v(() => {
         query = query.replace(/\$ID/, `'${id}'`);
@@ -18,8 +18,8 @@ export function toFindByIdQuery(id: string): E.Either<Error, string> {
 
 export function toFindByTicketBoardKeyQuery(key: string): E.Either<Error, string> {
     let query = `
-        SELECT * FROM product_development AS pd
-        LEFT JOIN ticket_board as tb ON tb.product_dev_fk = pd.product_dev_id
+        SELECT * FROM jira.product_development AS pd
+        LEFT JOIN jira.ticket_board as tb ON tb.product_dev_fk = pd.product_dev_id
         WHERE tb.ticket_board_key=$KEY;`;
     return E.tryCatch2v(() => {
         query = query.replace(/\$KEY/, `'${key}'`);
@@ -31,7 +31,7 @@ export function toInsertProductDevQuery(productDev: ProductDevelopment):
     E.Either<Error, string> {
     let query = `
         BEGIN;
-        INSERT INTO product_development(product_dev_id, active, name, started_on) 
+        INSERT INTO jira.product_development(product_dev_id, active, name, started_on) 
         VALUES($ID, $ACTIVE, $NAME, $STARTED_ON) 
         RETURNING *;
         `;
@@ -53,7 +53,7 @@ export function toInsertProductDevQuery(productDev: ProductDevelopment):
 function toInsertTicketBoardQuery(ticketBoard: TicketBoard, productDevId: string, query: string):
     E.Either<Error, string> {
     let insertQuery = `
-        INSERT INTO ticket_board(ticket_board_id, ticket_board_ref, ticket_board_key, product_dev_fk) 
+        INSERT INTO jira.ticket_board(ticket_board_id, ticket_board_ref, ticket_board_key, product_dev_fk) 
         VALUES($ID, $EXTERNAL_REF, $KEY, $PRODUCT_DEV_FK) 
         RETURNING *;
     `;

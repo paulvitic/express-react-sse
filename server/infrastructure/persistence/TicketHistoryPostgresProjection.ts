@@ -11,6 +11,30 @@ import {TicketHistory} from "../../domain/product/TicketHistory";
 import * as translate from "./TicketHistoryPostgresTranslator";
 import {TicketHistoryQueryService} from "../../domain/product/service/TicketHistoryQueryService";
 
+function isForChapterFromArray(labels: string[]): boolean {
+    let chapterLabel = "chapter-ticket";
+    if (labels === undefined || labels === null || labels.length===0) return false;
+    return labels.includes(chapterLabel);
+}
+
+function isForChapterFromString(labels: string): boolean {
+    if (labels === undefined || labels === null) return false;
+    return(isForChapterFromArray(labels.split(" ")))
+}
+
+function getChapterFromArray(labels: string[]): string {
+    if (labels === undefined || labels === null || labels.length===0) return "Unknown";
+    if (labels.includes("software-dev-qa-chapter")) return "Software development & QA";
+    if (labels.includes("product-design-chapter")) return "Product development & Design";
+    if (labels.includes("data-science-chapter")) return "Data Science";
+    return "Unknown";
+}
+
+function getChapterFromString(labels: string): string {
+    if (labels === undefined || labels === null) return "Unknown";
+    return(getChapterFromArray(labels.split(" ")))
+}
+
 export class TicketHistoryPostgresProjection implements EventListener<TicketChanged> {
     private readonly log = LogFactory.get(TicketHistoryPostgresProjection.name);
     constructor(private readonly client: PostgresClient,
@@ -23,7 +47,8 @@ export class TicketHistoryPostgresProjection implements EventListener<TicketChan
                 () => this.insertFirstEntry(event),
                 latestHistory => TE.right2v(latestHistory))),
             TE.chain(latestHistory => array.reduce(event.ticketChangeLog.changeLog, TE.taskEither.of(latestHistory), // FIXME: need to sort
-                (previousHistory, changeLog) => previousHistory.chain(history => this.handleChangeLog(history, changeLog))
+                (previousHistory, changeLog) => previousHistory.chain(history =>
+                    this.handleChangeLog(history, changeLog, history.storyPoints, history.sprintCount))
             )),
             TE.chain(() => TE.right2v(true))
         ).run();
@@ -38,25 +63,25 @@ export class TicketHistoryPostgresProjection implements EventListener<TicketChan
             ticketRef,
             ticketKey,
             issueType: ticketChangeLog.issueType,
+            storyPoints: ticketChangeLog.storyPoints,
             startedAt: new Date(prodDevStartedOn),
             endedAt: null,
             assignee: null,
             status: null,
             duration: null,
-            forProductDev: null,
-            chapter: null,
-            forChapter: null,
-            sprintCount: null,
-            sprint: null
+            forProductDev: ticketChangeLog.parentKey!==null,
+            forChapter: isForChapterFromArray(ticketChangeLog.labels),
+            chapter: getChapterFromArray(ticketChangeLog.labels),
+            sprintCount: ticketChangeLog.sprintCount
         });
     }
 
-    private handleChangeLog(previousHistory: TicketHistory, changeLog: ChangeLog):
+    private handleChangeLog(previousHistory: TicketHistory, changeLog: ChangeLog, storyPoints: number, sprintCount:number):
     TE.TaskEither<Error, TicketHistory> {
         return pipe(
             TE.fromEither(this.updatePreviousHistory(previousHistory, changeLog)),
             TE.chain(previousHistory => this.executeUpdate(previousHistory)),
-            TE.chain( previousHistory => TE.fromEither(this.createNewHistory(previousHistory, changeLog))),
+            TE.chain( previousHistory => TE.fromEither(this.createNewHistory(previousHistory, changeLog, storyPoints, sprintCount))),
             TE.chain( newHistory => this.executeInsert(newHistory))
         )
     }
@@ -67,6 +92,8 @@ export class TicketHistoryPostgresProjection implements EventListener<TicketChan
             E.tryCatch2v(() => {
                 return {...previousHistory,
                     latest: false,
+                    storyPoints: null,
+                    sprintCount: null,
                     endedAt: new Date(changeLog.created),
                     duration: new Date(changeLog.created).getTime() - previousHistory.startedAt.getTime()
                 }
@@ -77,7 +104,7 @@ export class TicketHistoryPostgresProjection implements EventListener<TicketChan
         )
     }
 
-    private createNewHistory(previousHistory: TicketHistory, changeLog: ChangeLog):
+    private createNewHistory(previousHistory: TicketHistory, changeLog: ChangeLog, storyPoints: number, sprintCount: number):
         E.Either<Error, TicketHistory> {
         return pipe(
             E.tryCatch2v(() => {
@@ -85,6 +112,8 @@ export class TicketHistoryPostgresProjection implements EventListener<TicketChan
                     ...previousHistory,
                     latest: true,
                     startedAt: new Date(changeLog.created),
+                    storyPoints,
+                    sprintCount,
                     endedAt: null,
                     duration: null
                 }
@@ -113,9 +142,18 @@ export class TicketHistoryPostgresProjection implements EventListener<TicketChan
                         ...previousHistory,
                         issueType: previousHistory.issueType === null ? change.fromString : previousHistory.issueType
                     };
+                case ChangeFilter.IssueParentAssociation.type:
+                    return {
+                        ...previousHistory,
+                        forProductDev: previousHistory.forProductDev === null ? change.fromString!==null : previousHistory.forProductDev
+                    };
+                case ChangeFilter.labels.type:
+                    return {
+                        ...previousHistory,
+                        forChapter: previousHistory.forChapter === null ? isForChapterFromString(change.fromString) : previousHistory.forChapter,
+                        chapter: previousHistory.chapter === null ? getChapterFromString(change.fromString) : previousHistory.chapter
+                    };
                 default:
-                    this.log.info(`${previousHistory.ticketKey} ${change.type} update 
-                    from: ${change.from}:${change.fromString}, to ${change.to}:${change.toString}`);
                     return previousHistory
             }
         }, err => err as Error)
@@ -139,9 +177,19 @@ export class TicketHistoryPostgresProjection implements EventListener<TicketChan
                         ...newHistory,
                         issueType: change.toString
                     };
+                case ChangeFilter.IssueParentAssociation.type:
+                    return {
+                        ...newHistory,
+                        forProductDev: change.toString!==null
+                    };
+                case ChangeFilter.labels.type:
+                    return {
+                        ...newHistory,
+                        forChapter: isForChapterFromString(change.toString),
+                        chapter: getChapterFromString(change.toString)
+                    };
                 default:
-                    this.log.info(`${newHistory.ticketKey} ${change.type} update 
-                    from: ${change.from}:${change.fromString}, to ${change.to}:${change.toString}`);
+                    this.log.warn(`${newHistory.ticketKey} ${change.type} update from: ${change.from}:${change.fromString}, to ${change.to}:${change.toString}`);
                     return newHistory
             }
         }, err => err as Error)
