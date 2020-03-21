@@ -4,15 +4,16 @@ import * as O from "fp-ts/lib/Option";
 import ProductDevelopment from "../../domain/product/ProductDevelopment";
 import {pipe} from "fp-ts/lib/pipeable";
 import TicketBoard from "../../domain/product/TicketBoard";
+import PostgresClient from "../clients/PostgresClient";
+
 
 export function toFindByIdQuery(id: string): E.Either<Error, string> {
-    let query = `
+    return E.tryCatch2v(() => {
+        return `
         SELECT * FROM jira.product_development AS pd 
         LEFT JOIN jira.ticket_board as tb ON tb.product_dev_fk = pd.product_dev_id  
-        WHERE pd.product_dev_id=$ID;`;
-    return E.tryCatch2v(() => {
-        query = query.replace(/\$ID/, `'${id}'`);
-        return query;
+        WHERE pd.product_dev_id='${id}';
+        `;
     }, err => err as Error)
 }
 
@@ -40,7 +41,7 @@ export function toInsertProductDevQuery(productDev: ProductDevelopment):
             query = query.replace(/\$ID/, `'${productDev.id}'`);
             query = query.replace(/\$ACTIVE/, `${productDev.isActive}`);
             query = query.replace(/\$NAME/, `'${productDev.name}'`);
-            query = query.replace(/\$STARTED_ON/, `'${toSqlDate(productDev.startedOn)}'`);
+            query = query.replace(/\$STARTED_ON/, `'${PostgresClient.toSqlDate(productDev.startedOn)}'`);
             return  query;
         }, err => err as Error),
         E.chain(query => O.fromNullable(productDev.ticketBoard).isSome() ?
@@ -99,10 +100,4 @@ function toCollection(pd: any, ticketBoard: TicketBoard) {
         pd.name,
         pd.started_on,
         ticketBoard), err => err as Error)
-}
-
-function toSqlDate(date: Date) {
-    let tzOffset = (new Date()).getTimezoneOffset() * 60000;
-    return new Date(date.getTime() - tzOffset).toISOString().slice(0, 19).replace('T', ' ');
-    //return date.toISOString().slice(0, 19).replace('T', ' ')
 }

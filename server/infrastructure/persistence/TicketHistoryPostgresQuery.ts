@@ -10,13 +10,10 @@ export class TicketHistoryPostgresQuery implements TicketHistoryQueryService {
     constructor(private readonly client: PostgresClient) {}
 
     findLatestByTicketRef(ticketRef: number): TE.TaskEither<Error, O.Option<TicketHistory>> {
-        let query = `
-        SELECT * FROM ticket_history WHERE ticket_ref=${ticketRef} AND latest=true;
-        `;
         return pipe(
-            this.client.query(query),
-            TE.map(queryResult =>
-                O.fromNullable(queryResult.rows[0])),
+            TE.fromEither(translate.toFindLatestByTicketRefQuery(ticketRef)),
+            TE.chain(this.client.query),
+            TE.map(queryResult => O.fromNullable(queryResult.rows[0])),
             TE.map(row => row.foldL(
                 () => O.none,
                 row => O.some(translate.toHistory(row)))

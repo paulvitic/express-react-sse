@@ -29,12 +29,9 @@ export default class TicketChangeLogReader extends TicketUpdateCollectionProcess
             TE.chain(collection => collection.isNone() ?
                 TE.left2v(new Error('collection does not exists')) :
                 TE.right2v(collection.value)),
-            TE.chainFirst(collection =>
-                this.readUpdatedTicketsChangeLogs(event, collection)),
-            TE.chain(collection =>
-                this.repo.update(collection.id, collection)),
-            TE.chain(collection =>
-                this.eventBus.publishEventsOf(collection)),
+            TE.chainFirst(collection => this.readUpdatedTicketsChangeLogs(event, collection)),
+            TE.chain(collection => this.repo.update(collection.id, collection)),
+            TE.chain(collection => this.eventBus.publishEventsOf(collection)),
         ).run();
     }
 

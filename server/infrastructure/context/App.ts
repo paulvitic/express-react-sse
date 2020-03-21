@@ -44,6 +44,7 @@ import TicketChangeLogReader from "../../domain/product/process/ticketUpdateColl
 import {TicketHistoryPostgresProjection} from "../persistence/TicketHistoryPostgresProjection";
 import {TicketHistoryQueryService} from "../../domain/product/service/TicketHistoryQueryService";
 import {TicketHistoryPostgresQuery} from "../persistence/TicketHistoryPostgresQuery";
+import {TicketUpdateCollectionTracker} from "../../domain/product/process/ticketUpdateCollection/TicketUpdateCollectionTracker";
 
 const exit = process.exit;
 
@@ -69,7 +70,8 @@ type Context = {
             },
             policy: {},
             processors:{
-                ticketUpdateCollectionTracker?: TicketUpdateCollectionExecutive,
+                ticketUpdateCollectionExecutive?: TicketUpdateCollectionExecutive,
+                ticketUpdateCollectionTracker?: TicketUpdateCollectionTracker,
                 updatedTicketsListCollector?: UpdatedTicketsListCollector
                 ticketChangeLogReader?: TicketChangeLogReader
             },
@@ -243,7 +245,7 @@ export default class App {
     private initProcessors = (): Promise<void> => {
         return new Promise<void>((resolve, reject) => {
             try {
-                this.context.product.domain.processors.ticketUpdateCollectionTracker =
+                this.context.product.domain.processors.ticketUpdateCollectionExecutive =
                     new TicketUpdateCollectionExecutive(
                         this.context.product.domain.repositories.ticketUpdateCollectionRepo,
                         this.context.common.eventBus);
@@ -260,6 +262,10 @@ export default class App {
                         this.context.product.domain.services.ticketBoardIntegration,
                         this.context.product.domain.services.ticketHistoryQueryService
                     );
+                this.context.product.domain.processors.ticketUpdateCollectionTracker =
+                    new TicketUpdateCollectionTracker(
+                        this.context.product.domain.repositories.ticketUpdateCollectionRepo,
+                        this.context.common.eventBus);
                 resolve()
             } catch (e) {
                 reject(new Error("error while initializing processors: " + e.message ))
@@ -284,7 +290,7 @@ export default class App {
 
                 this.context.product.application.services.ticketUpdateCollectionService =
                     new TicketUpdateCollectionService(
-                        this.context.product.domain.processors.ticketUpdateCollectionTracker,
+                        this.context.product.domain.processors.ticketUpdateCollectionExecutive,
                         this.context.product.domain.repositories.productDevelopmentRepo);
                 resolve();
             }catch (e) {
@@ -366,6 +372,11 @@ export default class App {
                 this.context.common.eventBus.subscribe(
                     this.context.product.infrastructure.projection.ticketHistoryPostgresProjection, [
                         TicketChanged.name
+                    ]);
+
+                this.context.common.eventBus.subscribe(
+                    this.context.product.domain.processors.ticketUpdateCollectionTracker, [
+                        TicketUpdateCollectionCompleted.name
                     ]);
 
                 resolve();

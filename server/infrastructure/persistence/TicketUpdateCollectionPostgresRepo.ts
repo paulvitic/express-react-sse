@@ -23,7 +23,7 @@ export default class TicketUpdateCollectionPostgresRepo implements TicketUpdateC
 
     findLatestByProject(prodDevId: string): TE.TaskEither<Error, O.Option<TicketUpdateCollection>> {
         return pipe(
-            TE.fromEither(translate.toFindLatestIdByProjectQuery(prodDevId)),
+            TE.fromEither(translate.toFindLatestByProjectQuery(prodDevId)),
             TE.chain(query => this.client.query(query)),
             TE.chain( result => result.rows.length === 0 ?
                 TE.right2v(O.none) :

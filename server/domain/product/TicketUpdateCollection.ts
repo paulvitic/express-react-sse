@@ -2,7 +2,7 @@ import AggregateRoot from "../AggregateRoot";
 import Identity from "../Identity";
 import * as E from "fp-ts/lib/Either";
 import {pipe} from "fp-ts/lib/pipeable";
-import {ChangeLog, TicketChangeLog, UpdatedTicket} from "./service/TicketBoardIntegration";
+import {TicketChangeLog, UpdatedTicket} from "./service/TicketBoardIntegration";
 import TicketUpdate from "./TicketUpdate";
 import {
     TicketChanged,
@@ -183,7 +183,7 @@ export default class TicketUpdateCollection extends AggregateRoot {
                     updatedTickets));
                 return;
             }, err => err as Error),
-            E.chain(() => this.complete())
+            E.chain(() => this.complete(prodDevStart))
         )
     }
 
@@ -210,11 +210,11 @@ export default class TicketUpdateCollection extends AggregateRoot {
                         ticketKey));
                 return;
             }, err => err as Error),
-            E.chain(() => this.complete())
+            E.chain(() => this.complete(prodDevStart))
         )
     }
 
-    private complete(): E.Either<Error, void> {
+    private complete(prodDevStart:string): E.Either<Error, void> {
         this.log.debug("checking complete");
         return E.tryCatch2v(() => {
             if (this._status !== TicketUpdateCollectionStatus.COMPLETED) {
@@ -231,6 +231,7 @@ export default class TicketUpdateCollection extends AggregateRoot {
                         this.id,
                         this.productDevId,
                         this.ticketBoardKey,
+                        prodDevStart,
                         this.endedAt.toISOString()));
                 }
             }

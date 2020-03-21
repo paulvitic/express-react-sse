@@ -7,6 +7,7 @@ CREATE TABLE jira.event_log
     aggregate    VARCHAR(31) NOT NULL,
     generated_on TIMESTAMP   NOT NULL,
     event_type   VARCHAR(31) NOT NULL,
+    published    BOOLEAN     NOT NULL,
     event        json        NOT NULL
 );
 
@@ -59,22 +60,22 @@ CREATE TABLE jira.ticket_update
 
 CREATE TABLE jira.ticket_history
 (
-    latest          BOOLEAN     NOT NULL,
-    ticket_ref      INT         NOT NULL,
-    ticket_key      VARCHAR(31) NOT NULL,
-    issue_type      VARCHAR(31) NOT NULL,
-    story_points    INT,
-    status          VARCHAR(31),
-    assignee        VARCHAR(31),
-    for_product_dev boolean,
-    for_chapter     boolean,
-    chapter         VARCHAR(31),
-    sprint_count    INT,
-    started_at      TIMESTAMP   NOT NULL,
-    ended_at        TIMESTAMP,
-    duration        BIGINT,
-    product_dev_fk  VARCHAR(31) NOT NULL,
-    FOREIGN KEY (product_dev_fk) REFERENCES jira.product_development (product_dev_id)
+    latest         BOOLEAN     NOT NULL,
+    ticket_ref     INT         NOT NULL,
+    ticket_key     VARCHAR(31) NOT NULL,
+    issue_type     VARCHAR(31) NOT NULL,
+    work_type      VARCHAR(31) NOT NULL,
+    story_points   INT,
+    status         VARCHAR(31),
+    assignee       VARCHAR(31),
+    sprint_count   INT,
+    started_at     TIMESTAMP   NOT NULL,
+    ended_at       TIMESTAMP,
+    duration       BIGINT,
+    product_dev_fk VARCHAR(31) NOT NULL,
+    collection_fk  VARCHAR(31) NOT NULL,
+    FOREIGN KEY (product_dev_fk) REFERENCES jira.product_development (product_dev_id),
+    FOREIGN KEY (collection_fk) REFERENCES jira.ticket_update_collection (collection_id)
 );
 
 CREATE INDEX ticket_history_idx ON jira.ticket_history (ticket_ref, latest, started_at DESC);

@@ -6,6 +6,7 @@ export class TicketUpdateCollectionCompleted extends AbstractDomainEvent {
         aggregateId: string,
         readonly prodDevId: string,
         readonly ticketBoardKey: string,
+        readonly prodDevStart: string,
         readonly completedDate: string){
         super(aggregate, aggregateId);
     }

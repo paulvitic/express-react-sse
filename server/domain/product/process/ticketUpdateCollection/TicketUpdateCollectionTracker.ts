@@ -3,34 +3,32 @@ import TicketUpdateCollection, {TicketUpdateCollectionStatus} from "../../Ticket
 import {TicketUpdateCollectionRepository} from "../../repository";
 import {pipe} from "fp-ts/lib/pipeable";
 import EventBus from "../../../EventBus";
+import {TicketUpdateCollectionProcess} from "./TicketUpdateCollectionProcess";
+import {TicketUpdateCollectionCompleted} from "../../event";
+import * as E from "fp-ts/lib/Either";
 import LogFactory from "../../../LogFactory";
 
-class TicketUpdateCollectionExecutiveError extends Error {
-    constructor(message) {
-        super(message);
-        this.name = TicketUpdateCollectionExecutiveError.name;
+export class TicketUpdateCollectionTracker  extends TicketUpdateCollectionProcess {
+    private readonly log = LogFactory.get(TicketUpdateCollectionTracker.name);
+    constructor(repo: TicketUpdateCollectionRepository,
+                eventBus: EventBus) {
+        super(repo, eventBus)
     }
-}
 
-export class TicketUpdateCollectionExecutive {
-    private readonly log = LogFactory.get(TicketUpdateCollectionExecutive.name);
-    constructor(private readonly repo: TicketUpdateCollectionRepository,
-                private readonly eventBus: EventBus) {}
-
-    start(prodDevId: string, ticketBoardKey: string, prodDevStart: Date):
-        TE.TaskEither<Error, boolean> {
+    onEvent(event: TicketUpdateCollectionCompleted): Promise<E.Either<Error, boolean>> {
+        this.log.debug(`Processing ${TicketUpdateCollectionCompleted.name} event`);
         return pipe(
-            this.repo.findLatestByProject(prodDevId),
+            this.repo.findLatestByProject(event.prodDevId),
             TE.chain(collection => collection.isSome() ?
                 TE.right2v(collection.value) :
-                this.create(prodDevId, ticketBoardKey, prodDevStart)),
+                TE.left2v(new Error("previous collection does not exist"))),
             TE.chain(collection => collection.status === TicketUpdateCollectionStatus.COMPLETED ?
-                this.create(prodDevId, ticketBoardKey, collection.period.to) :
-                TE.right2v(collection)),
-            TE.chainFirst(collection => TE.fromEither(collection.start(prodDevStart))),
+                this.create(collection.productDevId, collection.ticketBoardKey, collection.period.to) :
+                TE.left2v(new Error("previous collection is not complete"))),
+            TE.chainFirst(collection => TE.fromEither(collection.start(new Date(event.prodDevStart)))),
             TE.chainFirst(collection => this.repo.update(collection.id, collection)),
             TE.chain(collection => this.eventBus.publishEventsOf(collection))
-        )
+        ).run();
     }
 
     private create = (prodDevId: string, ticketBoardKey: string, from: Date):

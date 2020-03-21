@@ -14,57 +14,50 @@ import {
 import PostgresClient from "../clients/PostgresClient";
 
 export function toFindByIdQuery(id: string): E.Either<Error, string> {
-    let query = `
-        SELECT * FROM ticket_update_collection AS tuc
-            LEFT JOIN ticket_update AS tu ON tuc.collection_id = tu.collection_fk
-            WHERE tuc.collection_id=$ID;`;
     return E.tryCatch2v(() => {
-        query = query.replace(/\$ID/, `'${id}'`);
-        return query;
+        return `
+        SELECT * FROM jira.ticket_update_collection AS tuc
+            LEFT JOIN jira.ticket_update AS tu ON tuc.collection_id = tu.collection_fk
+            WHERE tuc.collection_id='${id}';
+        `;
     }, err => err as Error)
 }
 
 export function toFindByStatusQuery(status: TicketUpdateCollectionStatus): E.Either<Error, string> {
-    let query = `
-        SELECT * FROM ticket_update_collection AS tuc
-            LEFT JOIN ticket_update AS tu ON tuc.collection_id = tu.collection_fk
-            WHERE tuc.status=$STATUS;`;
     return E.tryCatch2v(() => {
-        query = query.replace(/\$STATUS/, `'${TicketUpdateCollectionStatus[status]}'`);
-        return query;
+        return `
+        SELECT * FROM jira.ticket_update_collection AS tuc
+            LEFT JOIN jira.ticket_update AS tu ON tuc.collection_id = tu.collection_fk
+            WHERE tuc.status='${TicketUpdateCollectionStatus[status]}';
+        `;
     }, err => err as Error)
 }
 
-export function toFindLatestIdByProjectQuery(productDevId: string): E.Either<Error, string> {
-    let query = `
-        SELECT * FROM ticket_update_collection  
-            WHERE product_dev_fk=$PROD_DEV_ID 
-            ORDER BY started_at DESC
-            LIMIT 1;`;
+export function toFindLatestByProjectQuery(productDevId: string): E.Either<Error, string> {
+
     return E.tryCatch2v(() => {
-        query = query.replace(/\$PROD_DEV_ID/, `'${productDevId}'`);
-        return query;
+        return `
+        SELECT * FROM jira.ticket_update_collection  
+            WHERE product_dev_fk='${productDevId}' 
+            ORDER BY started_at DESC
+            LIMIT 1;`
+            ;
     }, err => err as Error)
 }
 
 export function toInsertCollectionQuery(collection: TicketUpdateCollection):
     E.Either<Error, string> {
-    let query = `
-        BEGIN;
-            INSERT INTO ticket_update_collection(collection_id, active, status, product_dev_fk, ticket_board_key, from_day, to_day, started_at)
-            VALUES ($ID, $ACTIVE, $STATUS, $PRODUCT_DEV_ID, $TICKET_BOARD_KEY, $FROM, $TO, $STARTED_AT);
-        `;
     return pipe(
         E.tryCatch2v(() => {
-            query = query.replace(/\$ID/, `'${collection.id}'`);
-            query = query.replace(/\$ACTIVE/, `${collection.isActive}`);
-            query = query.replace(/\$STATUS/, `'${TicketUpdateCollectionStatus[collection.status]}'`);
-            query = query.replace(/\$PRODUCT_DEV_ID/, `'${collection.productDevId}'`);
-            query = query.replace(/\$TICKET_BOARD_KEY/, `'${collection.ticketBoardKey}'`);
-            query = query.replace(/\$FROM/, `'${PostgresClient.toSqlDate(collection.period.from)}'`);
-            query = query.replace(/\$TO/, `'${PostgresClient.toSqlDate(collection.period.to)}'`);
-            query = query.replace(/\$STARTED_AT/, `'${PostgresClient.toSqlDate(collection.startedAt)}'`);
-            return  query;
+            let {id, isActive, status, productDevId, ticketBoardKey, period: {from, to}, startedAt} = collection;
+            let begin = `BEGIN;`;
+            let insertQuery = `
+            INSERT INTO jira.ticket_update_collection(collection_id, active, status, product_dev_fk, ticket_board_key, 
+                                                      from_day, to_day, started_at)
+                VALUES ('${id}', ${isActive}, '${TicketUpdateCollectionStatus[status]}', '${productDevId}', '${ticketBoardKey}', 
+                        '${PostgresClient.toSqlDate(from)}', '${PostgresClient.toSqlDate(to)}', '${PostgresClient.toSqlDate(startedAt)}');
+            `;
+            return  begin + insertQuery;
         }, err => err as Error),
         E.chain(query => array.reduce(collection.ticketUpdates, E.either.of(query), (previous, current) => {
             return previous.fold( err => E.left(err), res => toInsertTicketUpdateQuery(current, collection.id, res))
@@ -74,22 +67,19 @@ export function toInsertCollectionQuery(collection: TicketUpdateCollection):
 
 export function toUpdateCollectionQuery(id: string, collection: TicketUpdateCollection):
     E.Either<Error, string> {
-    let query = `
-        BEGIN;
-        SELECT * FROM ticket_update_collection AS tuc 
-            LEFT JOIN ticket_update AS tu ON tuc.collection_id = tu.collection_fk 
-            WHERE tuc.collection_id=$ID FOR UPDATE OF tuc;
-        UPDATE ticket_update_collection 
-            SET status=$STATUS, ended_at=$ENDED_AT 
-            WHERE collection_id=$ID;
-        `;
     return pipe(
         E.tryCatch2v(() => {
-            query = query.replace(/\$ID/, `'${id}'`);
-            query = query.replace(/\$STATUS/, `'${TicketUpdateCollectionStatus[collection.status]}'`);
-            query = query.replace(/\$ENDED_AT/, collection.endedAt ? `'${PostgresClient.toSqlDate(collection.endedAt)}'` : `NULL`);
-            query = query.replace(/\$ID/, `'${id}'`);
-            return  query;
+            let endedAt = collection.endedAt ? `'${PostgresClient.toSqlDate(collection.endedAt)}'` : `NULL`;
+            let begin = `BEGIN;`;
+            let updateQuery = `
+            SELECT * FROM jira.ticket_update_collection AS tuc 
+                LEFT JOIN jira.ticket_update AS tu ON tuc.collection_id = tu.collection_fk 
+                WHERE tuc.collection_id='${id}' FOR UPDATE OF tuc;
+            UPDATE jira.ticket_update_collection 
+                SET status='${TicketUpdateCollectionStatus[collection.status]}', ended_at=${endedAt}  
+                WHERE collection_id='${id}';
+            `;
+            return  begin + updateQuery;
         }, err => err as Error),
         E.chain(query => array.reduce(collection.domainEvents, E.either.of(query), (previous, current) => {
             return previous.fold(
@@ -99,6 +89,40 @@ export function toUpdateCollectionQuery(id: string, collection: TicketUpdateColl
     )
 }
 
+// noinspection JSUnusedLocalSymbols
+function toDeleteTicketUpdateQuery(ticketUpdate: TicketUpdate, query: string):
+    E.Either<Error, string> {
+    return E.tryCatch2v(() => {
+        let deleteQuery = `
+        DELETE FROM jira.ticket_update WHERE ticket_update_id='${ticketUpdate.id}';
+        `;
+        return query + deleteQuery;
+    }, err => err as Error)
+}
+
+function toInsertTicketUpdateQuery(ticketUpdate: TicketUpdate, collectionId: string, query: string):
+    E.Either<Error, string> {
+
+    return E.tryCatch2v(() => {
+        let insertQuery = `
+        INSERT INTO jira.ticket_update(ticket_update_id, ticket_ref, ticket_key, collected, collection_fk)
+            VALUES ('${ticketUpdate.id}', ${ticketUpdate.ref}, '${ticketUpdate.key}', ${ticketUpdate.collected}, '${collectionId}');
+        `;
+        return query + insertQuery;
+    }, err => err as Error)
+}
+
+function toUpdateTicketUpdateQuery(ticketUpdate: TicketUpdate, query: string):
+    E.Either<Error, string> {
+    return E.tryCatch2v(() => {
+        let updateQuery = `
+        UPDATE jira.ticket_update SET collected=${ticketUpdate.collected} 
+            WHERE ticket_update_id='${ticketUpdate.id}';
+        `;
+        return query + updateQuery;
+    }, err => err as Error)
+}
+
 function appendToUpdateQuery(collection: TicketUpdateCollection, event:DomainEvent, query: string):
     E.Either<Error, string> {
     switch (event.eventType) {
@@ -106,7 +130,7 @@ function appendToUpdateQuery(collection: TicketUpdateCollection, event:DomainEve
             return array.reduce(collection.ticketUpdates, E.either.of(query), (previous, current) => {
                 return previous.fold(
                     err => E.left(err),
-                        res => toInsertTicketUpdateQuery(current, collection.id, res))
+                    res => toInsertTicketUpdateQuery(current, collection.id, res))
             });
         case TicketChanged.name:
             return toUpdateTicketUpdateQuery(collection.ticketUpdateOfKey(
@@ -117,47 +141,6 @@ function appendToUpdateQuery(collection: TicketUpdateCollection, event:DomainEve
         default:
             return E.right(query);
     }
-}
-
-// noinspection JSUnusedLocalSymbols
-function toDeleteTicketUpdateQuery(ticketUpdate: TicketUpdate, query: string):
-    E.Either<Error, string> {
-    let insertQuery = `
-        DELETE FROM ticket_update WHERE ticket_update_id=$ID;
-    `;
-    return E.tryCatch2v(() => {
-        insertQuery = insertQuery.replace(/\$ID/, `'${ticketUpdate.id}'`);
-        return query + insertQuery;
-    }, err => err as Error)
-}
-
-function toInsertTicketUpdateQuery(ticketUpdate: TicketUpdate, collectionId: string, query: string):
-    E.Either<Error, string> {
-    let insertQuery = `
-        INSERT INTO ticket_update(ticket_update_id, ticket_ref, ticket_key, collected, collection_fk)
-            VALUES ($ID, $EXTERNAL_REF, $KEY, $COLLECTED, $COLLECTION_FK);
-    `;
-    return E.tryCatch2v(() => {
-        insertQuery = insertQuery.replace(/\$ID/, `'${ticketUpdate.id}'`);
-        insertQuery = insertQuery.replace(/\$EXTERNAL_REF/, `${ticketUpdate.ref}`);
-        insertQuery = insertQuery.replace(/\$KEY/, `'${ticketUpdate.key}'`);
-        insertQuery = insertQuery.replace(/\$COLLECTED/, `${ticketUpdate.collected}`);
-        insertQuery = insertQuery.replace(/\$COLLECTION_FK/, `'${collectionId}'`);
-        return query + insertQuery;
-    }, err => err as Error)
-}
-
-function toUpdateTicketUpdateQuery(ticketUpdate: TicketUpdate, query: string):
-    E.Either<Error, string> {
-    let updateQuery = `
-        UPDATE ticket_update SET collected=$COLLECTED 
-            WHERE ticket_update_id=$ID;
-    `;
-    return E.tryCatch2v(() => {
-        updateQuery = updateQuery.replace(/\$ID/, `'${ticketUpdate.id}'`);
-        updateQuery = updateQuery.replace(/\$COLLECTED/, `${ticketUpdate.collected}`);
-        return query + updateQuery;
-    }, err => err as Error)
 }
 
 
