@@ -27,9 +27,13 @@ const ticketFields = [
 
 export function toGetUpdatedTicketsUrl(baseUrl:string, key:string, from, to):
     E.Either<Error, string>{
-    return E.tryCatch2v(() =>
-        `${baseUrl}/rest/api/3/search?jql=project%3D${key}+and+updated%3E%3D%22${toQueryDateFormat(from)}%22+and+updated%3C%22${toQueryDateFormat(to)}%22&fields=created%2Cupdated`
-    , err => new Error(`error while translating to get updated tickets url: ${(err as Error).message}`))
+    return E.tryCatch2v(() => {
+        let projectFilter = `project%3D${key}`;
+        let updateFilter = `updated%3E%3D%22${toQueryDateFormat(from)}%22+and+updated%3C%22${toQueryDateFormat(to)}%22`;
+        let fieldsFilter = `created%2Cupdated`;
+        let epicFilter = `issuetype%20not%20in%20%28Epic%29`;
+        return `${baseUrl}/rest/api/3/search?jql=${projectFilter}+and+${epicFilter}+and+${updateFilter}&fields=${fieldsFilter}`
+    }, err => new Error(`error while translating to get updated tickets url: ${(err as Error).message}`))
 }
 
 export function toAssertProjectUrl(baseUrl:string, key:string):
