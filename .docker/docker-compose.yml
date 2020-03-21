@@ -16,15 +16,6 @@ services:
     ports:
       - 5432:5432
 
-  cache:
-    image: redis
-    container_name: redis
-    command: redis-server /usr/local/etc/redis/redis.conf
-    volumes:
-      - ./redis.conf:/usr/local/etc/redis/redis.conf
-    ports:
-      - 6379:6379
-
   queue:
     image: rabbitmq:3-management
     container_name: rabbitmq
@@ -35,3 +26,14 @@ services:
     ports:
       - 15672:15672
       - 5672:5672
+
+#  cache:
+#    image: redis
+#    container_name: redis
+#    command: redis-server /usr/local/etc/redis/redis.conf
+#    volumes:
+#      - ./redis.conf:/usr/local/etc/redis/redis.conf
+#    ports:
+#      - 6379:6379
+
+

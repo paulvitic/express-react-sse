@@ -2,7 +2,6 @@ import { config as environment} from 'dotenv';
 import {RabbitClientParams} from "../clients/RabbitClient";
 import {JiraIntegrationParams} from "../integration/JiraIntegration";
 import {PostgresClientParams} from "../clients/PostgresClient";
-import {RedisClientParams} from "../clients/RedisClient";
 
 export interface Environment {
     //NODE_ENV: string,
@@ -12,9 +11,7 @@ export interface Environment {
     REQUEST_LIMIT: string,
     SESSION_SECRET: string,
     POSTGRES_PARAMS: PostgresClientParams,
-    REDIS_PARAMS: RedisClientParams,
     RABBIT_PARAMS: RabbitClientParams
-    SWAGGER_API_SPEC: string,
     DATA_COLLECTION_CRON: string,
     API_PREFIX: string,
     SESSION_COOKIE_TTL: number,
@@ -56,11 +53,6 @@ export default async function config(): Promise<Environment> {
             user: getStringValueOrThrow(process.env, 'POSTGRES_USER'),
             password: getStringValueOrThrow(process.env, 'POSTGRES_PASS')
         },
-        REDIS_PARAMS: {
-            host: process.env.REDIS_HOST || 'localhost',
-            port: process.env.REDIS_PORT ? parseInt(process.env.REDIS_PORT) : 6379,
-            password: getStringValueOrThrow(process.env, 'REDIS_PASS')
-        },
         RABBIT_PARAMS: {
             host : getStringValueOrThrow(process.env, 'RABBIT_HOST'),
             port: process.env.RABBIT_PORT ? parseInt(process.env.RABBIT_PORT) : 5672,
@@ -68,7 +60,6 @@ export default async function config(): Promise<Environment> {
             user: getStringValueOrThrow(process.env, 'RABBIT_USER'),
             password: getStringValueOrThrow(process.env, 'RABBIT_PASS'),
         },
-        SWAGGER_API_SPEC: getStringValueOrThrow(process.env, 'SWAGGER_API_SPEC'),
         DATA_COLLECTION_CRON: process.env.DATA_COLLECTION_CRON || '* * * * *',
         API_PREFIX: process.env.API_PREFIX || '/api',
         SESSION_COOKIE_TTL: process.env.SESSION_COOKIE_TTL ? parseInt(process.env.SESSION_COOKIE_TTL) : 1000 * 60 * 60 * 24,

@@ -5,7 +5,7 @@ import {pipe} from "fp-ts/lib/pipeable";
 
 export type PostgresClientParams = {
     host: string,
-    port:number,
+    port: number,
     user: string,
     database: string,
     password: string
@@ -43,29 +43,33 @@ export default class PostgresClient {
                 .then((res) => {
                     client.log.info(`connected ${params.user}@${params.host}:${params.port}/${params.database} on ${res.rows[0]["now"]}`);
                 }).catch((err) => {
-                    client.log.error(`error during connection test: ${err.message}`);
-                    reject(err);
-                });
+                client.log.error(`error during connection test: ${err.message}`);
+                reject(err);
+            });
 
             resolve(client);
         })
     };
 
-     query = (text: string, values?: any[]): TE.TaskEither<Error, QueryResultRow> => {
-         let queryConfig = {text, values};
-         this.log.debug(text);
-         return TE.tryCatch(() => this.connPool.query(queryConfig),
+    get pool() {
+        return this.connPool;
+    }
+
+    query = (text: string, values?: any[]): TE.TaskEither<Error, QueryResultRow> => {
+        let queryConfig = {text, values};
+        this.log.debug(text);
+        return TE.tryCatch(() => this.connPool.query(queryConfig),
             error => new Error(`Error while executing query: ${String(error)}`))
     };
 
     commit = (result: QueryResultRow): TE.TaskEither<Error, QueryResultRow> => {
         return pipe(
             this.query(this.commitQuery),
-            TE.chain( () => TE.right2v(result))
+            TE.chain(() => TE.right2v(result))
         )
     };
 
-    rollBack = (err: Error): TE.TaskEither<Error, QueryResultRow> =>{
+    rollBack = (err: Error): TE.TaskEither<Error, QueryResultRow> => {
         return pipe(
             this.query(this.rollBackQuery),
             TE.chain(() => TE.left2v(err))

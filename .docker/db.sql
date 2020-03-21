@@ -1,6 +1,19 @@
 --ALTER DATABASE postgres SET timezone TO 'Europe/Berlin';
 --SET ROLE TO 'jira';
 
+CREATE TABLE jira.user_sessions
+(
+    sid    VARCHAR      COLLATE "default" NOT NULL,
+    sess   json         NOT NULL,
+    expire TIMESTAMP(6) NOT NULL
+)
+    WITH (OIDS= FALSE);
+
+ALTER TABLE jira.user_sessions
+    ADD CONSTRAINT session_pkey PRIMARY KEY (sid) NOT DEFERRABLE INITIALLY IMMEDIATE;
+
+CREATE INDEX IDX_session_expire ON jira.user_sessions (expire);
+
 CREATE TABLE jira.event_log
 (
     aggregate_id VARCHAR(31) NOT NULL,

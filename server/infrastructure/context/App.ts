@@ -1,7 +1,6 @@
 import ExpressServer from "./ExpressServer";
 import WinstonLogFactory from "./winstonLogFactory";
 import config, {Environment} from "../config/config";
-import RedisClient from "../clients/RedisClient";
 import RabbitClient from "../clients/RabbitClient";
 import PostgresClient from "../clients/PostgresClient";
 import {RequestHandler} from "express";
@@ -53,7 +52,6 @@ type Context = {
         clients: {
             rabbitMQClient?: RabbitClient
             postgresClient?: PostgresClient
-            redisClient?: RedisClient
         },
         eventBus: EventBus;
         server: ExpressServer,
@@ -193,7 +191,6 @@ export default class App {
             try {
                 this.context.common.clients.rabbitMQClient = await RabbitClient.init(this.env.RABBIT_PARAMS);
                 this.context.common.clients.postgresClient = await PostgresClient.init(this.env.POSTGRES_PARAMS);
-                this.context.common.clients.redisClient = await RedisClient.init(this.env.REDIS_PARAMS);
                 resolve()
             } catch (err) {
                 reject(new Error("error while initializing clients: " + err.message ))
@@ -403,7 +400,9 @@ export default class App {
             new ExpressServer(
                 this.env.PORT,
                 this.env.SESSION_COOKIE_TTL,
-                this.context.common.clients.redisClient,
+                this.env.SESSION_SECRET,
+                this.env.REQUEST_LIMIT,
+                this.context.common.clients.postgresClient,
                 resources
             ).init().then((server) => {
                     this.context.common.server = server;
