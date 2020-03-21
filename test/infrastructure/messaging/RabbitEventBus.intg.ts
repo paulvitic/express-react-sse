@@ -5,7 +5,7 @@ import {
     DOMAIN_EVENT_FIXTURE,
     MockDomainEvent
 } from "../../domain/domainFixtures";
-import config from "../../../server/infrastructure/config/config";
+import config from "../../../server/infrastructure/context/config";
 import PostgresClient from "../../../server/infrastructure/clients/PostgresClient";
 import LogFactory from "../../../server/domain/LogFactory";
 import WinstonLogFactory from "../../../server/infrastructure/context/winstonLogFactory";

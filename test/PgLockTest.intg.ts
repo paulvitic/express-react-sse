@@ -7,7 +7,7 @@ import {
 } from "./domain/product/productFixtures";
 import LogFactory from "../server/domain/LogFactory";
 import WinstonLogFactory from "../server/infrastructure/context/winstonLogFactory";
-import config from "../server/infrastructure/config/config";
+import config from "../server/infrastructure/context/config";
 import TicketUpdateCollectionPostgresRepo
     from "../server/infrastructure/persistence/TicketUpdateCollectionPostgresRepo";
 

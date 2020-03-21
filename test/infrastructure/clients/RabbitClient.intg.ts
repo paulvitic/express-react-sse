@@ -2,7 +2,7 @@ import LogFactory, {Logger} from "../../../server/domain/LogFactory";
 import WinstonLogFactory from "../../../server/infrastructure/context/winstonLogFactory";
 import * as shell from 'shelljs';
 import RabbitClient from "../../../server/infrastructure/clients/RabbitClient";
-import config, {Environment} from "../../../server/infrastructure/config/config";
+import config, {Environment} from "../../../server/infrastructure/context/config";
 
 function sleep(milliseconds) {
     return new Promise(resolve => setTimeout(resolve, milliseconds));

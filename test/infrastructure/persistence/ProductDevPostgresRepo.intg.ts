@@ -1,6 +1,6 @@
 import LogFactory from "../../../server/domain/LogFactory";
 import WinstonLogFactory from "../../../server/infrastructure/context/winstonLogFactory";
-import config from "../../../server/infrastructure/config/config";
+import config from "../../../server/infrastructure/context/config";
 import PostgresClient from "../../../server/infrastructure/clients/PostgresClient";
 import {
     PRODUCT_DEV_STARTED_ON_FIXTURE,

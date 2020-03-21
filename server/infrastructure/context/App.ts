@@ -1,6 +1,6 @@
 import ExpressServer from "./ExpressServer";
 import WinstonLogFactory from "./winstonLogFactory";
-import config, {Environment} from "../config/config";
+import config, {Environment} from "./config";
 import RabbitClient from "../clients/RabbitClient";
 import PostgresClient from "../clients/PostgresClient";
 import {RequestHandler} from "express";

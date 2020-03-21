@@ -1,5 +1,5 @@
 import * as O from 'fp-ts/lib/Option';
-import config from "../../../server/infrastructure/config/config";
+import config from "../../../server/infrastructure/context/config";
 import JiraIntegration from "../../../server/infrastructure/integration/JiraIntegration";
 import LogFactory from "../../../server/domain/LogFactory";
 import WinstonLogFactory from "../../../server/infrastructure/context/winstonLogFactory";

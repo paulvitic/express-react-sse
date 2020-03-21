@@ -1,7 +1,7 @@
 import PostgresClient from "../../../server/infrastructure/clients/PostgresClient";
 import LogFactory from "../../../server/domain/LogFactory";
 import WinstonLogFactory from "../../../server/infrastructure/context/winstonLogFactory";
-import config from "../../../server/infrastructure/config/config";
+import config from "../../../server/infrastructure/context/config";
 import TicketUpdateCollection, {TicketUpdateCollectionStatus} from "../../../server/domain/product/TicketUpdateCollection";
 import TicketUpdateCollectionRepository
     from "../../../server/domain/product/repository/TicketUpdateCollectionRepository";
